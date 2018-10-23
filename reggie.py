@@ -19,29 +19,36 @@
 # with this program; if not, write to the Free Software Foundation, Inc.,
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
-import archive
-import lz77
+from ctypes import create_string_buffer
 import os.path
 import pickle
-import sprites
 import struct
 import sys
 import time
 import warnings
-
-from ctypes import create_string_buffer
-from PyQt4 import QtCore, QtGui
 from xml.dom import minidom
 
-ReggieID = 'Reggie r3 by Treeki, Tempus'
+try:
+    from PyQt5 import QtCore, QtGui, QtWidgets
+except ImportError:
+    from PyQt4 import QtCore, QtGui
+    QtWidgets = QtGui
+
+import archive
+import lz77
+import sprites
+
+ReggieID = 'Reggie r4 by Treeki, Tempus'
+
+QtCompatVersion = QtCore.QT_VERSION
 
 
 # pre-Qt4.6 compatibility
 QtCompatVersion = QtCore.QT_VERSION
 
-if QtCompatVersion < 0x40600 or not hasattr(QtGui.QGraphicsItem, 'ItemSendsGeometryChanges'):
+if QtCompatVersion < 0x40600 or not hasattr(QtWidgets.QGraphicsItem, 'ItemSendsGeometryChanges'):
     # enables itemChange being called on QGraphicsItem
-    QtGui.QGraphicsItem.ItemSendsGeometryChanges = QtGui.QGraphicsItem.GraphicsItemFlag(0x800)
+    QtWidgets.QGraphicsItem.ItemSendsGeometryChanges = QtWidgets.QGraphicsItem.GraphicsItemFlag(0x800)
 
 # use psyco for optimisation if available
 try:
@@ -56,6 +63,48 @@ try:
     HaveNSMBLib = True
 except ImportError:
     HaveNSMBLib = False
+
+# Some Py2/Py3 compatibility helpers
+
+if sys.version_info.major < 3:
+    _unicode = unicode
+def unicode(*args, **kwargs):
+    if sys.version_info.major < 3:
+        return _unicode(*args, **kwargs)
+    return str(*args, **kwargs)
+
+def keyInAttribs(key, node):
+    if sys.version_info.major < 3:
+        return node.attributes.has_key(key)
+    return key in node.attributes
+
+def toPyObject(x):
+    if QtCompatVersion < 0x50000:
+        return x.toPyObject()
+    return x
+
+_ord = ord
+def ord(x):
+    if isinstance(x, int):
+        return x
+    return _ord(x)
+
+def intsToBytes(L):
+    if sys.version_info.major < 3:
+        return b''.join(chr(x) for x in L)
+    return bytes(L)
+
+def QFileDialog_getOpenFileName(*args, **kwargs):
+    retVal = QtWidgets.QFileDialog.getOpenFileName(*args, **kwargs)
+    if QtCompatVersion < 0x50000:
+        return retVal
+    return retVal[0]
+
+def QFileDialog_getSaveFileName(*args, **kwargs):
+    retVal = QtWidgets.QFileDialog.getSaveFileName(*args, **kwargs)
+    if QtCompatVersion < 0x50000:
+        return retVal
+    return retVal[0]
 
 
 app = None
@@ -75,13 +124,13 @@ def module_path():
 def IsNSMBLevel(filename):
     """Does some basic checks to confirm a file is a NSMB level"""
     if not os.path.isfile(filename): return False
-    f = open(filename, 'rb')
-    data = f.read()
+    with open(filename, 'rb') as f:
+        data = f.read()
 
-    if not data.startswith('U\xAA8-'):
+    if not data.startswith(b'U\xAA8-'):
         return False
 
-    if 'course\0' not in data and 'course1.bin\0' not in data and '\0\0\0\x80' not in data:
+    if b'course\0' not in data and b'course1.bin\0' not in data and b'\0\0\0\x80' not in data:
         return False
 
     return True
@@ -90,7 +139,7 @@ def FilesAreMissing():
     """Checks to see if any of the required files for Reggie are missing"""
 
     if not os.path.isdir('reggiedata'):
-        QtGui.QMessageBox.warning(None, 'Error',  'Sorry, you seem to be missing the required data files for Reggie! to work. Please redownload your copy of the editor.')
+        QtWidgets.QMessageBox.warning(None, 'Error',  'Sorry, you seem to be missing the required data files for Reggie! to work. Please redownload your copy of the editor.')
         return True
 
     required = ['entrances.png', 'entrancetypes.txt', 'icon.png', 'levelnames.txt', 'overrides.png',
@@ -104,7 +153,7 @@ def FilesAreMissing():
             missing.append(check)
 
     if len(missing) > 0:
-        QtGui.QMessageBox.warning(None, 'Error',  'Sorry, you seem to be missing some of the required data files for Reggie! to work. Please redownload your copy of the editor. These are the files you are missing: ' + ', '.join(missing))
+        QtWidgets.QMessageBox.warning(None, 'Error',  'Sorry, you seem to be missing some of the required data files for Reggie! to work. Please redownload your copy of the editor. These are the files you are missing: ' + ', '.join(missing))
         return True
 
     return False
@@ -130,7 +179,7 @@ def isValidGamePath(check='ug'):
     """Checks to see if the path for NSMBWii contains a valid game"""
     if check == 'ug': check = gamePath
 
-    if check == None or check == '': return False
+    if check is None or check == '': return False
     if not os.path.isdir(check): return False
     if not os.path.isdir(os.path.join(check, 'Texture')): return False
     if not os.path.isfile(os.path.join(check, '01-01.arc')): return False
@@ -143,11 +192,10 @@ LevelNames = None
 def LoadLevelNames():
     """Ensures that the level name info is loaded"""
     global LevelNames
-    if LevelNames != None: return
+    if LevelNames is not None: return
 
-    f = open('reggiedata/levelnames.txt')
-    raw = [x.strip() for x in f.readlines()]
-    f.close()
+    with open('reggiedata/levelnames.txt') as f:
+        raw = [x.strip() for x in f.readlines()]
 
     LevelNames = []
     CurrentWorldName = None
@@ -156,7 +204,7 @@ def LoadLevelNames():
     for line in raw:
         if line == '': continue
         if line.startswith('-'):
-            if CurrentWorld != None:
+            if CurrentWorld is not None:
                 LevelNames.append((CurrentWorldName,CurrentWorld))
 
             CurrentWorldName = line[1:]
@@ -165,7 +213,7 @@ def LoadLevelNames():
             d = line.split('|')
             CurrentWorld.append((d[0], d[1]))
 
-    if CurrentWorld != None:
+    if CurrentWorld is not None:
         LevelNames.append((CurrentWorldName,CurrentWorld))
 
 
@@ -173,11 +221,10 @@ TilesetNames = None
 def LoadTilesetNames():
     """Ensures that the tileset name info is loaded"""
     global TilesetNames
-    if TilesetNames != None: return
+    if TilesetNames is not None: return
 
-    f = open('reggiedata/tilesets.txt')
-    raw = [x.strip() for x in f.readlines()]
-    f.close()
+    with open('reggiedata/tilesets.txt') as f:
+        raw = [x.strip() for x in f.readlines()]
 
     TilesetNames = []
     StandardSuite = []
@@ -208,11 +255,10 @@ ObjDesc = None
 def LoadObjDescriptions():
     """Ensures that the object description is loaded"""
     global ObjDesc
-    if ObjDesc != None: return
+    if ObjDesc is not None: return
 
-    f = open('reggiedata/ts1_descriptions.txt')
-    raw = [x.strip() for x in f.readlines()]
-    f.close()
+    with open('reggiedata/ts1_descriptions.txt') as f:
+        raw = [x.strip() for x in f.readlines()]
 
     ObjDesc = {}
     for line in raw:
@@ -224,11 +270,10 @@ BgANames = None
 def LoadBgANames():
     """Ensures that the background name info is loaded"""
     global BgANames
-    if BgANames != None: return
+    if BgANames is not None: return
 
-    f = open('reggiedata/bga.txt')
-    raw = [x.strip() for x in f.readlines()]
-    f.close()
+    with open('reggiedata/bga.txt') as f:
+        raw = [x.strip() for x in f.readlines()]
 
     BgANames = []
 
@@ -241,11 +286,10 @@ BgBNames = None
 def LoadBgBNames():
     """Ensures that the background name info is loaded"""
     global BgBNames
-    if BgBNames != None: return
+    if BgBNames is not None: return
 
-    f = open('reggiedata/bgb.txt')
-    raw = [x.strip() for x in f.readlines()]
-    f.close()
+    with open('reggiedata/bgb.txt') as f:
+        raw = [x.strip() for x in f.readlines()]
 
     BgBNames = []
 
@@ -283,14 +327,13 @@ class SpriteDefinition():
 
         def __init__(self, entries, existingLookup, max):
             """Constructor"""
-            QtCore.QAbstractListModel.__init__(self)
+            super(SpriteDefinition.ListPropertyModel, self).__init__()
             self.entries = entries
             self.existingLookup = existingLookup
             self.max = max
 
         def rowCount(self, parent=None):
             """Required by Qt"""
-            #return self.max
             return len(self.entries)
 
         def data(self, index, role=QtCore.Qt.DisplayRole):
@@ -298,15 +341,9 @@ class SpriteDefinition():
             if not index.isValid(): return None
             n = index.row()
             if n < 0: return None
-            #if n >= self.max: return None
             if n >= len(self.entries): return None
 
             if role == QtCore.Qt.DisplayRole:
-                #entries = self.entries
-                #if entries.has_key(n):
-                #    return '%d: %s' % (n, entries[n])
-                #else:
-                #    return '%d: <unknown/unused>' % n
                 return '%d: %s' % self.entries[n]
 
             return None
@@ -322,7 +359,7 @@ class SpriteDefinition():
 
             attribs = field.attributes
 
-            if attribs.has_key('comment'):
+            if keyInAttribs('comment', field):
                 comment = '<b>%s</b>: %s' % (attribs['title'].nodeValue, attribs['comment'].nodeValue)
             else:
                 comment = None
@@ -336,7 +373,7 @@ class SpriteDefinition():
                     getit = snybble.split('-')
                     nybble = (int(getit[0]) - 1, int(getit[1]))
 
-                fields.append((0, attribs['title'].nodeValue, nybble, int(attribs['mask'].nodeValue) if attribs.has_key('mask') else 1, comment))
+                fields.append((0, attribs['title'].nodeValue, nybble, int(attribs['mask'].nodeValue) if keyInAttribs('mask', field) else 1, comment))
             elif field.nodeName == 'list':
                 # parameters: title, nybble, model, comment
                 snybble = attribs['nybble'].nodeValue
@@ -349,7 +386,7 @@ class SpriteDefinition():
                     max = (16 << ((nybble[1] - nybble[0] - 1) * 4))
 
                 entries = []
-                existing = [None for i in xrange(max)]
+                existing = [None for i in range(max)]
                 for e in field.childNodes:
                     if e.nodeType != e.ELEMENT_NODE: continue
                     if e.nodeName != 'entry': continue
@@ -381,7 +418,7 @@ class SpriteDefinition():
 def LoadSpriteData():
     """Ensures that the sprite data info is loaded"""
     global Sprites
-    if Sprites != None: return
+    if Sprites is not None: return
 
     Sprites = [None] * 483
 
@@ -398,7 +435,7 @@ def LoadSpriteData():
         spritename = unicode(sprite.attributes['name'].nodeValue)
         notes = None
 
-        if sprite.attributes.has_key('notes'):
+        if keyInAttribs('notes', sprite):
             notes = '<b>Sprite Notes:</b> ' + sprite.attributes['notes'].nodeValue
 
         sdef = SpriteDefinition()
@@ -407,7 +444,7 @@ def LoadSpriteData():
         sdef.notes = notes
         try:
             sdef.loadFrom(sprite)
-        except Exception, e:
+        except Exception as e:
             errors.append(str(spriteid))
             errortext.append(str(e))
 
@@ -416,14 +453,14 @@ def LoadSpriteData():
     sd.unlink()
 
     if len(errors) > 0:
-        QtGui.QMessageBox.warning(None, 'Warning',  'The sprite data file didn\'t load correctly. The following sprites have incorrect and/or broken data in them, and may not be editable correctly in the editor: ' + (', '.join(errors)), QtGui.QMessageBox.Ok)
-        QtGui.QMessageBox.warning(None, 'Errors', repr(errortext))
+        QtWidgets.QMessageBox.warning(None, 'Warning',  'The sprite data file didn\'t load correctly. The following sprites have incorrect and/or broken data in them, and may not be editable correctly in the editor: ' + (', '.join(errors)), QtWidgets.QMessageBox.Ok)
+        QtWidgets.QMessageBox.warning(None, 'Errors', repr(errortext))
 
 
 def LoadSpriteCategories():
     """Ensures that the sprite category info is loaded"""
     global Sprites, SpriteCategories
-    if SpriteCategories != None: return
+    if SpriteCategories is not None: return
 
     SpriteCategories = []
 
@@ -457,12 +494,12 @@ def LoadSpriteCategories():
                     CurrentCategory.append(int(sprite))
                 else:
                     x = sprite.split('-')
-                    for i in xrange(int(x[0]), int(x[1])+1):
+                    for i in range(int(x[0]), int(x[1])+1):
                         CurrentCategory.append(i)
 
     sd.unlink()
 
-    SpriteCategories.append(('Search', [('Search Results', range(0,483))], []))
+    SpriteCategories.append(('Search', [('Search Results', list(range(0,483)))], []))
     SpriteCategories[-1][1][0][1].append(9999) # "no results" special case
 
 
@@ -470,24 +507,24 @@ EntranceTypeNames = None
 def LoadEntranceNames():
     """Ensures that the entrance names are loaded"""
     global EntranceTypeNames
-    if EntranceTypeNames != None: return
+    if EntranceTypeNames is not None: return
 
-    getit = open('reggiedata/entrancetypes.txt', 'r')
-    EntranceTypeNames = [x.strip() for x in getit.readlines()]
+    with open('reggiedata/entrancetypes.txt', 'r') as getit:
+        EntranceTypeNames = [x.strip() for x in getit.readlines()]
 
 
-class ChooseLevelNameDialog(QtGui.QDialog):
+class ChooseLevelNameDialog(QtWidgets.QDialog):
     """Dialog which lets you choose a level from a list"""
 
     def __init__(self):
         """Creates and initialises the dialog"""
-        QtGui.QDialog.__init__(self)
+        super(ChooseLevelNameDialog, self).__init__()
         self.setWindowTitle('Choose Level')
         LoadLevelNames()
         self.currentlevel = None
 
         # create the tree
-        tree = QtGui.QTreeWidget()
+        tree = QtWidgets.QTreeWidget()
         tree.setColumnCount(1)
         tree.setHeaderHidden(True)
         tree.setIndentation(16)
@@ -495,11 +532,11 @@ class ChooseLevelNameDialog(QtGui.QDialog):
         tree.itemActivated.connect(self.HandleItemActivated)
 
         for worldname, world in LevelNames:
-            wnode = QtGui.QTreeWidgetItem()
+            wnode = QtWidgets.QTreeWidgetItem()
             wnode.setText(0, worldname)
 
             for levelname, level in world:
-                lnode = QtGui.QTreeWidgetItem()
+                lnode = QtWidgets.QTreeWidgetItem()
                 lnode.setText(0, levelname)
                 lnode.setData(0, QtCore.Qt.UserRole, level)
                 lnode.setToolTip(0, level + '.arc')
@@ -510,37 +547,37 @@ class ChooseLevelNameDialog(QtGui.QDialog):
         self.leveltree = tree
 
         # create the buttons
-        self.buttonBox = QtGui.QDialogButtonBox(QtGui.QDialogButtonBox.Ok | QtGui.QDialogButtonBox.Cancel)
-        self.buttonBox.button(QtGui.QDialogButtonBox.Ok).setEnabled(False)
+        self.buttonBox = QtWidgets.QDialogButtonBox(QtWidgets.QDialogButtonBox.Ok | QtWidgets.QDialogButtonBox.Cancel)
+        self.buttonBox.button(QtWidgets.QDialogButtonBox.Ok).setEnabled(False)
 
         self.buttonBox.accepted.connect(self.accept)
         self.buttonBox.rejected.connect(self.reject)
 
         # create the layout
-        layout = QtGui.QVBoxLayout()
+        layout = QtWidgets.QVBoxLayout()
         layout.addWidget(self.leveltree)
         layout.addWidget(self.buttonBox)
 
         self.setLayout(layout)
         self.layout = layout
 
-    @QtCore.pyqtSlot(QtGui.QTreeWidgetItem, QtGui.QTreeWidgetItem)
+    @QtCore.pyqtSlot(QtWidgets.QTreeWidgetItem, QtWidgets.QTreeWidgetItem)
     def HandleItemChange(self, current, previous):
         """Catch the selected level and enable/disable OK button as needed"""
         self.currentlevel = current.data(0, QtCore.Qt.UserRole)
-        if self.currentlevel == None:
-            self.buttonBox.button(QtGui.QDialogButtonBox.Ok).setEnabled(False)
+        if self.currentlevel is None:
+            self.buttonBox.button(QtWidgets.QDialogButtonBox.Ok).setEnabled(False)
         else:
-            self.buttonBox.button(QtGui.QDialogButtonBox.Ok).setEnabled(True)
-            self.currentlevel = unicode(self.currentlevel.toPyObject())
+            self.buttonBox.button(QtWidgets.QDialogButtonBox.Ok).setEnabled(True)
+            self.currentlevel = unicode(toPyObject(self.currentlevel))
 
 
-    @QtCore.pyqtSlot(QtGui.QTreeWidgetItem, int)
+    @QtCore.pyqtSlot(QtWidgets.QTreeWidgetItem, int)
     def HandleItemActivated(self, item, column):
         """Handle a doubleclick on a level"""
         self.currentlevel = item.data(0, QtCore.Qt.UserRole)
-        if self.currentlevel != None:
-            self.currentlevel = unicode(self.currentlevel.toPyObject())
+        if self.currentlevel is not None:
+            self.currentlevel = unicode(toPyObject(self.currentlevel))
             self.accept()
 
 
@@ -586,13 +623,13 @@ def RenderObject(tileset, objnum, width, height, fullslope=False):
     """Render a tileset object into an array"""
     # allocate an array
     dest = []
-    for i in xrange(height): dest.append([0]*width)
+    for i in range(height): dest.append([0]*width)
 
     # ignore non-existent objects
     tileset_defs = ObjectDefinitions[tileset]
-    if tileset_defs == None: return dest
+    if tileset_defs is None: return dest
     obj = tileset_defs[objnum]
-    if obj == None: return dest
+    if obj is None: return dest
     if len(obj.rows) == 0: return dest
 
     # diagonal objects are rendered differently
@@ -618,11 +655,11 @@ def RenderObject(tileset, objnum, width, height, fullslope=False):
 
         bc = len(beforeRepeat); ic = len(inRepeat); ac = len(afterRepeat)
         if ic == 0:
-            for y in xrange(height):
+            for y in range(height):
                 RenderStandardRow(dest[y], beforeRepeat[y % bc], y, width)
         else:
             afterthreshold = height - ac - 1
-            for y in xrange(height):
+            for y in range(height):
                 if y < bc:
                     RenderStandardRow(dest[y], beforeRepeat[y], y, width)
                 elif y > afterthreshold:
@@ -652,11 +689,11 @@ def RenderStandardRow(dest, row, y, width):
 
     bc = len(beforeRepeat); ic = len(inRepeat); ac = len(afterRepeat)
     if ic == 0:
-        for x in xrange(width):
+        for x in range(width):
             dest[x] = beforeRepeat[x % bc][1]
     else:
         afterthreshold = width - ac - 1
-        for x in xrange(width):
+        for x in range(width):
             if x < bc:
                 dest[x] = beforeRepeat[x][1]
             elif x > afterthreshold:
@@ -669,7 +706,7 @@ def RenderDiagonalObject(dest, obj, width, height, fullslope):
     """Render a diagonal object"""
     # set all to empty tiles
     for row in dest:
-        for x in xrange(width):
+        for x in range(width):
             row[x] = -1
 
     # get sections
@@ -691,7 +728,7 @@ def RenderDiagonalObject(dest, obj, width, height, fullslope):
         # slope going from SW => NE
         # start off at the bottom left
         x = 0
-        y = height - len(mainBlock) - (0 if subBlock == None else len(subBlock))
+        y = height - len(mainBlock) - (0 if subBlock is None else len(subBlock))
         xi = len(mainBlock[0])
         yi = -len(mainBlock)
 
@@ -709,7 +746,7 @@ def RenderDiagonalObject(dest, obj, width, height, fullslope):
         # slope going from NW => SE
         # start off at the top left
         x = 0
-        y = (0 if subBlock == None else len(subBlock))
+        y = (0 if subBlock is None else len(subBlock))
         xi = len(mainBlock[0])
         yi = len(mainBlock)
 
@@ -724,9 +761,9 @@ def RenderDiagonalObject(dest, obj, width, height, fullslope):
 
 
     # finally draw it
-    for i in xrange(drawAmount):
+    for i in range(drawAmount):
         PutObjectArray(dest, x, y, mainBlock, width, height)
-        if subBlock != None:
+        if subBlock is not None:
             xb = x
             if goLeft: xb = x + len(mainBlock[0]) - len(subBlock[0])
             if goDown:
@@ -739,14 +776,14 @@ def RenderDiagonalObject(dest, obj, width, height, fullslope):
 
 def PutObjectArray(dest, xo, yo, block, width, height):
     """Places a tile array into an object"""
-    #for y in xrange(yo,min(yo+len(block),height)):
-    for y in xrange(yo,yo+len(block)):
+    #for y in range(yo,min(yo+len(block),height)):
+    for y in range(yo,yo+len(block)):
         if y < 0: continue
         if y >= height: continue
         drow = dest[y]
         srow = block[y-yo]
-        #for x in xrange(xo,min(xo+len(srow),width)):
-        for x in xrange(xo,xo+len(srow)):
+        #for x in range(xo,min(xo+len(srow),width)):
+        for x in range(xo,xo+len(srow)):
             if x < 0: continue
             if x >= width: continue
             drow[x] = srow[x-xo][1]
@@ -759,12 +796,12 @@ def GetSlopeSections(obj):
 
     for row in obj.rows:
         if len(row) > 0 and (row[0][0] & 0x80) != 0: # begin new section
-            if currentSection != None:
+            if currentSection is not None:
                 sections.append(CreateSection(currentSection))
             currentSection = []
         currentSection.append(row)
 
-    if currentSection != None: # end last section
+    if currentSection is not None: # end last section
         sections.append(CreateSection(currentSection))
 
     if len(sections) == 1:
@@ -819,7 +856,7 @@ def LoadTileset(idx, name):
     try:
         return _LoadTileset(idx, name)
     except:
-        QtGui.QMessageBox.warning(None, 'Error',  'An error occurred while trying to load %s.arc. Check your Texture folder to make sure it is complete and not corrupted. The editor may run in a broken state or crash after this.' % name)
+        QtWidgets.QMessageBox.warning(None, 'Error',  'An error occurred while trying to load %s.arc. Check your Texture folder to make sure it is complete and not corrupted. The editor may run in a broken state or crash after this.' % name)
         return False
 
 
@@ -829,12 +866,11 @@ def _LoadTileset(idx, name):
     arcname = os.path.join(gamePath, 'Texture', name+'.arc')
 
     if not os.path.isfile(arcname):
-        QtGui.QMessageBox.warning(None, 'Error',  'Cannot find the required tileset file %s.arc for this level. Check your Texture folder and make sure it contains the required file.' % name)
+        QtWidgets.QMessageBox.warning(None, 'Error',  'Cannot find the required tileset file %s.arc for this level. Check your Texture folder and make sure it contains the required file.' % name)
         return False
 
-    arcf = open(arcname,'rb')
-    arcdata = arcf.read()
-    arcf.close()
+    with open(arcname, 'rb') as arcf:
+        arcdata = arcf.read()
 
     arc = archive.U8.load(arcdata)
 
@@ -842,7 +878,7 @@ def _LoadTileset(idx, name):
     try:
         comptiledata = arc['BG_tex/%s_tex.bin.LZ' % name]
     except KeyError:
-        QtGui.QMessageBox.warning(None, 'Error',  'Cannot find the required texture within the tileset file %s.arc, so it will not be loaded. Keep in mind that the tileset file cannot be renamed without changing the names of the texture/object files within the archive as well!' % name)
+        QtWidgets.QMessageBox.warning(None, 'Error',  'Cannot find the required texture within the tileset file %s.arc, so it will not be loaded. Keep in mind that the tileset file cannot be renamed without changing the names of the texture/object files within the archive as well!' % name)
         return False
 
     # load in the textures - uses a different method if nsmblib exists
@@ -860,7 +896,7 @@ def _LoadTileset(idx, name):
     sourcex = 4
     sourcey = 4
     tileoffset = idx*256
-    for i in xrange(tileoffset,tileoffset+256):
+    for i in range(tileoffset,tileoffset+256):
         Tiles[i] = dest.copy(sourcex,sourcey,24,24)
         sourcex += 32
         if sourcex >= 1024:
@@ -874,10 +910,10 @@ def _LoadTileset(idx, name):
 
     indexfile = arc['BG_unt/%s_hd.bin' % name]
     deffile = arc['BG_unt/%s.bin' % name]
-    objcount = len(indexfile) / 4
+    objcount = len(indexfile) // 4
     indexstruct = struct.Struct('>HBB')
 
-    for i in xrange(objcount):
+    for i in range(objcount):
         data = indexstruct.unpack_from(indexfile, i << 2)
         obj = ObjectDef()
         obj.width = data[1]
@@ -898,11 +934,11 @@ def LoadTextureUsingOldMethod(tiledata):
 
     # this is for optimisation
     if EnableAlpha:
-        for i in xrange(16384):
-            for y in xrange(ty,ty+4):
-                for x in xrange(tx,tx+4):
-                    d = iter.next() << 8
-                    d |= iter.next()
+        for i in range(16384):
+            for y in range(ty,ty+4):
+                for x in range(tx,tx+4):
+                    d = next(iter) << 8
+                    d |= next(iter)
                     if (d & 0x8000) == 0:
                         argb = ((d & 0x7000) << 17) | ((d & 0xf00) << 12) | ((d & 0xf0) << 8) | ((d & 0xf) << 4)
                     else:
@@ -912,11 +948,11 @@ def LoadTextureUsingOldMethod(tiledata):
             tx += 4
             if tx >= 1024: tx = 0; ty += 4
     else:
-        for i in xrange(16384):
-            for y in xrange(ty,ty+4):
-                for x in xrange(tx,tx+4):
-                    d = iter.next() << 8
-                    d |= iter.next()
+        for i in range(16384):
+            for y in range(ty,ty+4):
+                for x in range(tx,tx+4):
+                    d = next(iter) << 8
+                    d |= next(iter)
                     if (d & 0x8000) == 0:
                         argb = 0xFF000000 | ((d & 0xf00) << 12) | ((d & 0xf0) << 8) | ((d & 0xf) << 4)
                     else:
@@ -931,7 +967,7 @@ def LoadTextureUsingOldMethod(tiledata):
 
 def UnloadTileset(idx):
     """Unload the tileset from a specific slot"""
-    for i in xrange(idx*256, idx*256+256):
+    for i in range(idx*256, idx*256+256):
         Tiles[i] = None
 
     ObjectDefinitions[idx] = None
@@ -961,10 +997,10 @@ def ProcessOverrides(idx, name):
             # Question and brick blocks
             # these don't have their own tiles so we have to do them by objects
             replace = offset + 9
-            for i in xrange(38, 49):
+            for i in range(38, 49):
                 defs[i].rows[0][0] = (0, replace, 0)
                 replace += 1
-            for i in xrange(26, 38):
+            for i in range(26, 38):
                 defs[i].rows[0][0] = (0, replace, 0)
                 replace += 1
 
@@ -1177,13 +1213,13 @@ def LoadOverrides():
 
     OverrideBitmap = QtGui.QPixmap('reggiedata/overrides.png')
     idx = 0
-    xcount = OverrideBitmap.width() / 24
-    ycount = OverrideBitmap.height() / 24
+    xcount = OverrideBitmap.width() // 24
+    ycount = OverrideBitmap.height() // 24
     sourcex = 0
     sourcey = 0
 
-    for y in xrange(ycount):
-        for x in xrange(xcount):
+    for y in range(ycount):
+        for x in range(xcount):
             Overrides[idx] = OverrideBitmap.copy(sourcex, sourcey, 24, 24)
             idx += 1
             sourcex += 24
@@ -1221,14 +1257,14 @@ AutoSavePath = ''
 AutoSaveData = ''
 
 def createHorzLine():
-    f = QtGui.QFrame()
-    f.setFrameStyle(QtGui.QFrame.HLine | QtGui.QFrame.Sunken)
+    f = QtWidgets.QFrame()
+    f.setFrameStyle(QtWidgets.QFrame.HLine | QtWidgets.QFrame.Sunken)
     return f
 
 def LoadNumberFont():
     """Creates a valid font we can use to display the item numbers"""
     global NumberFont
-    if NumberFont != None: return
+    if NumberFont is not None: return
 
     # this is a really crappy method, but I can't think of any other way
     # normal Qt defines Q_WS_WIN and Q_WS_MAC but we don't have that here
@@ -1243,7 +1279,7 @@ def LoadNumberFont():
 def LoadNumberFontBold():
     """Creates a valid font we can use to display the item numbers"""
     global NumberFontBold
-    if NumberFontBold != None: return
+    if NumberFontBold is not None: return
 
     # this is a really crappy method, but I can't think of any other way
     # normal Qt defines Q_WS_WIN and Q_WS_MAC but we don't have that here
@@ -1316,7 +1352,7 @@ class LevelUnit():
         # we don't parse blocks 4, 11, 12, 13, 14
         # we can create the rest manually
         self.blocks = [None]*14
-        self.blocks[3] = '\0\0\0\0\0\0\0\0'
+        self.blocks[3] = b'\0\0\0\0\0\0\0\0'
         # other known values for block 4: 0000 0002 0042 0000,
         #            0000 0002 0002 0000, 0000 0003 0003 0000
         self.blocks[11] = '' # never used
@@ -1377,15 +1413,14 @@ class LevelUnit():
             SetDirty(noautosave=True)
         else:
             if not os.path.isfile(self.arcname):
-                QtGui.QMessageBox.warning(None, 'Error',  'Cannot find the required level file %s.arc. Check your Stage folder and make sure it exists.' % name)
+                QtWidgets.QMessageBox.warning(None, 'Error',  'Cannot find the required level file %s.arc. Check your Stage folder and make sure it exists.' % name)
                 return False
 
             self.filename = os.path.basename(self.arcname)
             self.hasName = True
 
-            arcf = open(self.arcname,'rb')
-            arcdata = arcf.read()
-            arcf.close()
+            with open(self.arcname, 'rb') as arcf:
+                arcdata = arcf.read()
 
         self.arc = archive.U8.load(arcdata)
 
@@ -1403,7 +1438,7 @@ class LevelUnit():
         self.areacount = 0
 
         for item,val in self.arc.files:
-            if val != None:
+            if val is not None:
                 # it's a file
                 fname = item[item.rfind('/')+1:]
                 if fname == reqcourse:
@@ -1422,7 +1457,7 @@ class LevelUnit():
         # load in the course file and blocks
         self.blocks = [None]*14
         getblock = struct.Struct('>II')
-        for i in xrange(14):
+        for i in range(14):
             data = getblock.unpack_from(course, i*8)
             if data[1] == 0:
                 self.blocks[i] = ''
@@ -1448,32 +1483,32 @@ class LevelUnit():
             self.LoadReggieInfo(None)
 
         # load the tilesets
-        if progress != None: progress.setLabelText('Loading tilesets...')
+        if progress is not None: progress.setLabelText('Loading tilesets...')
 
         CreateTilesets()
-        if progress != None: progress.setValue(1)
+        if progress is not None: progress.setValue(1)
         if self.tileset0 != '': LoadTileset(0, self.tileset0)
-        if progress != None: progress.setValue(2)
+        if progress is not None: progress.setValue(2)
         if self.tileset1 != '': LoadTileset(1, self.tileset1)
-        if progress != None: progress.setValue(3)
+        if progress is not None: progress.setValue(3)
         if self.tileset2 != '': LoadTileset(2, self.tileset2)
-        if progress != None: progress.setValue(4)
+        if progress is not None: progress.setValue(4)
         if self.tileset3 != '': LoadTileset(3, self.tileset3)
 
         # load the object layers
-        if progress != None:
+        if progress is not None:
             progress.setLabelText('Loading layers...')
             progress.setValue(5)
 
         self.layers = [[],[],[]]
 
-        if l0 != None:
+        if l0 is not None:
             self.LoadLayer(0,l0)
 
-        if l1 != None:
+        if l1 is not None:
             self.LoadLayer(1,l1)
 
-        if l2 != None:
+        if l2 is not None:
             self.LoadLayer(2,l2)
 
         endTime = time.clock()
@@ -1502,7 +1537,7 @@ class LevelUnit():
 
         rdata = self.SaveReggieInfo()
         if len(rdata) % 4 != 0:
-			rdata += '\0' * (4 - (len(rdata) % 4))
+            rdata += b'\0' * (4 - (len(rdata) % 4))
 
         # save the main course file
         # we'll be passing over the blocks array two times
@@ -1537,18 +1572,17 @@ class LevelUnit():
         arc['course/course%d_bgdatL2.bin' % areanum] = self.SaveLayer(2)
 
         # save the U8 archive
-        #arcf = open(self.arcname,'wb')
-        #arcf.write(arc._dump())
-        #arcf.close()
+        #with open(self.arcname, 'wb') as arcf:
+        #    arcf.write(arc._dump())
         return arc._dump()
 
     def LoadMetadata(self):
         """Loads block 1, the tileset names"""
         data = struct.unpack_from('32s32s32s32s', self.blocks[0])
-        self.tileset0 = data[0].strip('\0')
-        self.tileset1 = data[1].strip('\0')
-        self.tileset2 = data[2].strip('\0')
-        self.tileset3 = data[3].strip('\0')
+        self.tileset0 = data[0].strip(b'\0').decode('latin-1')
+        self.tileset1 = data[1].strip(b'\0').decode('latin-1')
+        self.tileset2 = data[2].strip(b'\0').decode('latin-1')
+        self.tileset3 = data[3].strip(b'\0').decode('latin-1')
 
     def LoadOptions(self):
         """Loads block 2, the general options"""
@@ -1561,11 +1595,11 @@ class LevelUnit():
     def LoadEntrances(self):
         """Loads block 7, the entrances"""
         entdata = self.blocks[6]
-        entcount = len(entdata) / 20
+        entcount = len(entdata) // 20
         entstruct = struct.Struct('>HHxxxxBBBBxBBBHxx')
         offset = 0
         entrances = []
-        for i in xrange(entcount):
+        for i in range(entcount):
             data = entstruct.unpack_from(entdata,offset)
             entrances.append(EntranceEditorItem(data[0], data[1], data[2], data[3], data[4], data[5], data[6], data[7], data[8], data[9]))
             offset += 20
@@ -1574,7 +1608,7 @@ class LevelUnit():
     def LoadSprites(self):
         """Loads block 8, the sprites"""
         spritedata = self.blocks[7]
-        sprcount = len(spritedata) / 16
+        sprcount = len(spritedata) // 16
         sprstruct = struct.Struct('>HHH8sxx')
         offset = 0
         sprites = []
@@ -1582,7 +1616,7 @@ class LevelUnit():
         unpack = sprstruct.unpack_from
         append = sprites.append
         obj = SpriteEditorItem
-        for i in xrange(sprcount):
+        for i in range(sprcount):
             data = unpack(spritedata,offset)
             append(obj(data[0], data[1], data[2], data[3]))
             offset += 16
@@ -1591,11 +1625,11 @@ class LevelUnit():
     def LoadZones(self):
         """Loads block 3, the bounding preferences"""
         bdngdata = self.blocks[2]
-        count = len(bdngdata) / 24
+        count = len(bdngdata) // 24
         bdngstruct = struct.Struct('>llllxBxBxxxx')
         offset = 0
         bounding = []
-        for i in xrange(count):
+        for i in range(count):
             datab = bdngstruct.unpack_from(bdngdata,offset)
             bounding.append([datab[0], datab[1], datab[2], datab[3], datab[4], datab[5]])
             offset += 24
@@ -1603,11 +1637,11 @@ class LevelUnit():
 
         """Loads block 5, the top level background values"""
         bgAdata = self.blocks[4]
-        bgAcount = len(bgAdata) / 24
+        bgAcount = len(bgAdata) // 24
         bgAstruct = struct.Struct('>xBhhhhHHHxxxBxxxx')
         offset = 0
         bgA = []
-        for i in xrange(bgAcount):
+        for i in range(bgAcount):
             data = bgAstruct.unpack_from(bgAdata,offset)
             bgA.append([data[0], data[1], data[2], data[3], data[4], data[5], data[6], data[7], data[8]])
             offset += 24
@@ -1615,11 +1649,11 @@ class LevelUnit():
 
         """Loads block 6, the bottom level background values"""
         bgBdata = self.blocks[5]
-        bgBcount = len(bgBdata) / 24
+        bgBcount = len(bgBdata) // 24
         bgBstruct = struct.Struct('>xBhhhhHHHxxxBxxxx')
         offset = 0
         bgB = []
-        for i in xrange(bgBcount):
+        for i in range(bgBcount):
             datab = bgBstruct.unpack_from(bgBdata,offset)
             bgB.append([datab[0], datab[1], datab[2], datab[3], datab[4], datab[5], datab[6], datab[7], datab[8]])
             offset += 24
@@ -1628,10 +1662,10 @@ class LevelUnit():
         """Loads block 10, the zone data"""
         zonedata = self.blocks[9]
         zonestruct = struct.Struct('>HHHHHHBBBBxBBBBxBB')
-        count = len(zonedata) / 24
+        count = len(zonedata) // 24
         offset = 0
         zones = []
-        for i in xrange(count):
+        for i in range(count):
             dataz = zonestruct.unpack_from(zonedata,offset)
             zones.append(ZoneItem(dataz[0], dataz[1], dataz[2], dataz[3], dataz[4], dataz[5], dataz[6], dataz[7], dataz[8], dataz[9], dataz[10], dataz[11], dataz[12], dataz[13], dataz[14], dataz[15], bounding, bgA, bgB, i))
             offset += 24
@@ -1641,19 +1675,19 @@ class LevelUnit():
         """Loads block 11, the sprite locations"""
         locdata = self.blocks[10]
         locstruct = struct.Struct('>HHHHBxxx')
-        count = len(locdata) / 12
+        count = len(locdata) // 12
         offset = 0
         locations = []
-        for i in xrange(count):
+        for i in range(count):
             data = locstruct.unpack_from(locdata, offset)
-            locations.append(SpriteLocationItem(data[0], data[1], data[2], data[3], data[4]))
+            locations.append(LocationEditorItem(data[0], data[1], data[2], data[3], data[4]))
             offset += 12
         self.locations = locations
 
 
     def LoadLayer(self, idx, layerdata):
         """Loads a specific object layer from a string"""
-        objcount = len(layerdata) / 10
+        objcount = len(layerdata) // 10
         objstruct = struct.Struct('>HHHHH')
         offset = 0
         z = (2 - idx) * 8192
@@ -1662,7 +1696,7 @@ class LevelUnit():
         append = layer.append
         obj = LevelObjectEditorItem
         unpack = objstruct.unpack_from
-        for i in xrange(objcount):
+        for i in range(objcount):
             data = unpack(layerdata,offset)
             append(obj(data[0] >> 12, data[0] & 4095, idx, data[1], data[2], data[3], data[4], z))
             z += 1
@@ -1678,13 +1712,13 @@ class LevelUnit():
         # TODO: Render path, and everything above that
         """Loads paths"""
         pathdata = self.blocks[12]
-        pathcount = len(pathdata) / 8
+        pathcount = len(pathdata) // 8
         pathstruct = struct.Struct('>BxHHH')
         offset = 0
         unpack = pathstruct.unpack_from
         pathinfo = []
         paths = []
-        for i in xrange(pathcount):
+        for i in range(pathcount):
             data = unpack(pathdata, offset)
             nodes = self.LoadPathNodes(data[1], data[2])
             add2p = {'id': int(data[0]),
@@ -1698,9 +1732,9 @@ class LevelUnit():
 
             offset += 8
 
-        for i in xrange(pathcount):
+        for i in range(pathcount):
             xpi = pathinfo[i]
-            for j in xrange(len(xpi['nodes'])):
+            for j in range(len(xpi['nodes'])):
                 xpj = xpi['nodes'][j]
                 nobjx = None if ((j+1) == len(xpi['nodes'])) else xpi['nodes'][j+1]['x']
                 nobjy = None if ((j+1) == len(xpi['nodes'])) else xpi['nodes'][j+1]['y']
@@ -1717,7 +1751,7 @@ class LevelUnit():
         nodestruct = struct.Struct('>HHffhxx')
         offset = startindex*16
         unpack = nodestruct.unpack_from
-        for i in xrange(count):
+        for i in range(count):
             data = unpack(nodedata, offset)
             ret.append({'x':int(data[0]),
                         'y':int(data[1]),
@@ -1732,7 +1766,10 @@ class LevelUnit():
 
     def SaveMetadata(self):
         """Saves the tileset names back to block 1"""
-        self.blocks[0] = ''.join([self.tileset0.ljust(32,'\0'), self.tileset1.ljust(32,'\0'), self.tileset2.ljust(32,'\0'), self.tileset3.ljust(32,'\0')])
+        self.blocks[0] = b''.join([self.tileset0.encode('latin-1').ljust(32, b'\0'),
+                                   self.tileset1.encode('latin-1').ljust(32, b'\0'),
+                                   self.tileset2.encode('latin-1').ljust(32, b'\0'),
+                                   self.tileset3.encode('latin-1').ljust(32, b'\0')])
 
     def SaveOptions(self):
         """Saves block 2, the general options"""
@@ -1751,8 +1788,8 @@ class LevelUnit():
         for obj in layer:
             objstruct.pack_into(buffer, offset, f_int((obj.tileset << 12) | obj.type), f_int(obj.objx), f_int(obj.objy), f_int(obj.width), f_int(obj.height))
             offset += 10
-        buffer[offset] = '\xff'
-        buffer[offset+1] = '\xff'
+        buffer[offset] = b'\xff'
+        buffer[offset+1] = b'\xff'
         return buffer.raw
 
     def SaveEntrances(self):
@@ -1780,7 +1817,7 @@ class LevelUnit():
         buffer = create_string_buffer(len(self.pathdata) * 8)
         #[20:28:38]  [@Treeki] struct Path { unsigned char id; char padding; unsigned short startNodeIndex; unsigned short nodeCount; unsigned short unknown; };
         for path in self.pathdata:
-            if(len(path['nodes']) < 1): continue
+            if len(path['nodes']) < 1: continue
             nodebuffer = self.SavePathNodes(nodebuffer, nodeoffset, path['nodes'])
 
             pathstruct.pack_into(buffer, offset, int(path['id']), int(nodeindex), int(len(path['nodes'])), 2 if path['loops'] else 0)
@@ -1803,16 +1840,16 @@ class LevelUnit():
     def SaveSprites(self):
         """Saves the sprites back to block 8"""
         offset = 0
-        sprstruct = struct.Struct('>HHH6sB1sxx')
+        sprstruct = struct.Struct('>HHH6sBBxx')
         buffer = create_string_buffer((len(self.sprites) * 16) + 4)
         f_int = int
         for sprite in self.sprites:
-            sprstruct.pack_into(buffer, offset, f_int(sprite.type), f_int(sprite.objx), f_int(sprite.objy), sprite.spritedata[:6], sprite.zoneID, sprite.spritedata[7])
+            sprstruct.pack_into(buffer, offset, f_int(sprite.type), f_int(sprite.objx), f_int(sprite.objy), sprite.spritedata[:6], sprite.zoneID, ord(sprite.spritedata[7]))
             offset += 16
-        buffer[offset] = '\xff'
-        buffer[offset+1] = '\xff'
-        buffer[offset+2] = '\xff'
-        buffer[offset+3] = '\xff'
+        buffer[offset] = b'\xff'
+        buffer[offset+1] = b'\xff'
+        buffer[offset+2] = b'\xff'
+        buffer[offset+3] = b'\xff'
         self.blocks[7] = buffer.raw
 
     def SaveLoadedSprites(self):
@@ -1877,7 +1914,7 @@ class LevelUnit():
         layer = self.layers[obj.layer]
         idx = layer.index(obj)
         del layer[idx]
-        for i in xrange(idx,len(layer)):
+        for i in range(idx,len(layer)):
             upd = layer[i]
             upd.setZValue(upd.zValue() - 1)
 
@@ -1893,7 +1930,7 @@ class LevelUnit():
         for sprite in self.sprites:
             zone = f_MapPositionToZoneID(zonelist, sprite.objx, sprite.objy)
             sprite.zoneID = zone
-            if not split.has_key(zone):
+            if zone not in split:
                 split[zone] = []
                 zones.append(zone)
             split[zone].append(sprite)
@@ -1916,15 +1953,15 @@ class LevelUnit():
             'Password': ''
         }
 
-        if data != None:
+        if data is not None:
             try:
                 level_info = pickle.loads(data)
-                for k,v in level_info.iteritems():
+                for k,v in level_info.items():
                     if k in info: info[k] = v
             except Exception:
                 pass
 
-        for k,v in info.iteritems():
+        for k,v in info.items():
             self.__dict__[k] = v
 
     def SaveReggieInfo(self):
@@ -1939,26 +1976,26 @@ class LevelUnit():
         return pickle.dumps(info, 2)
 
 
-class LevelEditorItem(QtGui.QGraphicsItem):
+class LevelEditorItem(QtWidgets.QGraphicsItem):
     """Class for any type of item that can show up in the level editor control"""
     positionChanged = None # Callback: positionChanged(LevelEditorItem obj, int oldx, int oldy, int x, int y)
 
     def __init__(self):
         """Generic constructor for level editor items"""
-        QtGui.QGraphicsItem.__init__(self)
+        super(LevelEditorItem, self).__init__()
         self.setFlag(self.ItemSendsGeometryChanges, True)
 
     def itemChange(self, change, value):
         """Makes sure positions don't go out of bounds and updates them as necessary"""
 
-        if change == QtGui.QGraphicsItem.ItemPositionChange:
+        if change == QtWidgets.QGraphicsItem.ItemPositionChange:
             # snap to 24x24
-            newpos = value.toPyObject()
+            newpos = toPyObject(value)
 
             # snap even further if Shift isn't held
             # but -only- if OverrideSnapping is off
             if not OverrideSnapping:
-                if QtGui.QApplication.keyboardModifiers() == QtCore.Qt.AltModifier:
+                if QtWidgets.QApplication.keyboardModifiers() == QtCore.Qt.AltModifier:
                     newpos.setX(int(int((newpos.x() + 0.75) / 1.5) * 1.5))
                     newpos.setY(int(int((newpos.y() + 0.75) / 1.5) * 1.5))
                 else:
@@ -1979,21 +2016,21 @@ class LevelEditorItem(QtGui.QGraphicsItem):
             y = int(newpos.y() / 1.5)
             if x != self.objx or y != self.objy:
                 updRect = QtCore.QRectF(self.x(), self.y(), self.BoundingRect.width(), self.BoundingRect.height())
-                if self.scene() != None:
+                if self.scene() is not None:
                     self.scene().update(updRect)
 
                 oldx = self.objx
                 oldy = self.objy
                 self.objx = x
                 self.objy = y
-                if self.positionChanged != None:
+                if self.positionChanged is not None:
                     self.positionChanged(self, oldx, oldy, x, y)
 
                 SetDirty()
 
             return newpos
 
-        return QtGui.QGraphicsItem.itemChange(self, change, value)
+        return QtWidgets.QGraphicsItem.itemChange(self, change, value)
 
     def boundingRect(self):
         """Required for Qt"""
@@ -2005,7 +2042,7 @@ class LevelObjectEditorItem(LevelEditorItem):
 
     def __init__(self, tileset, type, layer, x, y, width, height, z):
         """Creates an object with specific data"""
-        LevelEditorItem.__init__(self)
+        super(LevelObjectEditorItem, self).__init__()
 
         self.tileset = tileset
         self.type = type
@@ -2068,12 +2105,12 @@ class LevelObjectEditorItem(LevelEditorItem):
     def itemChange(self, change, value):
         """Makes sure positions don't go out of bounds and updates them as necessary"""
 
-        if change == QtGui.QGraphicsItem.ItemPositionChange:
+        if change == QtWidgets.QGraphicsItem.ItemPositionChange:
             scene = self.scene()
-            if scene == None: return value
+            if scene is None: return value
 
             # snap to 24x24
-            newpos = value.toPyObject()
+            newpos = toPyObject(value)
             newpos.setX(int((newpos.x() + 12) / 24) * 24)
             newpos.setY(int((newpos.y() + 12) / 24) * 24)
             x = newpos.x()
@@ -2095,7 +2132,7 @@ class LevelObjectEditorItem(LevelEditorItem):
                 oldy = self.objy
                 self.objx = x
                 self.objy = y
-                if self.positionChanged != None:
+                if self.positionChanged is not None:
                     self.positionChanged(self, oldx, oldy, x, y)
 
                 SetDirty()
@@ -2103,12 +2140,12 @@ class LevelObjectEditorItem(LevelEditorItem):
                 #updRect = QtCore.QRectF(self.x(), self.y(), self.BoundingRect.width(), self.BoundingRect.height())
                 #scene.invalidate(updRect)
 
-                scene.invalidate(self.x(), self.y(), self.width*24, self.height*24, QtGui.QGraphicsScene.BackgroundLayer)
-                #scene.invalidate(newpos.x(), newpos.y(), self.width*24, self.height*24, QtGui.QGraphicsScene.BackgroundLayer)
+                scene.invalidate(self.x(), self.y(), self.width*24, self.height*24, QtWidgets.QGraphicsScene.BackgroundLayer)
+                #scene.invalidate(newpos.x(), newpos.y(), self.width*24, self.height*24, QtWidgets.QGraphicsScene.BackgroundLayer)
 
             return newpos
 
-        return QtGui.QGraphicsItem.itemChange(self, change, value)
+        return QtWidgets.QGraphicsItem.itemChange(self, change, value)
 
 
     def paint(self, painter, option, widget):
@@ -2124,7 +2161,7 @@ class LevelObjectEditorItem(LevelEditorItem):
     def mousePressEvent(self, event):
         """Overrides mouse pressing events if needed for resizing"""
         if event.button() == QtCore.Qt.LeftButton:
-            if QtGui.QApplication.keyboardModifiers() == QtCore.Qt.ControlModifier:
+            if QtWidgets.QApplication.keyboardModifiers() == QtCore.Qt.ControlModifier:
                 layer = Level.layers[self.layer]
                 if len(layer) == 0:
                     newZ = (2 - self.layer) * 8192
@@ -2181,7 +2218,7 @@ class LevelObjectEditorItem(LevelEditorItem):
                 oldrect = self.BoundingRect
                 oldrect.translate(cx * 24, cy * 24)
                 newrect = QtCore.QRectF(self.x(), self.y(), self.width * 24, self.height * 24)
-                updaterect = oldrect.unite(newrect)
+                updaterect = oldrect.united(newrect)
 
                 self.UpdateRects()
                 self.scene().update(updaterect)
@@ -2203,7 +2240,7 @@ class ZoneItem(LevelEditorItem):
 
     def __init__(self, a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, boundings, bgA, bgB, id):
         """Creates a zone with specific data"""
-        LevelEditorItem.__init__(self)
+        super(ZoneItem, self).__init__()
 
         self.font = NumberFontBold
         self.id = id
@@ -2426,7 +2463,7 @@ class ZoneItem(LevelEditorItem):
                 oldrect = self.BoundingRect
                 oldrect.translate(cx * 1.5, cy * 1.5)
                 newrect = QtCore.QRectF(self.x(), self.y(), self.width * 1.5, self.height * 1.5)
-                updaterect = oldrect.unite(newrect)
+                updaterect = oldrect.united(newrect)
                 updaterect.setTop(updaterect.top() - 3)
                 updaterect.setLeft(updaterect.left() - 3)
                 updaterect.setRight(updaterect.right() + 3)
@@ -2445,15 +2482,15 @@ class ZoneItem(LevelEditorItem):
 
     def itemChange(self, change, value):
         """Avoids snapping for zones"""
-        return QtGui.QGraphicsItem.itemChange(self, change, value)
+        return QtWidgets.QGraphicsItem.itemChange(self, change, value)
 
-class SpriteLocationItem(LevelEditorItem):
+class LocationEditorItem(LevelEditorItem):
     """Level editor item that represents a sprite location"""
     sizeChanged = None # Callback: sizeChanged(SpriteEditorItem obj, int width, int height)
 
     def __init__(self, x, y, width, height, id):
         """Creates a location with specific data"""
-        LevelEditorItem.__init__(self)
+        super(LocationEditorItem, self).__init__()
 
         self.font = NumberFontBold
         self.TitlePos = QtCore.QPointF(4,12)
@@ -2553,13 +2590,13 @@ class SpriteLocationItem(LevelEditorItem):
                 oldrect = self.BoundingRect
                 oldrect.translate(cx*1.5, cy*1.5)
                 newrect = QtCore.QRectF(self.x(), self.y(), self.width*1.5, self.height*1.5)
-                updaterect = oldrect.unite(newrect)
+                updaterect = oldrect.united(newrect)
 
                 self.UpdateRects()
                 self.scene().update(updaterect)
                 SetDirty()
 
-                if self.sizeChanged != None:
+                if self.sizeChanged is not None:
                     self.sizeChanged(self, self.width, self.height)
 
             event.accept()
@@ -2583,7 +2620,7 @@ class SpriteEditorItem(LevelEditorItem):
 
     def __init__(self, type, x, y, data):
         """Creates a sprite with specific data"""
-        LevelEditorItem.__init__(self)
+        super(SpriteEditorItem, self).__init__()
 
         self.font = NumberFont
         self.type = type
@@ -2667,7 +2704,7 @@ class SpriteEditorItem(LevelEditorItem):
             self.setPos(int((self.objx+self.xoffset)*1.5),int((self.objy+self.yoffset)*1.5))
             self.ChangingPos = False
 
-            #if self.scene() != None:
+            #if self.scene() is not None:
             #    self.scene().update(CurrentRect)
             #    self.scene().update(self.x(), self.y(), self.BoundingRect.width(), self.BoundingRect.height())
 
@@ -2688,20 +2725,20 @@ class SpriteEditorItem(LevelEditorItem):
     def itemChange(self, change, value):
         """Makes sure positions don't go out of bounds and updates them as necessary"""
 
-        if change == QtGui.QGraphicsItem.ItemPositionChange:
-            if self.scene() == None: return value
+        if change == QtWidgets.QGraphicsItem.ItemPositionChange:
+            if self.scene() is None: return value
             if self.ChangingPos: return value
 
             xOffset = self.xoffset
             yOffset = self.yoffset
 
             # snap to 24x24
-            newpos = value.toPyObject()
+            newpos = toPyObject(value)
 
             # snap even further if Shift isn't held
             # but -only- if OverrideSnapping is off
             if not OverrideSnapping:
-                if QtGui.QApplication.keyboardModifiers() == QtCore.Qt.AltModifier:
+                if QtWidgets.QApplication.keyboardModifiers() == QtCore.Qt.AltModifier:
                     newpos.setX((int((newpos.x() + 0.75) / 1.5) * 1.5))
                     newpos.setY((int((newpos.y() + 0.75) / 1.5) * 1.5))
                 else:
@@ -2730,7 +2767,7 @@ class SpriteEditorItem(LevelEditorItem):
                 #oldrect = self.BoundingRect
                 #oldrect.translate(self.objx*1.5, self.objy*1.5)
                 updRect = QtCore.QRectF(self.x(), self.y(), self.BoundingRect.width(), self.BoundingRect.height())
-                #self.scene().update(updRect.unite(oldrect))
+                #self.scene().update(updRect.united(oldrect))
                 self.scene().update(updRect)
 
                 self.LevelRect.moveTo((x+xOffset) / 16, (y+yOffset) / 16)
@@ -2743,19 +2780,19 @@ class SpriteEditorItem(LevelEditorItem):
                 oldy = self.objy
                 self.objx = x
                 self.objy = y
-                if self.positionChanged != None:
+                if self.positionChanged is not None:
                     self.positionChanged(self, oldx, oldy, x, y)
 
                 SetDirty()
 
             return newpos
 
-        return QtGui.QGraphicsItem.itemChange(self, change, value)
+        return QtWidgets.QGraphicsItem.itemChange(self, change, value)
 
     def mousePressEvent(self, event):
         """Overrides mouse pressing events if needed for cloning"""
         if event.button() == QtCore.Qt.LeftButton:
-            if QtGui.QApplication.keyboardModifiers() == QtCore.Qt.ControlModifier:
+            if QtWidgets.QApplication.keyboardModifiers() == QtCore.Qt.ControlModifier:
                 newitem = SpriteEditorItem(self.type, self.objx, self.objy, self.spritedata)
                 Level.sprites.append(newitem)
                 mainWindow.scene.addItem(newitem)
@@ -2804,14 +2841,14 @@ class EntranceEditorItem(LevelEditorItem):
 
     def __init__(self, x, y, id, destarea, destentrance, type, zone, layer, path, settings):
         """Creates an entrance with specific data"""
-        if EntranceEditorItem.EntranceImages == None:
+        if EntranceEditorItem.EntranceImages is None:
             ei = []
             src = QtGui.QPixmap('reggiedata/entrances.png')
-            for i in xrange(18):
+            for i in range(18):
                 ei.append(src.copy(i*24,0,24,24))
             EntranceEditorItem.EntranceImages = ei
 
-        LevelEditorItem.__init__(self)
+        super(EntranceEditorItem, self).__init__()
 
         self.font = NumberFont
         self.objx = x
@@ -2935,7 +2972,7 @@ class PathEditorItem(LevelEditorItem):
         """Creates a path with specific data"""
 
         global mainWindow
-        LevelEditorItem.__init__(self)
+        super(PathEditorItem, self).__init__()
 
         self.font = NumberFont
         self.objx = objx
@@ -3024,7 +3061,7 @@ class PathEditorItem(LevelEditorItem):
         Level.paths.remove(self)
         self.pathinfo['nodes'].remove(self.nodeinfo)
 
-        if(len(self.pathinfo['nodes']) < 1):
+        if len(self.pathinfo['nodes']) < 1:
             Level.pathdata.remove(self.pathinfo)
             self.scene().removeItem(self.pathinfo['peline'])
 
@@ -3047,7 +3084,7 @@ class PathEditorLineItem(LevelEditorItem):
         """Creates a path with specific data"""
 
         global mainWindow
-        LevelEditorItem.__init__(self)
+        super(PathEditorLineItem, self).__init__()
 
         self.font = NumberFont
         self.objx = 0
@@ -3106,10 +3143,13 @@ class PathEditorLineItem(LevelEditorItem):
         firstn = True
 
         snl = self.nodelist
-        for j in xrange(len(self.nodelist)):
-            if((j+1) < len(self.nodelist)):
-                lines.append(QtCore.QPointF(float(snl[j]['x']*1.5) - self.x(),float(snl[j]['y']*1.5) - self.y()))
-                lines.append(QtCore.QPointF(float(snl[j+1]['x']*1.5) - self.x(),float(snl[j+1]['y']*1.5) - self.y()))
+        for j in range(len(self.nodelist)):
+            if (j+1) < len(self.nodelist):
+                lines.append(QtCore.QLineF(
+                    float(snl[j]['x']*1.5) - self.x(),
+                    float(snl[j]['y']*1.5) - self.y(),
+                    float(snl[j+1]['x']*1.5) - self.x(),
+                    float(snl[j+1]['y']*1.5) - self.y()))
 
         painter.drawLines(lines)
 
@@ -3121,14 +3161,14 @@ class PathEditorLineItem(LevelEditorItem):
         self.scene().update()
 
 
-class LevelOverviewWidget(QtGui.QWidget):
+class LevelOverviewWidget(QtWidgets.QWidget):
     """Widget that shows an overview of the level and can be clicked to move the view"""
     moveIt = QtCore.pyqtSignal(int, int)
 
     def __init__(self):
         """Constructor for the level overview widget"""
-        QtGui.QWidget.__init__(self)
-        self.setSizePolicy(QtGui.QSizePolicy(QtGui.QSizePolicy.MinimumExpanding, QtGui.QSizePolicy.MinimumExpanding))
+        super(LevelOverviewWidget, self).__init__()
+        self.setSizePolicy(QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.MinimumExpanding, QtWidgets.QSizePolicy.MinimumExpanding))
 
         self.bgbrush = QtGui.QBrush(QtGui.QColor.fromRgb(119,136,153))
         self.objbrush = QtGui.QBrush(QtGui.QColor.fromRgb(255,255,255))
@@ -3164,14 +3204,14 @@ class LevelOverviewWidget(QtGui.QWidget):
 
     def mouseMoveEvent(self, event):
         """Handles mouse movement over the widget"""
-        QtGui.QWidget.mouseMoveEvent(self, event)
+        QtWidgets.QWidget.mouseMoveEvent(self, event)
 
         if event.buttons() == QtCore.Qt.LeftButton:
             self.moveIt.emit(event.pos().x() * self.posmult, event.pos().y() * self.posmult)
 
     def mousePressEvent(self, event):
         """Handles mouse pressing events over the widget"""
-        QtGui.QWidget.mousePressEvent(self, event)
+        QtWidgets.QWidget.mousePressEvent(self, event)
 
         if event.button() == QtCore.Qt.LeftButton:
             self.moveIt.emit(event.pos().x() * self.posmult, event.pos().y() * self.posmult)
@@ -3285,17 +3325,17 @@ class LevelOverviewWidget(QtGui.QWidget):
 
 
 
-class ObjectPickerWidget(QtGui.QListView):
+class ObjectPickerWidget(QtWidgets.QListView):
     """Widget that shows a list of available objects"""
 
     def __init__(self):
         """Initialises the widget"""
 
-        QtGui.QListView.__init__(self)
-        self.setFlow(QtGui.QListView.LeftToRight)
-        self.setLayoutMode(QtGui.QListView.SinglePass)
-        self.setMovement(QtGui.QListView.Static)
-        self.setResizeMode(QtGui.QListView.Adjust)
+        super(ObjectPickerWidget, self).__init__()
+        self.setFlow(QtWidgets.QListView.LeftToRight)
+        self.setLayoutMode(QtWidgets.QListView.SinglePass)
+        self.setMovement(QtWidgets.QListView.Static)
+        self.setResizeMode(QtWidgets.QListView.Adjust)
         self.setWrapping(True)
 
         self.m0 = ObjectPickerWidget.ObjectListModel()
@@ -3332,23 +3372,23 @@ class ObjectPickerWidget(QtGui.QListView):
     @QtCore.pyqtSlot(QtCore.QModelIndex)
     def HandleObjReplace(self, index):
         """Throws a signal when the selected object is used as a replacement"""
-        if QtGui.QApplication.keyboardModifiers() == QtCore.Qt.AltModifier:
+        if QtWidgets.QApplication.keyboardModifiers() == QtCore.Qt.AltModifier:
             self.ObjReplace.emit(index.row())
 
     ObjChanged = QtCore.pyqtSignal(int)
     ObjReplace = QtCore.pyqtSignal(int)
 
 
-    class ObjectItemDelegate(QtGui.QAbstractItemDelegate):
+    class ObjectItemDelegate(QtWidgets.QAbstractItemDelegate):
         """Handles tileset objects and their rendering"""
 
         def __init__(self):
             """Initialises the delegate"""
-            QtGui.QAbstractItemDelegate.__init__(self)
+            super(ObjectPickerWidget.ObjectItemDelegate, self).__init__()
 
         def paint(self, painter, option, index):
             """Paints an object"""
-            if option.state & QtGui.QStyle.State_Selected:
+            if option.state & QtWidgets.QStyle.State_Selected:
                 painter.fillRect(option.rect, option.palette.highlight())
 
             p = index.model().data(index, QtCore.Qt.DecorationRole)
@@ -3370,9 +3410,9 @@ class ObjectPickerWidget(QtGui.QListView):
             self.items = []
             self.ritems = []
             self.itemsize = []
-            QtCore.QAbstractListModel.__init__(self)
+            super(ObjectPickerWidget.ObjectListModel, self).__init__()
 
-            #for i in xrange(256):
+            #for i in range(256):
             #    self.items.append(None)
             #    self.ritems.append(None)
 
@@ -3391,7 +3431,7 @@ class ObjectPickerWidget(QtGui.QListView):
                 return self.ritems[n]
 
             if role == QtCore.Qt.BackgroundRole:
-                return QtGui.qApp.palette().base()
+                return QtWidgets.qApp.palette().base()
 
             if role == QtCore.Qt.UserRole:
                 return self.itemsize[n]
@@ -3403,7 +3443,7 @@ class ObjectPickerWidget(QtGui.QListView):
 
         def LoadFromTileset(self, idx):
             """Renders all the object previews for the model"""
-            if ObjectDefinitions[idx] == None: return
+            if ObjectDefinitions[idx] is None: return
 
             # begin/endResetModel are only in Qt 4.6...
             if QtCompatVersion >= 0x40600:
@@ -3415,8 +3455,8 @@ class ObjectPickerWidget(QtGui.QListView):
             self.tooltips = []
             defs = ObjectDefinitions[idx]
 
-            for i in xrange(256):
-                if defs[i] == None: break
+            for i in range(256):
+                if defs[i] is None: break
                 obj = RenderObject(idx, i, defs[i].width, defs[i].height, True)
                 self.items.append(obj)
 
@@ -3451,13 +3491,13 @@ class ObjectPickerWidget(QtGui.QListView):
                 self.reset()
 
 
-class SpritePickerWidget(QtGui.QTreeWidget):
+class SpritePickerWidget(QtWidgets.QTreeWidget):
     """Widget that shows a list of available sprites"""
 
     def __init__(self):
         """Initialises the widget"""
 
-        QtGui.QTreeWidget.__init__(self)
+        super(SpritePickerWidget, self).__init__()
         self.setColumnCount(1)
         self.setHeaderHidden(True)
         self.setIndentation(16)
@@ -3466,14 +3506,14 @@ class SpritePickerWidget(QtGui.QTreeWidget):
         LoadSpriteData()
         LoadSpriteCategories()
 
-        sprarea = QtGui.QTreeWidgetItem()
+        sprarea = QtWidgets.QTreeWidgetItem()
         sprarea.setText(0, "Paint New Sprite Area/Location")
         sprarea.setData(0, QtCore.Qt.UserRole, 1000)
         self.addTopLevelItem(sprarea)
 
         for viewname, view, nodelist in SpriteCategories:
             for catname, category in view:
-                cnode = QtGui.QTreeWidgetItem()
+                cnode = QtWidgets.QTreeWidgetItem()
                 cnode.setText(0, catname)
                 cnode.setData(0, QtCore.Qt.UserRole, -1)
 
@@ -3483,7 +3523,7 @@ class SpritePickerWidget(QtGui.QTreeWidget):
                     SearchableItems = []
 
                 for id in category:
-                    snode = QtGui.QTreeWidgetItem()
+                    snode = QtWidgets.QTreeWidgetItem()
                     if id == 9999:
                         snode.setText(0, 'No sprites found')
                         snode.setData(0, QtCore.Qt.UserRole, -2)
@@ -3510,17 +3550,17 @@ class SpritePickerWidget(QtGui.QTreeWidget):
     def SwitchView(self, view):
         """Changes the selected sprite view"""
 
-        for i in xrange(1, self.topLevelItemCount()):
+        for i in range(1, self.topLevelItemCount()):
             self.topLevelItem(i).setHidden(True)
 
         for node in view[2]:
             node.setHidden(False)
 
 
-    @QtCore.pyqtSlot(QtGui.QTreeWidgetItem, QtGui.QTreeWidgetItem)
+    @QtCore.pyqtSlot(QtWidgets.QTreeWidgetItem, QtWidgets.QTreeWidgetItem)
     def HandleItemChange(self, current, previous):
         """Throws a signal when the selected object changed"""
-        id = current.data(0, QtCore.Qt.UserRole).toPyObject()
+        id = toPyObject(current.data(0, QtCore.Qt.UserRole))
         if id != -1:
             self.SpriteChanged.emit(id)
 
@@ -3540,11 +3580,11 @@ class SpritePickerWidget(QtGui.QTreeWidget):
         self.SearchResultsCategory.setExpanded(True)
 
 
-    @QtCore.pyqtSlot(QtGui.QTreeWidgetItem, int)
+    @QtCore.pyqtSlot(QtWidgets.QTreeWidgetItem, int)
     def HandleSprReplace(self, item, column):
         """Throws a signal when the selected sprite is used as a replacement"""
-        if QtGui.QApplication.keyboardModifiers() == QtCore.Qt.AltModifier:
-            id = item.data(0, QtCore.Qt.UserRole).toPyObject()
+        if QtWidgets.QApplication.keyboardModifiers() == QtCore.Qt.AltModifier:
+            id = toPyObject(item.data(0, QtCore.Qt.UserRole))
             if id != -1:
                 self.SpriteReplace.emit(id)
 
@@ -3552,54 +3592,53 @@ class SpritePickerWidget(QtGui.QTreeWidget):
     SpriteReplace = QtCore.pyqtSignal(int)
 
 
-class SpriteEditorWidget(QtGui.QWidget):
+class SpriteEditorWidget(QtWidgets.QWidget):
     """Widget for editing sprite data"""
     DataUpdate = QtCore.pyqtSignal('PyQt_PyObject')
 
-    def __init__(self, defaultmode=False):
+    def __init__(self):
         """Constructor"""
-        QtGui.QWidget.__init__(self)
-        self.setSizePolicy(QtGui.QSizePolicy(QtGui.QSizePolicy.Minimum, QtGui.QSizePolicy.Fixed))
+        super(SpriteEditorWidget, self).__init__()
+        self.setSizePolicy(QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Fixed))
 
         # create the raw editor
         font = QtGui.QFont()
         font.setPointSize(8)
-        editbox = QtGui.QLabel("Modify Raw Data:")
+        editbox = QtWidgets.QLabel("Modify Raw Data:")
         editbox.setFont(font)
-        edit = QtGui.QLineEdit()
+        edit = QtWidgets.QLineEdit()
         edit.textEdited.connect(self.HandleRawDataEdited)
         self.raweditor = edit
 
-        editboxlayout = QtGui.QHBoxLayout()
+        editboxlayout = QtWidgets.QHBoxLayout()
         editboxlayout.addWidget(editbox)
         editboxlayout.addWidget(edit)
         editboxlayout.setStretch(1, 1)
 
         # "Editing Sprite #" label
-        self.spriteLabel = QtGui.QLabel('-')
+        self.spriteLabel = QtWidgets.QLabel('-')
         self.spriteLabel.setWordWrap(True)
 
-        self.noteButton = QtGui.QToolButton()
+        self.noteButton = QtWidgets.QToolButton()
         self.noteButton.setIcon(GetIcon('note'))
         self.noteButton.setText('Notes')
         self.noteButton.setToolButtonStyle(QtCore.Qt.ToolButtonTextBesideIcon)
         self.noteButton.setAutoRaise(True)
         self.noteButton.clicked.connect(self.ShowNoteTooltip)
 
-        toplayout = QtGui.QHBoxLayout()
+        toplayout = QtWidgets.QHBoxLayout()
         toplayout.addWidget(self.spriteLabel)
         toplayout.addWidget(self.noteButton)
         toplayout.setStretch(0, 1)
 
-        subLayout = QtGui.QVBoxLayout()
-        subLayout.setMargin(0)
+        subLayout = QtWidgets.QVBoxLayout()
 
         # create a layout
-        mainLayout = QtGui.QVBoxLayout()
+        mainLayout = QtWidgets.QVBoxLayout()
         mainLayout.addLayout(toplayout)
         mainLayout.addLayout(subLayout)
 
-        layout = QtGui.QGridLayout()
+        layout = QtWidgets.QGridLayout()
         self.editorlayout = layout
         subLayout.addLayout(layout)
         subLayout.addLayout(editboxlayout)
@@ -3607,10 +3646,9 @@ class SpriteEditorWidget(QtGui.QWidget):
         self.setLayout(mainLayout)
 
         self.spritetype = -1
-        self.data = '\0\0\0\0\0\0\0\0'
+        self.data = b'\0\0\0\0\0\0\0\0'
         self.fields = []
         self.UpdateFlag = False
-        self.DefaultMode = defaultmode
 
 
     class PropertyDecoder(QtCore.QObject):
@@ -3619,7 +3657,7 @@ class SpriteEditorWidget(QtGui.QWidget):
 
         def __init__(self):
             """Generic constructor"""
-            QtCore.QObject.__init__(self)
+            super(SpriteEditorWidget.PropertyDecoder, self).__init__()
 
         def retrieve(self, data):
             """Extracts the value from the specified nybble(s)"""
@@ -3633,7 +3671,7 @@ class SpriteEditorWidget(QtGui.QWidget):
                     # we have to calculate it sadly
                     # just do it by looping, shouldn't be that bad
                     value = 0
-                    for n in xrange(nybble[0], nybble[1]):
+                    for n in range(nybble[0], nybble[1]):
                         value <<= 4
                         value |= (ord(data[n >> 1]) >> (0 if (n & 1) == 1 else 4)) & 15
                     return value
@@ -3645,21 +3683,21 @@ class SpriteEditorWidget(QtGui.QWidget):
         def insertvalue(self, data, value):
             """Assigns a value to the specified nybble(s)"""
             nybble = self.nybble
-            sdata = list(data)
+            sdata = [ord(x) for x in data]
 
             if isinstance(nybble, tuple):
                 if nybble[1] == (nybble[0] + 2) and (nybble[0] | 1) == 0:
                     # just one byte, this is easier
-                    sdata[nybble[0] >> 1] = chr(value & 255)
+                    sdata[nybble[0] >> 1] = value & 255
                 else:
                     # AAAAAAAAAAA
-                    for n in reversed(xrange(nybble[0], nybble[1])):
+                    for n in reversed(range(nybble[0], nybble[1])):
                         cbyte = ord(sdata[n >> 1])
                         if (n & 1) == 1:
                             cbyte = (cbyte & 240) | (value & 15)
                         else:
                             cbyte = ((value & 15) << 4) | (cbyte & 15)
-                        sdata[n >> 1] = chr(cbyte)
+                        sdata[n >> 1] = cbyte
                         value >>= 4
             else:
                 # only overwrite one nybble
@@ -3668,9 +3706,9 @@ class SpriteEditorWidget(QtGui.QWidget):
                     cbyte = (cbyte & 240) | (value & 15)
                 else:
                     cbyte = ((value & 15) << 4) | (cbyte & 15)
-                sdata[nybble >> 1] = chr(cbyte)
+                sdata[nybble >> 1] = cbyte
 
-            return ''.join(sdata)
+            return intsToBytes(sdata)
 
 
     class CheckboxPropertyDecoder(PropertyDecoder):
@@ -3678,10 +3716,10 @@ class SpriteEditorWidget(QtGui.QWidget):
 
         def __init__(self, title, nybble, mask, comment, layout, row):
             """Creates the widget"""
-            SpriteEditorWidget.PropertyDecoder.__init__(self)
+            super(SpriteEditorWidget.CheckboxPropertyDecoder, self).__init__()
 
-            self.widget = QtGui.QCheckBox(title)
-            if comment != None: self.widget.setToolTip(comment)
+            self.widget = QtWidgets.QCheckBox(title)
+            if comment is not None: self.widget.setToolTip(comment)
             self.widget.clicked.connect(self.HandleClick)
 
             if isinstance(nybble, tuple):
@@ -3690,7 +3728,7 @@ class SpriteEditorWidget(QtGui.QWidget):
                 length = 1
 
             xormask = 0
-            for i in xrange(length):
+            for i in range(length):
                 xormask |= 0xF << (i * 4)
 
             self.nybble = nybble
@@ -3721,16 +3759,16 @@ class SpriteEditorWidget(QtGui.QWidget):
 
         def __init__(self, title, nybble, model, comment, layout, row):
             """Creates the widget"""
-            SpriteEditorWidget.PropertyDecoder.__init__(self)
+            super(SpriteEditorWidget.ListPropertyDecoder, self).__init__()
 
             self.model = model
-            self.widget = QtGui.QComboBox()
+            self.widget = QtWidgets.QComboBox()
             self.widget.setModel(model)
-            if comment != None: self.widget.setToolTip(comment)
+            if comment is not None: self.widget.setToolTip(comment)
             self.widget.currentIndexChanged.connect(self.HandleIndexChanged)
 
             self.nybble = nybble
-            layout.addWidget(QtGui.QLabel(title+':'), row, 0, QtCore.Qt.AlignRight)
+            layout.addWidget(QtWidgets.QLabel(title+':'), row, 0, QtCore.Qt.AlignRight)
             layout.addWidget(self.widget, row, 1)
 
         def update(self, data):
@@ -3762,15 +3800,15 @@ class SpriteEditorWidget(QtGui.QWidget):
 
         def __init__(self, title, nybble, max, comment, layout, row):
             """Creates the widget"""
-            SpriteEditorWidget.PropertyDecoder.__init__(self)
+            super(SpriteEditorWidget.ValuePropertyDecoder, self).__init__()
 
-            self.widget = QtGui.QSpinBox()
+            self.widget = QtWidgets.QSpinBox()
             self.widget.setRange(0, max - 1)
-            if comment != None: self.widget.setToolTip(comment)
+            if comment is not None: self.widget.setToolTip(comment)
             self.widget.valueChanged.connect(self.HandleValueChanged)
 
             self.nybble = nybble
-            layout.addWidget(QtGui.QLabel(title+':'), row, 0, QtCore.Qt.AlignRight)
+            layout.addWidget(QtWidgets.QLabel(title+':'), row, 0, QtCore.Qt.AlignRight)
             layout.addWidget(self.widget, row, 1)
 
         def update(self, data):
@@ -3800,15 +3838,15 @@ class SpriteEditorWidget(QtGui.QWidget):
 
         # remove all the existing widgets in the layout
         layout = self.editorlayout
-        for row in xrange(2, layout.rowCount()):
-            for column in xrange(0, layout.columnCount()):
+        for row in range(2, layout.rowCount()):
+            for column in range(0, layout.columnCount()):
                 w = layout.itemAtPosition(row, column)
-                if w != None:
+                if w is not None:
                     widget = w.widget()
                     layout.removeWidget(widget)
                     widget.setParent(None)
 
-        if sprite == None:
+        if sprite is None:
             self.spriteLabel.setText('<b>Unidentified/Unknown Sprite (%d)</b>' % type)
             self.noteButton.setVisible(False)
 
@@ -3818,7 +3856,7 @@ class SpriteEditorWidget(QtGui.QWidget):
 
         else:
             self.spriteLabel.setText('<b>%s (%d)</b>' % (sprite.name, type))
-            self.noteButton.setVisible((sprite.notes != None))
+            self.noteButton.setVisible((sprite.notes is not None))
             self.notes = sprite.notes
 
             # create all the new fields
@@ -3860,7 +3898,7 @@ class SpriteEditorWidget(QtGui.QWidget):
 
     @QtCore.pyqtSlot()
     def ShowNoteTooltip(self):
-        QtGui.QToolTip.showText(QtGui.QCursor.pos(), self.notes, self)
+        QtWidgets.QToolTip.showText(QtGui.QCursor.pos(), self.notes, self)
 
 
     @QtCore.pyqtSlot('PyQt_PyObject')
@@ -3881,7 +3919,6 @@ class SpriteEditorWidget(QtGui.QWidget):
         self.DataUpdate.emit(data)
 
 
-    @QtCore.pyqtSlot(QtCore.QString)
     def HandleRawDataEdited(self, text):
         """Triggered when the raw data textbox is edited"""
 
@@ -3909,89 +3946,89 @@ class SpriteEditorWidget(QtGui.QWidget):
             self.raweditor.setStyleSheet('QLineEdit { background-color: #8d0000; color: #ffffff; font: bold}') #reddish background, bold white text
 
 
-class EntranceEditorWidget(QtGui.QWidget):
+class EntranceEditorWidget(QtWidgets.QWidget):
     """Widget for editing entrance properties"""
 
-    def __init__(self, defaultmode=False):
+    def __init__(self):
         """Constructor"""
-        QtGui.QWidget.__init__(self)
-        self.setSizePolicy(QtGui.QSizePolicy(QtGui.QSizePolicy.Minimum, QtGui.QSizePolicy.Fixed))
+        super(EntranceEditorWidget, self).__init__()
+        self.setSizePolicy(QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Fixed))
 
         self.CanUseFlag8 = set([3,4,5,6,16,17,18,19])
         self.CanUseFlag4 = set([3,4,5,6])
 
         # create widgets
-        self.entranceID = QtGui.QSpinBox()
+        self.entranceID = QtWidgets.QSpinBox()
         self.entranceID.setRange(0, 255)
         self.entranceID.setToolTip('Must be different from all other IDs')
         self.entranceID.valueChanged.connect(self.HandleEntranceIDChanged)
 
-        self.entranceType = QtGui.QComboBox()
+        self.entranceType = QtWidgets.QComboBox()
         LoadEntranceNames()
         self.entranceType.addItems(EntranceTypeNames)
         self.entranceType.setToolTip('Sets how the entrance/exit behaves')
         self.entranceType.activated.connect(self.HandleEntranceTypeChanged)
 
-        self.destArea = QtGui.QSpinBox()
+        self.destArea = QtWidgets.QSpinBox()
         self.destArea.setRange(0, 4)
         self.destArea.setToolTip('If this entrance leads nowhere or the destination is in this area, set this to 0.')
         self.destArea.valueChanged.connect(self.HandleDestAreaChanged)
 
-        self.destEntrance = QtGui.QSpinBox()
+        self.destEntrance = QtWidgets.QSpinBox()
         self.destEntrance.setRange(0, 255)
         self.destEntrance.setToolTip('If this entrance leads nowhere, set this to 0.')
         self.destEntrance.valueChanged.connect(self.HandleDestEntranceChanged)
 
-        self.allowEntryCheckbox = QtGui.QCheckBox('Enterable')
+        self.allowEntryCheckbox = QtWidgets.QCheckBox('Enterable')
         self.allowEntryCheckbox.setToolTip('<b>Enterable:</b> If this box is checked on a pipe or door entry point, Mario will be able to enter the pipe/door. If it\'s not checked, he won\'t be able to enter it. Behaviour on other types of entrances is unknown/undefined.')
         self.allowEntryCheckbox.clicked.connect(self.HandleAllowEntryClicked)
 
-        self.unknownFlagCheckbox = QtGui.QCheckBox('Unknown Flag')
+        self.unknownFlagCheckbox = QtWidgets.QCheckBox('Unknown Flag')
         self.unknownFlagCheckbox.setToolTip('<b>Unknown Flag:</b> This box is checked on a few entry/exit points in the game, but we haven\'t managed to figure out what it does (or if it does anything).')
         self.unknownFlagCheckbox.clicked.connect(self.HandleUnknownFlagClicked)
 
-        self.connectedPipeCheckbox = QtGui.QCheckBox('Connected Pipe')
+        self.connectedPipeCheckbox = QtWidgets.QCheckBox('Connected Pipe')
         self.connectedPipeCheckbox.setToolTip('<b>Connected Pipe:</b> This box allows you to enable an unused/broken feature in the game. It allows the pipe to function like the pipes in SMB3 where Mario simply goes through the pipe. However, it doesn\'t work correctly and the paths involved can\'t be edited by Reggie yet.')
         self.connectedPipeCheckbox.clicked.connect(self.HandleConnectedPipeClicked)
 
-        self.connectedPipeReverseCheckbox = QtGui.QCheckBox('Connected Pipe Reverse')
+        self.connectedPipeReverseCheckbox = QtWidgets.QCheckBox('Connected Pipe Reverse')
         self.connectedPipeReverseCheckbox.setToolTip('<b>Connected Pipe Reverse:</b> If you\'re using connected pipes, this flag must be set on the opposite end (the one located at the end of the path).')
         self.connectedPipeReverseCheckbox.clicked.connect(self.HandleConnectedPipeReverseClicked)
 
-        self.pathID = QtGui.QSpinBox()
+        self.pathID = QtWidgets.QSpinBox()
         self.pathID.setRange(0, 255)
         self.pathID.setToolTip('<b>Path ID:</b> Use this option to set the path number that the connected pipe will follow.')
         self.pathID.valueChanged.connect(self.HandlePathIDChanged)
 
-        self.forwardPipeCheckbox = QtGui.QCheckBox('Links to Forward Pipe')
+        self.forwardPipeCheckbox = QtWidgets.QCheckBox('Links to Forward Pipe')
         self.forwardPipeCheckbox.setToolTip('<b>Links to Forward Pipe:</b> If this option is set on a pipe, the destination entrance/area values will be ignored - Mario will pass through the pipe and then reappear several tiles ahead, coming out of a forward-facing pipe.')
         self.forwardPipeCheckbox.clicked.connect(self.HandleForwardPipeClicked)
 
-        self.activeLayer = QtGui.QComboBox()
+        self.activeLayer = QtWidgets.QComboBox()
         self.activeLayer.addItems(['Layer 1', 'Layer 2', 'Layer 0'])
         self.activeLayer.setToolTip('<b>Active Layer:</b> Allows you to change the collision layer which this entrance is active on. This option is very glitchy and not used in the default levels - for almost all normal cases, you will want to use layer 1.')
         self.activeLayer.activated.connect(self.HandleActiveLayerChanged)
 
         # create a layout
-        layout = QtGui.QGridLayout()
+        layout = QtWidgets.QGridLayout()
         self.setLayout(layout)
 
         # "Editing Entrance #" label
-        self.editingLabel = QtGui.QLabel('-')
+        self.editingLabel = QtWidgets.QLabel('-')
         layout.addWidget(self.editingLabel, 0, 0, 1, 4, QtCore.Qt.AlignTop)
 
         # add labels
-        layout.addWidget(QtGui.QLabel('ID:'), 3, 0, 1, 1, QtCore.Qt.AlignRight)
-        layout.addWidget(QtGui.QLabel('Type:'), 1, 0, 1, 1, QtCore.Qt.AlignRight)
+        layout.addWidget(QtWidgets.QLabel('ID:'), 3, 0, 1, 1, QtCore.Qt.AlignRight)
+        layout.addWidget(QtWidgets.QLabel('Type:'), 1, 0, 1, 1, QtCore.Qt.AlignRight)
 
         layout.addWidget(createHorzLine(), 2, 0, 1, 4)
 
-        layout.addWidget(QtGui.QLabel('Dest. ID:'), 3, 2, 1, 1, QtCore.Qt.AlignRight)
-        layout.addWidget(QtGui.QLabel('Dest. Area:'), 4, 2, 1, 1, QtCore.Qt.AlignRight)
+        layout.addWidget(QtWidgets.QLabel('Dest. ID:'), 3, 2, 1, 1, QtCore.Qt.AlignRight)
+        layout.addWidget(QtWidgets.QLabel('Dest. Area:'), 4, 2, 1, 1, QtCore.Qt.AlignRight)
 
-        layout.addWidget(QtGui.QLabel('Active on:'), 4, 0, 1, 1, QtCore.Qt.AlignRight)
+        layout.addWidget(QtWidgets.QLabel('Active on:'), 4, 0, 1, 1, QtCore.Qt.AlignRight)
 
-        self.pathIDLabel = QtGui.QLabel('Path ID:')
+        self.pathIDLabel = QtWidgets.QLabel('Path ID:')
 
         # add the widgets
         layout.addWidget(self.entranceID, 3, 1, 1, 1)
@@ -4166,53 +4203,53 @@ class EntranceEditorWidget(QtGui.QWidget):
         SetDirty()
         self.ent.entlayer = i
 
-class PathNodeEditorWidget(QtGui.QWidget):
+class PathNodeEditorWidget(QtWidgets.QWidget):
     """Widget for editing entrance properties"""
 
-    def __init__(self, defaultmode=False):
+    def __init__(self):
         """Constructor"""
-        QtGui.QWidget.__init__(self)
-        self.setSizePolicy(QtGui.QSizePolicy(QtGui.QSizePolicy.Minimum, QtGui.QSizePolicy.Fixed))
+        super(PathNodeEditorWidget, self).__init__()
+        self.setSizePolicy(QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Fixed))
 
 
         # create widgets
         #[20:52:41]  [Angel-SL] 1. (readonly) pathid 2. (readonly) nodeid 3. x 4. y 5. speed (float spinner) 6. accel (float spinner)
         #not doing [20:52:58]  [Angel-SL] and 2 buttons - 7. "Move Up" 8. "Move Down"
-        self.speed = QtGui.QDoubleSpinBox()
+        self.speed = QtWidgets.QDoubleSpinBox()
         self.speed.setRange(min(sys.float_info), max(sys.float_info))
         self.speed.setToolTip('Speed (unknown unit). Mess around and report your findings!')
         self.speed.setDecimals(int(sys.float_info.__getattribute__('dig')))
         self.speed.valueChanged.connect(self.HandleSpeedChanged)
 
-        self.accel = QtGui.QDoubleSpinBox()
+        self.accel = QtWidgets.QDoubleSpinBox()
         self.accel.setRange(min(sys.float_info), max(sys.float_info))
         self.accel.setToolTip('Accel (unknown unit). Mess around and report your findings!')
         self.accel.setDecimals(int(sys.float_info.__getattribute__('dig')))
         self.accel.valueChanged.connect(self.HandleAccelChanged)
 
-        self.delay = QtGui.QSpinBox()
+        self.delay = QtWidgets.QSpinBox()
         self.delay.setRange(0, 65535)
         self.delay.setToolTip('<b>Delay</b><br>Amount of time to stop here (at this node) before continuing to next node. Unit is 1/60 of a second (60 for 1 second)')
         self.delay.valueChanged.connect(self.HandleDelayChanged)
 
-        self.loops = QtGui.QCheckBox()
+        self.loops = QtWidgets.QCheckBox()
         self.loops.setToolTip('<b>Loops</b><br>Anything following this path will wait for any delay set at the last node and then proceed back in a straight line to the first node, and continue.')
         self.loops.stateChanged.connect(self.HandleLoopsChanged)
 
         # create a layout
-        layout = QtGui.QGridLayout()
+        layout = QtWidgets.QGridLayout()
         self.setLayout(layout)
 
         # "Editing Entrance #" label
-        self.editingLabel = QtGui.QLabel('-')
-        self.editingPathLabel = QtGui.QLabel('-')
+        self.editingLabel = QtWidgets.QLabel('-')
+        self.editingPathLabel = QtWidgets.QLabel('-')
         layout.addWidget(self.editingLabel, 3, 0, 1, 4, QtCore.Qt.AlignTop)
         layout.addWidget(self.editingPathLabel, 0, 0, 1, 4, QtCore.Qt.AlignTop)
         # add labels
-        layout.addWidget(QtGui.QLabel('Loops:'), 1, 0, 1, 1, QtCore.Qt.AlignRight)
-        layout.addWidget(QtGui.QLabel('Speed:'), 4, 0, 1, 1, QtCore.Qt.AlignRight)
-        layout.addWidget(QtGui.QLabel('Accel:'), 5, 0, 1, 1, QtCore.Qt.AlignRight)
-        layout.addWidget(QtGui.QLabel('Delay:'), 6, 0, 1, 1, QtCore.Qt.AlignRight)
+        layout.addWidget(QtWidgets.QLabel('Loops:'), 1, 0, 1, 1, QtCore.Qt.AlignRight)
+        layout.addWidget(QtWidgets.QLabel('Speed:'), 4, 0, 1, 1, QtCore.Qt.AlignRight)
+        layout.addWidget(QtWidgets.QLabel('Accel:'), 5, 0, 1, 1, QtCore.Qt.AlignRight)
+        layout.addWidget(QtWidgets.QLabel('Delay:'), 6, 0, 1, 1, QtCore.Qt.AlignRight)
         layout.addWidget(createHorzLine(), 2, 0, 1, -1)
 
         # add the widgets
@@ -4275,61 +4312,61 @@ class PathNodeEditorWidget(QtGui.QWidget):
 
 
 
-class LocationEditorWidget(QtGui.QWidget):
+class LocationEditorWidget(QtWidgets.QWidget):
     """Widget for editing sprite area properties"""
 
-    def __init__(self, defaultmode=False):
+    def __init__(self):
         """Constructor"""
-        QtGui.QWidget.__init__(self)
-        self.setSizePolicy(QtGui.QSizePolicy(QtGui.QSizePolicy.Minimum, QtGui.QSizePolicy.Fixed))
+        super(LocationEditorWidget, self).__init__()
+        self.setSizePolicy(QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Fixed))
 
         # create widgets
-        self.locationID = QtGui.QSpinBox()
+        self.locationID = QtWidgets.QSpinBox()
         self.locationID.setToolTip('Must be different from all other IDs')
         self.locationID.setRange(0, 255)
         self.locationID.valueChanged.connect(self.HandleLocationIDChanged)
 
-        self.locationX = QtGui.QSpinBox()
+        self.locationX = QtWidgets.QSpinBox()
         self.locationX.setToolTip('Specifies the X position of the Sprite location')
         self.locationX.setRange(16, 65535)
         self.locationX.valueChanged.connect(self.HandleLocationXChanged)
 
-        self.locationY = QtGui.QSpinBox()
+        self.locationY = QtWidgets.QSpinBox()
         self.locationY.setToolTip('Specifies the Y position of the Sprite location')
         self.locationY.setRange(16, 65535)
         self.locationY.valueChanged.connect(self.HandleLocationYChanged)
 
-        self.locationWidth = QtGui.QSpinBox()
+        self.locationWidth = QtWidgets.QSpinBox()
         self.locationWidth.setToolTip('Specifies the width of the Sprite location')
         self.locationWidth.setRange(0, 65535)
         self.locationWidth.valueChanged.connect(self.HandleLocationWidthChanged)
 
-        self.locationHeight = QtGui.QSpinBox()
+        self.locationHeight = QtWidgets.QSpinBox()
         self.locationHeight.setToolTip('Specifies the height of the Sprite location')
         self.locationHeight.setRange(0, 65535)
         self.locationHeight.valueChanged.connect(self.HandleLocationHeightChanged)
 
-        self.snapButton = QtGui.QPushButton('Snap to Grid')
+        self.snapButton = QtWidgets.QPushButton('Snap to Grid')
         self.snapButton.clicked.connect(self.HandleSnapToGrid)
 
         # create a layout
-        layout = QtGui.QGridLayout()
+        layout = QtWidgets.QGridLayout()
         self.setLayout(layout)
 
         # "Editing Location #" label
-        self.editingLabel = QtGui.QLabel('-')
+        self.editingLabel = QtWidgets.QLabel('-')
         layout.addWidget(self.editingLabel, 0, 0, 1, 4, QtCore.Qt.AlignTop)
 
         # add labels
-        layout.addWidget(QtGui.QLabel('ID:'), 1, 0, 1, 1, QtCore.Qt.AlignRight)
+        layout.addWidget(QtWidgets.QLabel('ID:'), 1, 0, 1, 1, QtCore.Qt.AlignRight)
 
         layout.addWidget(createHorzLine(), 2, 0, 1, 4)
 
-        layout.addWidget(QtGui.QLabel('X pos:'), 3, 0, 1, 1, QtCore.Qt.AlignRight)
-        layout.addWidget(QtGui.QLabel('Y pos:'), 4, 0, 1, 1, QtCore.Qt.AlignRight)
+        layout.addWidget(QtWidgets.QLabel('X pos:'), 3, 0, 1, 1, QtCore.Qt.AlignRight)
+        layout.addWidget(QtWidgets.QLabel('Y pos:'), 4, 0, 1, 1, QtCore.Qt.AlignRight)
 
-        layout.addWidget(QtGui.QLabel('Width:'), 3, 2, 1, 1, QtCore.Qt.AlignRight)
-        layout.addWidget(QtGui.QLabel('Height:'), 4, 2, 1, 1, QtCore.Qt.AlignRight)
+        layout.addWidget(QtWidgets.QLabel('Width:'), 3, 2, 1, 1, QtCore.Qt.AlignRight)
+        layout.addWidget(QtWidgets.QLabel('Height:'), 4, 2, 1, 1, QtCore.Qt.AlignRight)
 
         # add the widgets
         layout.addWidget(self.locationID, 1, 1, 1, 1)
@@ -4348,6 +4385,7 @@ class LocationEditorWidget(QtGui.QWidget):
 
     def setLocation(self, loc):
         """Change the location being edited by the editor, update all fields"""
+        if self.UpdateFlag: return
         self.loc = loc
         self.UpdateFlag = True
 
@@ -4378,22 +4416,38 @@ class LocationEditorWidget(QtGui.QWidget):
     @QtCore.pyqtSlot(int)
     def HandleLocationXChanged(self, i):
         """Handler for the location Xpos changing"""
+        global OverrideSnapping
         if self.UpdateFlag: return
+
+        self.UpdateFlag = True
+        OverrideSnapping = True
+
         SetDirty()
-        self.loc.objx = i
         self.loc.setX(int(i*1.5))
+        self.loc.objx = i
         self.loc.UpdateRects()
         self.loc.update()
+
+        self.UpdateFlag = False
+        OverrideSnapping = False
 
     @QtCore.pyqtSlot(int)
     def HandleLocationYChanged(self, i):
         """Handler for the location Y pos changing"""
+        global OverrideSnapping
         if self.UpdateFlag: return
+
+        self.UpdateFlag = True
+        OverrideSnapping = True
+
         SetDirty()
-        self.loc.objy = i
         self.loc.setY(int(i*1.5))
+        self.loc.objy = i
         self.loc.UpdateRects()
         self.loc.update()
+
+        self.UpdateFlag = False
+        OverrideSnapping = False
 
     @QtCore.pyqtSlot(int)
     def HandleLocationWidthChanged(self, i):
@@ -4458,11 +4512,11 @@ class LocationEditorWidget(QtGui.QWidget):
         self.setLocation(loc) # updates the fields
 
 
-class LevelScene(QtGui.QGraphicsScene):
+class LevelScene(QtWidgets.QGraphicsScene):
     """GraphicsView subclass for the level scene"""
     def __init__(self, *args):
         self.bgbrush = QtGui.QBrush(QtGui.QColor.fromRgb(119,136,153))
-        QtGui.QGraphicsScene.__init__(self, *args)
+        super(LevelScene, self).__init__(*args)
 
     def drawBackground(self, painter, rect):
         """Draws all visible tiles"""
@@ -4544,23 +4598,23 @@ class LevelScene(QtGui.QGraphicsScene):
 
 
 
-class LevelViewWidget(QtGui.QGraphicsView):
+class LevelViewWidget(QtWidgets.QGraphicsView):
     """GraphicsView subclass for the level view"""
     PositionHover = QtCore.pyqtSignal(int, int)
     FrameSize = QtCore.pyqtSignal(int, int)
 
     def __init__(self, scene, parent):
         """Constructor"""
-        QtGui.QGraphicsView.__init__(self, scene, parent)
+        super(LevelViewWidget, self).__init__(scene, parent)
 
         self.setAlignment(QtCore.Qt.AlignLeft | QtCore.Qt.AlignTop)
         #self.setBackgroundBrush(QtGui.QBrush(QtGui.QColor.fromRgb(119,136,153)))
-        self.setDragMode(QtGui.QGraphicsView.RubberBandDrag)
-        #self.setDragMode(QtGui.QGraphicsView.ScrollHandDrag)
+        self.setDragMode(QtWidgets.QGraphicsView.RubberBandDrag)
+        #self.setDragMode(QtWidgets.QGraphicsView.ScrollHandDrag)
         self.setMouseTracking(True)
-        #self.setOptimizationFlags(QtGui.QGraphicsView.IndirectPainting)
-        self.YScrollBar = QtGui.QScrollBar(QtCore.Qt.Vertical, parent)
-        self.XScrollBar = QtGui.QScrollBar(QtCore.Qt.Horizontal, parent)
+        #self.setOptimizationFlags(QtWidgets.QGraphicsView.IndirectPainting)
+        self.YScrollBar = QtWidgets.QScrollBar(QtCore.Qt.Vertical, parent)
+        self.XScrollBar = QtWidgets.QScrollBar(QtCore.Qt.Horizontal, parent)
         self.setVerticalScrollBar(self.YScrollBar)
         self.setHorizontalScrollBar(self.XScrollBar)
 
@@ -4620,7 +4674,7 @@ class LevelViewWidget(QtGui.QGraphicsView):
 
                     global OverrideSnapping
                     OverrideSnapping = True
-                    loc = SpriteLocationItem(clickedx, clickedy, 4, 4, newID)
+                    loc = LocationEditorItem(clickedx, clickedy, 4, 4, newID)
                     OverrideSnapping = False
 
                     mw = mainWindow
@@ -4682,7 +4736,7 @@ class LevelViewWidget(QtGui.QGraphicsView):
                 clickedy = int((clicked.y() - 12) / 1.5)
                 #print '%d,%d %d,%d' % (clicked.x(), clicked.y(), clickedx, clickedy)
 
-                getids = [False for x in xrange(256)]
+                getids = [False for x in range(256)]
                 for ent in Level.entrances: getids[ent.entid] = True
                 minimumID = getids.index(False)
 
@@ -4694,7 +4748,7 @@ class LevelViewWidget(QtGui.QGraphicsView):
                 elist = mw.entranceList
                 # if it's the first available ID, all the other indexes should match right?
                 # so I can just use the ID to insert
-                ent.listitem = QtGui.QListWidgetItem(ent.ListString())
+                ent.listitem = QtWidgets.QListWidgetItem(ent.ListString())
                 elist.insertItem(minimumID, ent.listitem)
 
                 global PaintingEntrance, PaintingEntranceListIndex
@@ -4718,14 +4772,14 @@ class LevelViewWidget(QtGui.QGraphicsView):
                 mw = mainWindow
                 plist = mw.pathList
                 selectedpn = None if len(plist.selectedItems()) < 1 else plist.selectedItems()[0]
-                #if(selectedpn == None):
-                #    QtGui.QMessageBox.warning(None, 'Error', 'No pathnode selected. Select a pathnode of the path you want to create a new node in.')
-                if selectedpn == None:
+                #if selectedpn is None:
+                #    QtWidgets.QMessageBox.warning(None, 'Error', 'No pathnode selected. Select a pathnode of the path you want to create a new node in.')
+                if selectedpn is None:
                     """"""
-                    getids = [False for x in xrange(256)]
+                    getids = [False for x in range(256)]
                     getids[0] = True
                     for pathdatax in Level.pathdata:
-                        #if(len(pathdatax['nodes']) > 0):
+                        #if len(pathdatax['nodes']) > 0:
                         getids[int(pathdatax['id'])] = True
 
                     newpathid = getids.index(False)
@@ -4743,18 +4797,18 @@ class LevelViewWidget(QtGui.QGraphicsView):
                     newpathdata['peline'] = peline
                     mw.scene.addItem(peline)
 
-                    Level.pathdata.sort(key=lambda path: int(path['id']));
+                    Level.pathdata.sort(key=lambda path: int(path['id']))
 
 
 
-                    newnode.listitem = QtGui.QListWidgetItem(newnode.ListString())
+                    newnode.listitem = QtWidgets.QListWidgetItem(newnode.ListString())
                     plist.clear()
                     for fpath in Level.pathdata:
                         for fpnode in fpath['nodes']:
-                            fpnode['graphicsitem'].listitem = QtGui.QListWidgetItem(fpnode['graphicsitem'].ListString())
+                            fpnode['graphicsitem'].listitem = QtWidgets.QListWidgetItem(fpnode['graphicsitem'].ListString())
                             plist.addItem(fpnode['graphicsitem'].listitem)
                             fpnode['graphicsitem'].updateId()
-                    plist.setItemSelected(newnode.listitem, True)
+                    newnode.listitem.setSelected(True)
                     Level.paths.append(newnode)
                     self.currentobj = newnode
                     self.dragstartx = clickedx
@@ -4766,7 +4820,7 @@ class LevelViewWidget(QtGui.QGraphicsView):
                         if pathnode.listitem == selectedpn:
                             pathd = pathnode.pathinfo
 
-                    if(pathd == None): return # shouldn't happen
+                    if pathd is None: return # shouldn't happen
 
                     pathid = pathd['id']
                     newnodedata = {'x':clickedx, 'y':clickedy, 'speed':0.5, 'accel':0.00498,'delay':0}
@@ -4779,14 +4833,14 @@ class LevelViewWidget(QtGui.QGraphicsView):
                     newnode.positionChanged = mw.HandlePathPosChange
                     mw.scene.addItem(newnode)
 
-                    newnode.listitem = QtGui.QListWidgetItem(newnode.ListString())
+                    newnode.listitem = QtWidgets.QListWidgetItem(newnode.ListString())
                     plist.clear()
                     for fpath in Level.pathdata:
                         for fpnode in fpath['nodes']:
-                            fpnode['graphicsitem'].listitem = QtGui.QListWidgetItem(fpnode['graphicsitem'].ListString())
+                            fpnode['graphicsitem'].listitem = QtWidgets.QListWidgetItem(fpnode['graphicsitem'].ListString())
                             plist.addItem(fpnode['graphicsitem'].listitem)
                             fpnode['graphicsitem'].updateId()
-                    plist.setItemSelected(newnode.listitem, True)
+                    newnode.listitem.setSelected(True)
                     #global PaintingEntrance, PaintingEntranceListIndex
                     #PaintingEntrance = ent
                     #PaintingEntranceListIndex = minimumID
@@ -4800,7 +4854,7 @@ class LevelViewWidget(QtGui.QGraphicsView):
 
             event.accept()
 
-        elif (event.button() == QtCore.Qt.LeftButton) and (QtGui.QApplication.keyboardModifiers() == QtCore.Qt.ShiftModifier):
+        elif (event.button() == QtCore.Qt.LeftButton) and (QtWidgets.QApplication.keyboardModifiers() == QtCore.Qt.ShiftModifier):
             mw = mainWindow
 
             pos = mw.view.mapToScene(event.x(), event.y())
@@ -4811,7 +4865,7 @@ class LevelViewWidget(QtGui.QGraphicsView):
                     break
 
         else:
-            QtGui.QGraphicsView.mousePressEvent(self, event)
+            QtWidgets.QGraphicsView.mousePressEvent(self, event)
         mainWindow.levelOverview.update()
 
 
@@ -4819,7 +4873,7 @@ class LevelViewWidget(QtGui.QGraphicsView):
         """Catches resize events"""
         self.FrameSize.emit(event.size().width(), event.size().height())
         event.accept()
-        QtGui.QGraphicsView.resizeEvent(self, event)
+        QtWidgets.QGraphicsView.resizeEvent(self, event)
 
 
     def mouseMoveEvent(self, event):
@@ -4830,14 +4884,14 @@ class LevelViewWidget(QtGui.QGraphicsView):
         if pos.y() < 0: pos.setY(0)
         self.PositionHover.emit(int(pos.x()), int(pos.y()))
 
-        if event.buttons() == QtCore.Qt.RightButton and self.currentobj != None:
+        if event.buttons() == QtCore.Qt.RightButton and self.currentobj is not None:
             obj = self.currentobj
 
             # possibly a small optimisation
             type_obj = LevelObjectEditorItem
             type_spr = SpriteEditorItem
             type_ent = EntranceEditorItem
-            type_loc = SpriteLocationItem
+            type_loc = LocationEditorItem
             type_path = PathEditorItem
 
             if isinstance(obj, type_obj):
@@ -4885,7 +4939,7 @@ class LevelViewWidget(QtGui.QGraphicsView):
                     oldrect = obj.BoundingRect
                     oldrect.translate(cx * 24, cy * 24)
                     newrect = QtCore.QRectF(obj.x(), obj.y(), obj.width * 24, obj.height * 24)
-                    updaterect = oldrect.unite(newrect)
+                    updaterect = oldrect.united(newrect)
 
                     obj.UpdateRects()
                     obj.scene().update(updaterect)
@@ -4939,7 +4993,7 @@ class LevelViewWidget(QtGui.QGraphicsView):
                     oldrect = obj.BoundingRect
                     oldrect.translate(cx * 1.5, cy * 1.5)
                     newrect = QtCore.QRectF(obj.x(), obj.y(), obj.width * 1.5, obj.height * 1.5)
-                    updaterect = oldrect.unite(newrect)
+                    updaterect = oldrect.united(newrect)
 
                     obj.UpdateRects()
                     obj.scene().update(updaterect)
@@ -4983,7 +5037,7 @@ class LevelViewWidget(QtGui.QGraphicsView):
                     obj.setPos(int(clickedx * 1.5), int(clickedy * 1.5))
             event.accept()
         else:
-            QtGui.QGraphicsView.mouseMoveEvent(self, event)
+            QtWidgets.QGraphicsView.mouseMoveEvent(self, event)
 
 
     def mouseReleaseEvent(self, event):
@@ -4992,7 +5046,7 @@ class LevelViewWidget(QtGui.QGraphicsView):
             self.currentobj = None
             event.accept()
         else:
-            QtGui.QGraphicsView.mouseReleaseEvent(self, event)
+            QtWidgets.QGraphicsView.mouseReleaseEvent(self, event)
 
 
     def drawForeground(self, painter, rect):
@@ -5084,10 +5138,10 @@ class LevelViewWidget(QtGui.QGraphicsView):
 ####################################################################
 ####################################################################
 
-class HexSpinBox(QtGui.QSpinBox):
+class HexSpinBox(QtWidgets.QSpinBox):
     class HexValidator(QtGui.QValidator):
         def __init__(self, min, max):
-            QtGui.QValidator.__init__(self)
+            super(HexValidator, self).__init__()
             self.valid = set('0123456789abcdef')
             self.min = min
             self.max = max
@@ -5112,22 +5166,22 @@ class HexSpinBox(QtGui.QSpinBox):
 
     def __init__(self, format='%04X', *args):
         self.format = format
-        QtGui.QSpinBox.__init__(self, *args)
+        super(HexSpinBox, self).__init__(*args)
         self.validator = self.HexValidator(self.minimum(), self.maximum())
 
     def setMinimum(self, value):
         self.validator.min = value
-        QtGui.QSpinBox.setMinimum(self, value)
+        QtWidgets.QSpinBox.setMinimum(self, value)
 
     def setMaximum(self, value):
         self.validator.max = value
-        QtGui.QSpinBox.setMaximum(self, value)
+        QtWidgets.QSpinBox.setMaximum(self, value)
 
     def setRange(self, min, max):
         self.validator.min = min
         self.validator.max = max
-        QtGui.QSpinBox.setMinimum(self, min)
-        QtGui.QSpinBox.setMaximum(self, max)
+        QtWidgets.QSpinBox.setMinimum(self, min)
+        QtWidgets.QSpinBox.setMaximum(self, max)
 
     def validate(self, text, pos):
         return self.validator.validate(text, pos)
@@ -5138,133 +5192,132 @@ class HexSpinBox(QtGui.QSpinBox):
     def valueFromText(self, value):
         return int(str(value), 16)
 
-class InputBox(QtGui.QDialog):
+class InputBox(QtWidgets.QDialog):
     Type_TextBox = 1
     Type_SpinBox = 2
     Type_HexSpinBox = 3
 
     def __init__(self, type=Type_TextBox):
-        QtGui.QDialog.__init__(self)
+        super(InputBox, self).__init__()
 
-        self.label = QtGui.QLabel('-')
+        self.label = QtWidgets.QLabel('-')
         self.label.setWordWrap(True)
 
         if type == InputBox.Type_TextBox:
-            self.textbox = QtGui.QLineEdit()
+            self.textbox = QtWidgets.QLineEdit()
             widget = self.textbox
         elif type == InputBox.Type_SpinBox:
-            self.spinbox = QtGui.QSpinBox()
+            self.spinbox = QtWidgets.QSpinBox()
             widget = self.spinbox
         elif type == InputBox.Type_HexSpinBox:
             self.spinbox = HexSpinBox()
             widget = self.spinbox
 
-        self.buttons = QtGui.QDialogButtonBox(QtGui.QDialogButtonBox.Ok | QtGui.QDialogButtonBox.Cancel)
+        self.buttons = QtWidgets.QDialogButtonBox(QtWidgets.QDialogButtonBox.Ok | QtWidgets.QDialogButtonBox.Cancel)
         self.buttons.accepted.connect(self.accept)
         self.buttons.rejected.connect(self.reject)
 
-        self.layout = QtGui.QVBoxLayout()
+        self.layout = QtWidgets.QVBoxLayout()
         self.layout.addWidget(self.label)
         self.layout.addWidget(widget)
         self.layout.addWidget(self.buttons)
         self.setLayout(self.layout)
 
 
-class AboutDialog(QtGui.QDialog):
+class AboutDialog(QtWidgets.QDialog):
     """Shows the About info for Reggie"""
     def __init__(self):
         """Creates and initialises the dialog"""
-        QtGui.QDialog.__init__(self)
+        super(AboutDialog, self).__init__()
         self.setFixedWidth(550)
         self.setFixedHeight(350)
         self.setWindowTitle('About Reggie!')
 
-        f = open('reggiedata/about.html', 'r')
-        data = f.read()
-        f.close()
+        with open('reggiedata/about.html', 'r') as f:
+            data = f.read()
 
-        self.pageWidget = QtGui.QTextBrowser()
+        self.pageWidget = QtWidgets.QTextBrowser()
         self.pageWidget.setHtml(data)
 
-        buttonBox = QtGui.QDialogButtonBox(QtGui.QDialogButtonBox.Ok)
+        buttonBox = QtWidgets.QDialogButtonBox(QtWidgets.QDialogButtonBox.Ok)
         buttonBox.accepted.connect(self.accept)
 
-        mainLayout = QtGui.QVBoxLayout()
+        mainLayout = QtWidgets.QVBoxLayout()
         mainLayout.addWidget(self.pageWidget)
         mainLayout.addWidget(buttonBox)
         self.setLayout(mainLayout)
 
 
-class ObjectShiftDialog(QtGui.QDialog):
+class ObjectShiftDialog(QtWidgets.QDialog):
     """Lets you pick an amount to shift the selected objects by"""
     def __init__(self):
         """Creates and initialises the dialog"""
-        QtGui.QDialog.__init__(self)
+        super(ObjectShiftDialog, self).__init__()
         self.setWindowTitle('Shift Objects')
 
-        self.XOffset = QtGui.QSpinBox()
+        self.XOffset = QtWidgets.QSpinBox()
         self.XOffset.setRange(-16384, 16383)
 
-        self.YOffset = QtGui.QSpinBox()
+        self.YOffset = QtWidgets.QSpinBox()
         self.YOffset.setRange(-8192, 8191)
 
-        buttonBox = QtGui.QDialogButtonBox(QtGui.QDialogButtonBox.Ok | QtGui.QDialogButtonBox.Cancel)
+        buttonBox = QtWidgets.QDialogButtonBox(QtWidgets.QDialogButtonBox.Ok | QtWidgets.QDialogButtonBox.Cancel)
         buttonBox.accepted.connect(self.accept)
         buttonBox.rejected.connect(self.reject)
 
-        moveLayout = QtGui.QFormLayout()
-        offsetlabel = QtGui.QLabel('Enter an offset in pixels - each block is 16 pixels wide/high. Note that normal objects can only be placed on 16x16 boundaries, so if the offset you enter isn\'t a multiple of 16, they won\'t be moved correctly. Positive values move right/down, negative values move left/up.')
+        moveLayout = QtWidgets.QFormLayout()
+        offsetlabel = QtWidgets.QLabel('Enter an offset in pixels - each block is 16 pixels wide/high. Note that normal objects can only be placed on 16x16 boundaries, so if the offset you enter isn\'t a multiple of 16, they won\'t be moved correctly. Positive values move right/down, negative values move left/up.')
         offsetlabel.setWordWrap(True)
         moveLayout.addWidget(offsetlabel)
         moveLayout.addRow('X:', self.XOffset)
         moveLayout.addRow('Y:', self.YOffset)
 
-        moveGroupBox = QtGui.QGroupBox('Move objects by:')
+        moveGroupBox = QtWidgets.QGroupBox('Move objects by:')
         moveGroupBox.setLayout(moveLayout)
 
-        mainLayout = QtGui.QVBoxLayout()
+        mainLayout = QtWidgets.QVBoxLayout()
         mainLayout.addWidget(moveGroupBox)
         mainLayout.addWidget(buttonBox)
         self.setLayout(mainLayout)
 
 
-class MetaInfoDialog(QtGui.QDialog):
+class MetaInfoDialog(QtWidgets.QDialog):
     """Allows the user to enter in various meta-info to be kept in the level for display"""
     def __init__(self):
         """Creates and initialises the dialog"""
-        QtGui.QDialog.__init__(self)
+        super(MetaInfoDialog, self).__init__()
         self.setWindowTitle('Level Information')
 
-        self.levelName = QtGui.QLineEdit()
+        self.levelName = QtWidgets.QLineEdit()
         self.levelName.setMaxLength(32)
         self.levelName.setReadOnly(True)
         self.levelName.setMinimumWidth(320)
         self.levelName.setText(Level.Title)
 
-        self.Author = QtGui.QLineEdit()
+        self.Author = QtWidgets.QLineEdit()
         self.Author.setMaxLength(32)
         self.Author.setReadOnly(True)
         self.Author.setMinimumWidth(320)
         self.Author.setText(Level.Author)
 
-        self.Group = QtGui.QLineEdit()
+        self.Group = QtWidgets.QLineEdit()
         self.Group.setMaxLength(32)
         self.Group.setReadOnly(True)
         self.Group.setMinimumWidth(320)
         self.Group.setText(Level.Group)
 
-        self.Website = QtGui.QLineEdit()
+        self.Website = QtWidgets.QLineEdit()
         self.Website.setMaxLength(64)
         self.Website.setReadOnly(True)
         self.Website.setMinimumWidth(320)
         self.Website.setText(Level.Webpage)
 
-        self.Password = QtGui.QLineEdit()
+        self.Password = QtWidgets.QLineEdit()
         self.Password.setMaxLength(32)
         self.Password.textChanged.connect(self.PasswordEntry)
         self.Password.setMinimumWidth(320)
 
-        self.changepw = QtGui.QPushButton("Add/Change Password")
+        self.changepw = QtWidgets.QPushButton("Add/Change Password")
 
 
         if Level.Password == '':
@@ -5275,16 +5328,16 @@ class MetaInfoDialog(QtGui.QDialog):
             self.changepw.setDisabled(False)
 
 
-        buttonBox = QtGui.QDialogButtonBox(QtGui.QDialogButtonBox.Ok | QtGui.QDialogButtonBox.Cancel)
+        buttonBox = QtWidgets.QDialogButtonBox(QtWidgets.QDialogButtonBox.Ok | QtWidgets.QDialogButtonBox.Cancel)
         buttonBox.addButton(self.changepw, buttonBox.ActionRole)
         buttonBox.accepted.connect(self.accept)
         buttonBox.rejected.connect(self.reject)
         self.changepw.clicked.connect(self.ChangeButton)
         self.changepw.setDisabled(True)
 
-        self.lockedLabel = QtGui.QLabel('This level\'s information is locked.<br>Please enter the password below in order to modify it.')
+        self.lockedLabel = QtWidgets.QLabel('This level\'s information is locked.<br>Please enter the password below in order to modify it.')
 
-        infoLayout = QtGui.QFormLayout()
+        infoLayout = QtWidgets.QFormLayout()
         infoLayout.addWidget(self.lockedLabel)
         infoLayout.addRow('Password:', self.Password)
         infoLayout.addRow('Title:', self.levelName)
@@ -5299,10 +5352,10 @@ class MetaInfoDialog(QtGui.QDialog):
         self.PasswordLabel.setVisible(levelIsLocked)
         self.Password.setVisible(levelIsLocked)
 
-        infoGroupBox = QtGui.QGroupBox('Created with ' + Level.Creator)
+        infoGroupBox = QtWidgets.QGroupBox('Created with ' + Level.Creator)
         infoGroupBox.setLayout(infoLayout)
 
-        mainLayout = QtGui.QVBoxLayout()
+        mainLayout = QtWidgets.QVBoxLayout()
         mainLayout.addWidget(infoGroupBox)
         mainLayout.addWidget(buttonBox)
         self.setLayout(mainLayout)
@@ -5338,26 +5391,26 @@ class MetaInfoDialog(QtGui.QDialog):
     def ChangeButton(self):
         """Allows the changing of a given password"""
 
-        class ChangePWDialog(QtGui.QDialog):
+        class ChangePWDialog(QtWidgets.QDialog):
             """Dialog"""
             def __init__(self):
-                QtGui.QDialog.__init__(self)
+                super(ChangePWDialog, self).__init__()
                 self.setWindowTitle('Change Password')
 
-                self.New = QtGui.QLineEdit()
+                self.New = QtWidgets.QLineEdit()
                 self.New.setMaxLength(64)
                 self.New.textChanged.connect(self.PasswordMatch)
                 self.New.setMinimumWidth(320)
 
-                self.Verify = QtGui.QLineEdit()
+                self.Verify = QtWidgets.QLineEdit()
                 self.Verify.setMaxLength(64)
                 self.Verify.textChanged.connect(self.PasswordMatch)
                 self.Verify.setMinimumWidth(320)
 
-                self.Ok = QtGui.QPushButton("OK")
-                self.Cancel = QtGui.QDialogButtonBox.Cancel
+                self.Ok = QtWidgets.QPushButton("OK")
+                self.Cancel = QtWidgets.QDialogButtonBox.Cancel
 
-                buttonBox = QtGui.QDialogButtonBox()
+                buttonBox = QtWidgets.QDialogButtonBox()
                 buttonBox.addButton(self.Ok, buttonBox.AcceptRole)
                 buttonBox.addButton(self.Cancel)
 
@@ -5365,18 +5418,18 @@ class MetaInfoDialog(QtGui.QDialog):
                 buttonBox.rejected.connect(self.reject)
                 self.Ok.setDisabled(True)
 
-                infoLayout = QtGui.QFormLayout()
+                infoLayout = QtWidgets.QFormLayout()
                 infoLayout.addRow('New Password:', self.New)
                 infoLayout.addRow('Verify Password:', self.Verify)
 
-                infoGroupBox = QtGui.QGroupBox('Level Information')
+                infoGroupBox = QtWidgets.QGroupBox('Level Information')
 
-                infoLabel = QtGui.QVBoxLayout()
-                infoLabel.addWidget(QtGui.QLabel("Password may be composed of any ASCII character,\nand up to 64 characters long.\n"), 0, QtCore.Qt.AlignCenter)
+                infoLabel = QtWidgets.QVBoxLayout()
+                infoLabel.addWidget(QtWidgets.QLabel("Password may be composed of any ASCII character,\nand up to 64 characters long.\n"), 0, QtCore.Qt.AlignCenter)
                 infoLabel.addLayout(infoLayout)
                 infoGroupBox.setLayout(infoLabel)
 
-                mainLayout = QtGui.QVBoxLayout()
+                mainLayout = QtWidgets.QVBoxLayout()
                 mainLayout.addWidget(infoGroupBox)
                 mainLayout.addWidget(buttonBox)
                 self.setLayout(mainLayout)
@@ -5386,7 +5439,7 @@ class MetaInfoDialog(QtGui.QDialog):
                 self.Ok.setDisabled(self.New.text() != self.Verify.text() and self.New.text() != '')
 
         dlg = ChangePWDialog()
-        if dlg.exec_() == QtGui.QDialog.Accepted:
+        if dlg.exec_() == QtWidgets.QDialog.Accepted:
             self.lockedLabel.setVisible(True)
             self.Password.setVisible(True)
             self.PasswordLabel.setVisible(True)
@@ -5403,91 +5456,91 @@ class MetaInfoDialog(QtGui.QDialog):
 
 
 #Sets up the Area Options Menu
-class AreaOptionsDialog(QtGui.QDialog):
+class AreaOptionsDialog(QtWidgets.QDialog):
     """Dialog which lets you choose among various area options from tabs"""
     def __init__(self):
         """Creates and initialises the tab dialog"""
-        QtGui.QDialog.__init__(self)
+        super(AreaOptionsDialog, self).__init__()
         self.setWindowTitle('Area Options')
 
-        self.tabWidget = QtGui.QTabWidget()
+        self.tabWidget = QtWidgets.QTabWidget()
         self.LoadingTab = LoadingTab()
         self.TilesetsTab = TilesetsTab()
         self.tabWidget.addTab(self.TilesetsTab, "Tilesets")
         self.tabWidget.addTab(self.LoadingTab, "Settings")
 
-        buttonBox = QtGui.QDialogButtonBox(QtGui.QDialogButtonBox.Ok | QtGui.QDialogButtonBox.Cancel)
+        buttonBox = QtWidgets.QDialogButtonBox(QtWidgets.QDialogButtonBox.Ok | QtWidgets.QDialogButtonBox.Cancel)
 
         buttonBox.accepted.connect(self.accept)
         buttonBox.rejected.connect(self.reject)
 
-        mainLayout = QtGui.QVBoxLayout()
+        mainLayout = QtWidgets.QVBoxLayout()
         mainLayout.addWidget(self.tabWidget)
         mainLayout.addWidget(buttonBox)
         self.setLayout(mainLayout)
 
 
-class LoadingTab(QtGui.QWidget):
+class LoadingTab(QtWidgets.QWidget):
     def __init__(self):
-        QtGui.QWidget.__init__(self)
+        super(LoadingTab, self).__init__()
 
-        self.timer = QtGui.QSpinBox()
+        self.timer = QtWidgets.QSpinBox()
         self.timer.setRange(0, 999)
         self.timer.setToolTip("Sets the countdown timer on load from the world map.")
-        timerLabel = QtGui.QLabel("Timer:")
+        timerLabel = QtWidgets.QLabel("Timer:")
         self.timer.setValue(Level.timeLimit + 200)
 
-        self.entrance = QtGui.QSpinBox()
+        self.entrance = QtWidgets.QSpinBox()
         self.entrance.setRange(0, 255)
         self.entrance.setToolTip("Sets the entrance ID to load into when loading from the World Map")
-        entranceLabel = QtGui.QLabel("Entrance ID:")
+        entranceLabel = QtWidgets.QLabel("Entrance ID:")
         self.entrance.setValue(Level.startEntrance)
 
-        self.wrap = QtGui.QCheckBox("Wrap across Edges")
+        self.wrap = QtWidgets.QCheckBox("Wrap across Edges")
         self.wrap.setToolTip("Makes the stage edges wrap<br>Warning: This option may cause the game to crash or behave weirdly. Wrapping only works correctly where the area is set up in the right way; see Coin Battle 1 for an example.")
         self.wrap.setChecked((Level.wrapFlag & 1) != 0)
 
-        settingsLayout = QtGui.QFormLayout()
+        settingsLayout = QtWidgets.QFormLayout()
         settingsLayout.addRow('Timer:', self.timer)
         settingsLayout.addRow('Entrance ID:', self.entrance)
         settingsLayout.addRow(self.wrap)
 
-        self.eventChooser = QtGui.QListWidget()
+        self.eventChooser = QtWidgets.QListWidget()
         defEvent = Level.defEvents
-        item = QtGui.QListWidgetItem
+        item = QtWidgets.QListWidgetItem
         checked = QtCore.Qt.Checked
         unchecked = QtCore.Qt.Unchecked
         flags = QtCore.Qt.ItemIsSelectable | QtCore.Qt.ItemIsUserCheckable | QtCore.Qt.ItemIsEditable | QtCore.Qt.ItemIsEnabled
 
-        for id in xrange(32):
+        for id in range(32):
             i = item('Event %d' % (id+1))
             value = 1 << id
             i.setCheckState(checked if (defEvent & value) != 0 else unchecked)
             i.setFlags(flags)
             self.eventChooser.addItem(i)
 
-        eventLayout = QtGui.QVBoxLayout()
+        eventLayout = QtWidgets.QVBoxLayout()
         eventLayout.addWidget(self.eventChooser)
 
-        eventBox = QtGui.QGroupBox('Default Events')
+        eventBox = QtWidgets.QGroupBox('Default Events')
         eventBox.setToolTip("Check the following Event IDs to make them start already activated.")
         eventBox.setLayout(eventLayout)
 
-        Layout = QtGui.QVBoxLayout()
+        Layout = QtWidgets.QVBoxLayout()
         Layout.addLayout(settingsLayout)
         Layout.addWidget(eventBox)
         Layout.addStretch(1)
         self.setLayout(Layout)
 
 
-class TilesetsTab(QtGui.QWidget):
+class TilesetsTab(QtWidgets.QWidget):
     def __init__(self):
-        QtGui.QWidget.__init__(self)
+        super(TilesetsTab, self).__init__()
 
-        self.tile0 = QtGui.QComboBox()
-        self.tile1 = QtGui.QComboBox()
-        self.tile2 = QtGui.QComboBox()
-        self.tile3 = QtGui.QComboBox()
+        self.tile0 = QtWidgets.QComboBox()
+        self.tile1 = QtWidgets.QComboBox()
+        self.tile2 = QtWidgets.QComboBox()
+        self.tile3 = QtWidgets.QComboBox()
 
         self.widgets = [self.tile0, self.tile1, self.tile2, self.tile3]
         names = [Level.tileset0, Level.tileset1, Level.tileset2, Level.tileset3]
@@ -5523,19 +5576,19 @@ class TilesetsTab(QtGui.QWidget):
         # don't allow ts0 to be removable
         self.tile0.removeItem(0)
 
-        mainLayout = QtGui.QVBoxLayout()
-        tile0Box = QtGui.QGroupBox("Standard Suite")
-        tile1Box = QtGui.QGroupBox("Stage Suite")
-        tile2Box = QtGui.QGroupBox("Background Suite")
-        tile3Box = QtGui.QGroupBox("Interactive Suite")
+        mainLayout = QtWidgets.QVBoxLayout()
+        tile0Box = QtWidgets.QGroupBox("Standard Suite")
+        tile1Box = QtWidgets.QGroupBox("Stage Suite")
+        tile2Box = QtWidgets.QGroupBox("Background Suite")
+        tile3Box = QtWidgets.QGroupBox("Interactive Suite")
 
-        t0 = QtGui.QVBoxLayout()
+        t0 = QtWidgets.QVBoxLayout()
         t0.addWidget(self.tile0)
-        t1 = QtGui.QVBoxLayout()
+        t1 = QtWidgets.QVBoxLayout()
         t1.addWidget(self.tile1)
-        t2 = QtGui.QVBoxLayout()
+        t2 = QtWidgets.QVBoxLayout()
         t2.addWidget(self.tile2)
-        t3 = QtGui.QVBoxLayout()
+        t3 = QtWidgets.QVBoxLayout()
         t3.addWidget(self.tile3)
 
         tile0Box.setLayout(t0)
@@ -5570,7 +5623,7 @@ class TilesetsTab(QtGui.QWidget):
         w = self.widgets[tileset]
 
         if index == (w.count() - 1):
-            fname = unicode(w.itemData(index).toPyObject())
+            fname = unicode(toPyObject(w.itemData(index)))
             fname = fname[8:]
 
             dbox = InputBox()
@@ -5580,7 +5633,7 @@ class TilesetsTab(QtGui.QWidget):
             dbox.textbox.setText(fname)
             result = dbox.exec_()
 
-            if result == QtGui.QDialog.Accepted:
+            if result == QtWidgets.QDialog.Accepted:
                 fname = unicode(dbox.textbox.text())
                 if fname.endswith('.arc'): fname = fname[:-4]
 
@@ -5594,14 +5647,14 @@ class TilesetsTab(QtGui.QWidget):
 
 
 #Sets up the Zones Menu
-class ZonesDialog(QtGui.QDialog):
+class ZonesDialog(QtWidgets.QDialog):
     """Dialog which lets you choose among various from tabs"""
     def __init__(self):
         """Creates and initialises the tab dialog"""
-        QtGui.QDialog.__init__(self)
+        super(ZonesDialog, self).__init__()
         self.setWindowTitle('Zones')
 
-        self.tabWidget = QtGui.QTabWidget()
+        self.tabWidget = QtWidgets.QTabWidget()
 
         i = 0
         self.zoneTabs = []
@@ -5618,12 +5671,12 @@ class ZonesDialog(QtGui.QDialog):
                 self.tabWidget.setTabText(tab, str(tab + 1))
 
 
-        self.NewButton = QtGui.QPushButton("New")
-        self.DeleteButton = QtGui.QPushButton("Delete")
+        self.NewButton = QtWidgets.QPushButton("New")
+        self.DeleteButton = QtWidgets.QPushButton("Delete")
 
-        buttonBox = QtGui.QDialogButtonBox(QtGui.QDialogButtonBox.Ok | QtGui.QDialogButtonBox.Cancel)
-        buttonBox.addButton(self.NewButton, buttonBox.ActionRole);
-        buttonBox.addButton(self.DeleteButton, buttonBox.ActionRole);
+        buttonBox = QtWidgets.QDialogButtonBox(QtWidgets.QDialogButtonBox.Ok | QtWidgets.QDialogButtonBox.Cancel)
+        buttonBox.addButton(self.NewButton, buttonBox.ActionRole)
+        buttonBox.addButton(self.DeleteButton, buttonBox.ActionRole)
 
         buttonBox.accepted.connect(self.accept)
         buttonBox.rejected.connect(self.reject)
@@ -5631,7 +5684,7 @@ class ZonesDialog(QtGui.QDialog):
         self.NewButton.clicked.connect(self.NewZone)
         self.DeleteButton.clicked.connect(self.DeleteZone)
 
-        mainLayout = QtGui.QVBoxLayout()
+        mainLayout = QtWidgets.QVBoxLayout()
         mainLayout.addWidget(self.tabWidget)
         mainLayout.addWidget(buttonBox)
         self.setLayout(mainLayout)
@@ -5639,8 +5692,8 @@ class ZonesDialog(QtGui.QDialog):
     @QtCore.pyqtSlot()
     def NewZone(self):
         if len(self.zoneTabs) >= 8:
-            result = QtGui.QMessageBox.warning(self, 'Warning', 'You are trying to add more than 8 zones to a level - keep in mind that without the proper fix to the game, this will cause your level to <b>crash</b> or have other strange issues!<br><br>Are you sure you want to do this?', QtGui.QMessageBox.Yes | QtGui.QMessageBox.No)
-            if result == QtGui.QMessageBox.No:
+            result = QtWidgets.QMessageBox.warning(self, 'Warning', 'You are trying to add more than 8 zones to a level - keep in mind that without the proper fix to the game, this will cause your level to <b>crash</b> or have other strange issues!<br><br>Are you sure you want to do this?', QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.No)
+            if result == QtWidgets.QMessageBox.No:
                 return
 
         a = []
@@ -5683,9 +5736,9 @@ class ZonesDialog(QtGui.QDialog):
 
 
 
-class ZoneTab(QtGui.QWidget):
+class ZoneTab(QtWidgets.QWidget):
     def __init__(self, z):
-        QtGui.QWidget.__init__(self)
+        super(ZoneTab, self).__init__()
 
         self.zoneObj = z
 
@@ -5694,7 +5747,7 @@ class ZoneTab(QtGui.QWidget):
         self.createBounds(z)
         self.createAudio(z)
 
-        mainLayout = QtGui.QVBoxLayout()
+        mainLayout = QtWidgets.QVBoxLayout()
         mainLayout.addWidget(self.Dimensions)
         mainLayout.addWidget(self.Visibility)
         mainLayout.addWidget(self.Bounds)
@@ -5704,39 +5757,39 @@ class ZoneTab(QtGui.QWidget):
 
 
     def createDimensions(self, z):
-            self.Dimensions = QtGui.QGroupBox("Dimensions")
+            self.Dimensions = QtWidgets.QGroupBox("Dimensions")
 
-            self.Zone_xpos = QtGui.QSpinBox()
+            self.Zone_xpos = QtWidgets.QSpinBox()
             self.Zone_xpos.setRange(16, 65535)
             self.Zone_xpos.setToolTip("Sets the X Position of the upper left corner")
             self.Zone_xpos.setValue(z.objx)
 
-            self.Zone_ypos = QtGui.QSpinBox()
+            self.Zone_ypos = QtWidgets.QSpinBox()
             self.Zone_ypos.setRange(16, 65535)
             self.Zone_ypos.setToolTip("Sets the Y Position of the upper left corner")
             self.Zone_ypos.setValue(z.objy)
 
-            self.Zone_width = QtGui.QSpinBox()
+            self.Zone_width = QtWidgets.QSpinBox()
             self.Zone_width.setRange(300, 65535)
             self.Zone_width.setToolTip("Sets the width of the zone")
             self.Zone_width.setValue(z.width)
 
-            self.Zone_height = QtGui.QSpinBox()
+            self.Zone_height = QtWidgets.QSpinBox()
             self.Zone_height.setRange(200, 65535)
             self.Zone_height.setToolTip("Sets the height of the zone")
             self.Zone_height.setValue(z.height)
 
 
-            ZonePositionLayout = QtGui.QFormLayout()
+            ZonePositionLayout = QtWidgets.QFormLayout()
             ZonePositionLayout.addRow("X position:", self.Zone_xpos)
             ZonePositionLayout.addRow("Y position:", self.Zone_ypos)
 
-            ZoneSizeLayout = QtGui.QFormLayout()
+            ZoneSizeLayout = QtWidgets.QFormLayout()
             ZoneSizeLayout.addRow("X size:", self.Zone_width)
             ZoneSizeLayout.addRow("Y size:", self.Zone_height)
 
 
-            innerLayout = QtGui.QHBoxLayout()
+            innerLayout = QtWidgets.QHBoxLayout()
 
             innerLayout.addLayout(ZonePositionLayout)
             innerLayout.addLayout(ZoneSizeLayout)
@@ -5745,16 +5798,16 @@ class ZoneTab(QtGui.QWidget):
 
 
     def createVisibility(self, z):
-            self.Visibility = QtGui.QGroupBox("Rendering and Camera")
+            self.Visibility = QtWidgets.QGroupBox("Rendering and Camera")
 
-            self.Zone_modeldark = QtGui.QComboBox()
+            self.Zone_modeldark = QtWidgets.QComboBox()
             self.Zone_modeldark.addItems(ZoneThemeValues)
             self.Zone_modeldark.setToolTip('<b>Zone Theme:</b> Changes the way models and parts of the background are rendered (for blurring, darkness, lava effects, and so on). Themes with * next to them are used in the game, but look the same as the overworld theme.')
             if z.modeldark < 0: z.modeldark = 0
             if z.modeldark >= len(ZoneThemeValues): z.modeldark = len(ZoneThemeValues)
             self.Zone_modeldark.setCurrentIndex(z.modeldark)
 
-            self.Zone_terraindark = QtGui.QComboBox()
+            self.Zone_terraindark = QtWidgets.QComboBox()
             self.Zone_terraindark.addItems(ZoneTerrainThemeValues)
             self.Zone_terraindark.setToolTip('<b>Terrain Theme:</b> Changes the way the terrain is rendered. It also affects the parts of the background which the normal theme doesn\'t change.')
             if z.terraindark < 0: z.terraindark = 0
@@ -5762,16 +5815,16 @@ class ZoneTab(QtGui.QWidget):
             self.Zone_terraindark.setCurrentIndex(z.terraindark)
 
 
-            self.Zone_vnormal = QtGui.QRadioButton("Normal")
+            self.Zone_vnormal = QtWidgets.QRadioButton("Normal")
             self.Zone_vnormal.setToolTip("Sets the visibility mode to normal.")
 
-            self.Zone_vspotlight = QtGui.QRadioButton("Layer 0 Spotlight")
+            self.Zone_vspotlight = QtWidgets.QRadioButton("Layer 0 Spotlight")
             self.Zone_vspotlight.setToolTip("Sets the visibility mode to spotlight. In Spotlight mode,\nmoving behind layer 0 objects enables a spotlight that\nfollows Mario around.")
 
-            self.Zone_vfulldark = QtGui.QRadioButton("Full Darkness")
+            self.Zone_vfulldark = QtWidgets.QRadioButton("Full Darkness")
             self.Zone_vfulldark.setToolTip("Sets the visibility mode to full darkness. In full dark mode,\nthe screen is completely black and visibility is only provided\nby the available spotlight effect. Stars and some sprites\ncan enhance the default visibility.")
 
-            self.Zone_visibility = QtGui.QComboBox()
+            self.Zone_visibility = QtWidgets.QComboBox()
 
             self.zv = z.visibility
             VRadioDiv = self.zv / 16
@@ -5792,17 +5845,17 @@ class ZoneTab(QtGui.QWidget):
             self.Zone_vfulldark.clicked.connect(self.ChangeList)
 
 
-            self.Zone_xtrack = QtGui.QCheckBox()
+            self.Zone_xtrack = QtWidgets.QCheckBox()
             self.Zone_xtrack.setToolTip("Allows the camera to track Mario across the X dimension.\nTurning off this option centers the screen horizontally in\nthe view, producing a stationary camera mode.")
             if z.cammode in [0, 3, 6]:
                 self.Zone_xtrack.setChecked(True)
-            self.Zone_ytrack = QtGui.QCheckBox()
+            self.Zone_ytrack = QtWidgets.QCheckBox()
             self.Zone_ytrack.setToolTip("Allows the camera to track Mario across the Y dimension.\nTurning off this option centers the screen vertically in\nthe view, producing very vertically limited stages.")
             if z.cammode in [0, 1, 3, 4]:
                 self.Zone_ytrack.setChecked(True)
 
 
-            self.Zone_camerazoom = QtGui.QComboBox()
+            self.Zone_camerazoom = QtWidgets.QComboBox()
             self.Zone_camerazoom.setToolTip("Changes the camera zoom functionality\n   Negative values: Zoom In\n   Positive values: Zoom Out\n\nZoom Level 4 is rather glitchy")
             newItems1 = ["-2", "-1", "0", "1", "2", "3", "4"]
             self.Zone_camerazoom.addItems(newItems1)
@@ -5823,34 +5876,34 @@ class ZoneTab(QtGui.QWidget):
             else:
                 self.Zone_camerazoom.setCurrentIndex(2)
 
-            self.Zone_camerabias = QtGui.QCheckBox()
+            self.Zone_camerabias = QtWidgets.QCheckBox()
             self.Zone_camerabias.setToolTip("Sets the screen bias to the left edge on load, preventing initial scrollback.\nUseful for pathed levels\n    Note: Not all zoom/mode combinations support bias")
             if z.camzoom in [1, 2, 3, 4, 5, 6, 9, 10]:
                 self.Zone_camerabias.setChecked(True)
 
 
-            ZoneZoomLayout = QtGui.QFormLayout()
+            ZoneZoomLayout = QtWidgets.QFormLayout()
             ZoneZoomLayout.addRow("Zoom Level:", self.Zone_camerazoom)
             ZoneZoomLayout.addRow("Zone Theme:", self.Zone_modeldark)
             ZoneZoomLayout.addRow("Terrain Lighting:", self.Zone_terraindark)
 
-            ZoneCameraLayout = QtGui.QFormLayout()
+            ZoneCameraLayout = QtWidgets.QFormLayout()
             ZoneCameraLayout.addRow("X Tracking:", self.Zone_xtrack)
             ZoneCameraLayout.addRow("Y Tracking:", self.Zone_ytrack)
             ZoneCameraLayout.addRow("Bias:", self.Zone_camerabias)
 
-            ZoneVisibilityLayout = QtGui.QHBoxLayout()
+            ZoneVisibilityLayout = QtWidgets.QHBoxLayout()
             ZoneVisibilityLayout.addWidget(self.Zone_vnormal)
             ZoneVisibilityLayout.addWidget(self.Zone_vspotlight)
             ZoneVisibilityLayout.addWidget(self.Zone_vfulldark)
 
 
 
-            TopLayout = QtGui.QHBoxLayout()
+            TopLayout = QtWidgets.QHBoxLayout()
             TopLayout.addLayout(ZoneCameraLayout)
             TopLayout.addLayout(ZoneZoomLayout)
 
-            InnerLayout = QtGui.QVBoxLayout()
+            InnerLayout = QtWidgets.QVBoxLayout()
             InnerLayout.addLayout(TopLayout)
             InnerLayout.addLayout(ZoneVisibilityLayout)
             InnerLayout.addWidget(self.Zone_visibility)
@@ -5881,23 +5934,23 @@ class ZoneTab(QtGui.QWidget):
 
 
     def createBounds(self, z):
-            self.Bounds = QtGui.QGroupBox("Bounds")
+            self.Bounds = QtWidgets.QGroupBox("Bounds")
 
             #Block3 = Level.bounding[z.block3id]
 
-            self.Zone_yboundup = QtGui.QSpinBox()
+            self.Zone_yboundup = QtWidgets.QSpinBox()
             self.Zone_yboundup.setRange(-32766, 32767)
             self.Zone_yboundup.setToolTip("Positive Values: Easier to scroll upwards (110 is centered)\nNegative Values: Harder to scroll upwards (30 is the top edge of the screen)\n\nValues higher than 240 can cause instant death upon screen scrolling")
             self.Zone_yboundup.setSpecialValueText("32")
             self.Zone_yboundup.setValue(z.yupperbound)
 
-            self.Zone_ybounddown = QtGui.QSpinBox()
+            self.Zone_ybounddown = QtWidgets.QSpinBox()
             self.Zone_ybounddown.setRange(-32766, 32767)
             self.Zone_ybounddown.setToolTip("Positive Values: Harder to scroll downwards (65 is the bottom edge of the screen)\nNegative Values: Easier to scroll downwards (95 is centered)\n\nValues higher than 100 will prevent the sceen from scrolling while Mario until Mario is offscreen")
             self.Zone_ybounddown.setValue(z.ylowerbound)
 
 
-            ZoneBoundsLayout = QtGui.QFormLayout()
+            ZoneBoundsLayout = QtWidgets.QFormLayout()
 
             ZoneBoundsLayout.addRow("Upper Bounds:", self.Zone_yboundup)
             ZoneBoundsLayout.addRow("Lower Bounds:", self.Zone_ybounddown)
@@ -5906,26 +5959,26 @@ class ZoneTab(QtGui.QWidget):
 
 
     def createAudio(self, z):
-            self.Audio = QtGui.QGroupBox("Audio")
+            self.Audio = QtWidgets.QGroupBox("Audio")
 
-            self.Zone_music = QtGui.QComboBox()
+            self.Zone_music = QtWidgets.QComboBox()
             self.Zone_music.setToolTip("Changes the background music")
             newItems2 = ["None", "Overworld", "Underground", "Underwater", "Mushrooms/Athletic", "Ghost House", "Pyramids", "Snow", "Lava", "Tower", "Castle", "Airship", "Bonus Area", "Drum Rolls", "Tower Boss", "Castle Boss", "Toad House", "Airship Boss", "Forest", "Enemy Ambush", "Beach", "Volcano", "Peach's Castle", "Credits Jazz", "Airship Drums", "Bowser", "Mega Bowser", "Epilogue"]
             self.Zone_music.addItems(newItems2)
             self.Zone_music.setCurrentIndex(z.music)
 
-            self.Zone_sfx = QtGui.QComboBox()
+            self.Zone_sfx = QtWidgets.QComboBox()
             self.Zone_sfx.setToolTip("Changes the sound effect modulation")
             newItems3 = ["Normal", "Wall Echo", "Room Echo", "Double Echo", "Cave Echo", "Underwater Echo", "Triple Echo", "High Pitch Echo", "Tinny Echo", "Flat", "Dull", "Hollow Echo", "Rich", "Triple Underwater", "Ring Echo"]
             self.Zone_sfx.addItems(newItems3)
             self.Zone_sfx.setCurrentIndex(z.sfxmod / 16)
 
-            self.Zone_boss = QtGui.QCheckBox()
+            self.Zone_boss = QtWidgets.QCheckBox()
             self.Zone_boss.setToolTip("Set for bosses to allow proper music switching by sprites")
             self.Zone_boss.setChecked(z.sfxmod % 16)
 
 
-            ZoneAudioLayout = QtGui.QFormLayout()
+            ZoneAudioLayout = QtWidgets.QFormLayout()
             ZoneAudioLayout.addRow("Background Music:", self.Zone_music)
             ZoneAudioLayout.addRow("Sound Modulation:", self.Zone_sfx)
             ZoneAudioLayout.addRow("Boss Flag:", self.Zone_boss)
@@ -5935,14 +5988,14 @@ class ZoneTab(QtGui.QWidget):
 
 
 #Sets up the Background Dialog
-class BGDialog(QtGui.QDialog):
+class BGDialog(QtWidgets.QDialog):
     """Dialog which lets you choose among various from tabs"""
     def __init__(self):
         """Creates and initialises the tab dialog"""
-        QtGui.QDialog.__init__(self)
+        super(BGDialog, self).__init__()
         self.setWindowTitle('Backgrounds')
 
-        self.tabWidget = QtGui.QTabWidget()
+        self.tabWidget = QtWidgets.QTabWidget()
 
         i = 0
         self.BGTabs = []
@@ -5959,27 +6012,27 @@ class BGDialog(QtGui.QDialog):
                 self.tabWidget.setTabText(tab, str(tab + 1))
 
 
-        buttonBox = QtGui.QDialogButtonBox(QtGui.QDialogButtonBox.Ok | QtGui.QDialogButtonBox.Cancel)
+        buttonBox = QtWidgets.QDialogButtonBox(QtWidgets.QDialogButtonBox.Ok | QtWidgets.QDialogButtonBox.Cancel)
 
         buttonBox.accepted.connect(self.accept)
         buttonBox.rejected.connect(self.reject)
 
-        mainLayout = QtGui.QVBoxLayout()
+        mainLayout = QtWidgets.QVBoxLayout()
         mainLayout.addWidget(self.tabWidget)
         mainLayout.addWidget(buttonBox)
         self.setLayout(mainLayout)
 
 
-class BGTab(QtGui.QWidget):
+class BGTab(QtWidgets.QWidget):
     def __init__(self, z):
-        QtGui.QWidget.__init__(self)
+        super(BGTab, self).__init__()
 
         self.createBGa(z)
         self.createBGb(z)
         self.createBGaViewer(z)
         self.createBGbViewer(z)
 
-        mainLayout = QtGui.QGridLayout()
+        mainLayout = QtWidgets.QGridLayout()
         mainLayout.addWidget(self.BGa, 0, 0)
         mainLayout.addWidget(self.BGb, 1, 0)
         mainLayout.addWidget(self.BGaViewer, 0, 1)
@@ -5988,31 +6041,31 @@ class BGTab(QtGui.QWidget):
 
 
     def createBGa(self, z):
-            self.BGa = QtGui.QGroupBox("Scenery")
+            self.BGa = QtWidgets.QGroupBox("Scenery")
 
 
 
-            self.xposA = QtGui.QSpinBox()
+            self.xposA = QtWidgets.QSpinBox()
             self.xposA.setToolTip("Sets the horizontal offset of your background")
             self.xposA.setRange(-256, 255)
             self.xposA.setValue(z.XpositionA)
 
-            self.yposA = QtGui.QSpinBox()
+            self.yposA = QtWidgets.QSpinBox()
             self.yposA.setToolTip("Sets the vertical offset of your background")
             self.yposA.setRange(-255, 256)
             self.yposA.setValue(-z.YpositionA)
 
-            self.scrollrate = QtGui.QLabel("Scroll Rate:")
-            self.positionlabel = QtGui.QLabel("Position:")
+            self.scrollrate = QtWidgets.QLabel("Scroll Rate:")
+            self.positionlabel = QtWidgets.QLabel("Position:")
 
-            self.xscrollA = QtGui.QComboBox()
+            self.xscrollA = QtWidgets.QComboBox()
             self.xscrollA.addItems(BgScrollRateStrings)
             self.xscrollA.setToolTip("Changes the rate that the background moves in\nrelation to Mario when he moves horizontally.\nValues higher than 1x may be glitchy!")
             if z.XscrollA < 0: z.XscrollA = 0
             if z.XscrollA >= len(BgScrollRates): z.XscrollA = len(BgScrollRates)
             self.xscrollA.setCurrentIndex(z.XscrollA)
 
-            self.yscrollA = QtGui.QComboBox()
+            self.yscrollA = QtWidgets.QComboBox()
             self.yscrollA.addItems(BgScrollRateStrings)
             self.yscrollA.setToolTip("Changes the rate that the background moves in\nrelation to Mario when he moves vertically.\nValues higher than 1x may be glitchy!")
             if z.YscrollA < 0: z.YscrollA = 0
@@ -6020,44 +6073,44 @@ class BGTab(QtGui.QWidget):
             self.yscrollA.setCurrentIndex(z.YscrollA)
 
 
-            self.zoomA = QtGui.QComboBox()
+            self.zoomA = QtWidgets.QComboBox()
             addstr = ["100%", "125%", "150%", "200%"]
             self.zoomA.addItems(addstr)
             self.zoomA.setToolTip("Sets the zoom level of the background image")
             self.zoomA.setCurrentIndex(z.ZoomA)
 
-            self.toscreenA = QtGui.QRadioButton()
+            self.toscreenA = QtWidgets.QRadioButton()
             self.toscreenA.setToolTip("Aligns the background baseline to the bottom of the screen")
-            self.toscreenLabel = QtGui.QLabel("Screen")
-            self.tozoneA = QtGui.QRadioButton()
+            self.toscreenLabel = QtWidgets.QLabel("Screen")
+            self.tozoneA = QtWidgets.QRadioButton()
             self.tozoneA.setToolTip("Aligns the background baseline to the bottom of the zone")
-            self.tozoneLabel = QtGui.QLabel("Zone")
+            self.tozoneLabel = QtWidgets.QLabel("Zone")
             if z.bg2A == 0x000A:
                 self.tozoneA.setChecked(1)
             else:
                 self.toscreenA.setChecked(1)
 
-            self.alignLabel = QtGui.QLabel("Align to: ")
+            self.alignLabel = QtWidgets.QLabel("Align to: ")
 
-            Lone = QtGui.QFormLayout()
+            Lone = QtWidgets.QFormLayout()
             Lone.addRow("Zoom: ", self.zoomA)
 
-            Ltwo = QtGui.QHBoxLayout()
+            Ltwo = QtWidgets.QHBoxLayout()
             Ltwo.addWidget(self.toscreenLabel)
             Ltwo.addWidget(self.toscreenA)
             Ltwo.addWidget(self.tozoneLabel)
             Ltwo.addWidget(self.tozoneA)
 
-            Lthree = QtGui.QFormLayout()
+            Lthree = QtWidgets.QFormLayout()
             Lthree.addRow("X:", self.xposA)
             Lthree.addRow("Y:", self.yposA)
 
-            Lfour = QtGui.QFormLayout()
+            Lfour = QtWidgets.QFormLayout()
             Lfour.addRow("X: ", self.xscrollA)
             Lfour.addRow("Y: ", self.yscrollA)
 
 
-            mainLayout = QtGui.QGridLayout()
+            mainLayout = QtWidgets.QGridLayout()
             mainLayout.addWidget(self.positionlabel, 0, 0)
             mainLayout.addLayout(Lthree, 1, 0)
             mainLayout.addWidget(self.scrollrate, 0, 1)
@@ -6070,30 +6123,30 @@ class BGTab(QtGui.QWidget):
 
 
     def createBGb(self, z):
-            self.BGb = QtGui.QGroupBox("Backdrop")
+            self.BGb = QtWidgets.QGroupBox("Backdrop")
 
 
-            self.xposB = QtGui.QSpinBox()
+            self.xposB = QtWidgets.QSpinBox()
             self.xposB.setToolTip("Sets the horizontal offset of your background")
             self.xposB.setRange(-256, 255)
             self.xposB.setValue(z.XpositionB)
 
-            self.yposB = QtGui.QSpinBox()
+            self.yposB = QtWidgets.QSpinBox()
             self.yposB.setToolTip("Sets the vertical offset of your background")
             self.yposB.setRange(-255, 256)
             self.yposB.setValue(-z.YpositionB)
 
-            self.scrollrate = QtGui.QLabel("Scroll Rate:")
-            self.positionlabel = QtGui.QLabel("Position:")
+            self.scrollrate = QtWidgets.QLabel("Scroll Rate:")
+            self.positionlabel = QtWidgets.QLabel("Position:")
 
-            self.xscrollB = QtGui.QComboBox()
+            self.xscrollB = QtWidgets.QComboBox()
             self.xscrollB.addItems(BgScrollRateStrings)
             self.xscrollB.setToolTip("Changes the rate that the background moves in\nrelation to Mario when he moves horizontally.\nValues higher than 1x may be glitchy!")
             if z.XscrollB < 0: z.XscrollB = 0
             if z.XscrollB >= len(BgScrollRates): z.XscrollB = len(BgScrollRates)
             self.xscrollB.setCurrentIndex(z.XscrollB)
 
-            self.yscrollB = QtGui.QComboBox()
+            self.yscrollB = QtWidgets.QComboBox()
             self.yscrollB.addItems(BgScrollRateStrings)
             self.yscrollB.setToolTip("Changes the rate that the background moves in\nrelation to Mario when he moves vertically.\nValues higher than 1x may be glitchy!")
             if z.YscrollB < 0: z.YscrollB = 0
@@ -6101,44 +6154,44 @@ class BGTab(QtGui.QWidget):
             self.yscrollB.setCurrentIndex(z.YscrollB)
 
 
-            self.zoomB = QtGui.QComboBox()
+            self.zoomB = QtWidgets.QComboBox()
             addstr = ["100%", "125%", "150%", "200%"]
             self.zoomB.addItems(addstr)
             self.zoomB.setToolTip("Sets the zoom level of the background image")
             self.zoomB.setCurrentIndex(z.ZoomB)
 
-            self.toscreenB = QtGui.QRadioButton()
+            self.toscreenB = QtWidgets.QRadioButton()
             self.toscreenB.setToolTip("Aligns the background baseline to the bottom of the screen")
-            self.toscreenLabel = QtGui.QLabel("Screen")
-            self.tozoneB = QtGui.QRadioButton()
+            self.toscreenLabel = QtWidgets.QLabel("Screen")
+            self.tozoneB = QtWidgets.QRadioButton()
             self.tozoneB.setToolTip("Aligns the background baseline to the bottom of the zone")
-            self.tozoneLabel = QtGui.QLabel("Zone")
+            self.tozoneLabel = QtWidgets.QLabel("Zone")
             if z.bg2B == 0x000A:
                 self.tozoneB.setChecked(1)
             else:
                 self.toscreenB.setChecked(1)
 
-            self.alignLabel = QtGui.QLabel("Align to: ")
+            self.alignLabel = QtWidgets.QLabel("Align to: ")
 
-            Lone = QtGui.QFormLayout()
+            Lone = QtWidgets.QFormLayout()
             Lone.addRow("Zoom: ", self.zoomB)
 
-            Ltwo = QtGui.QHBoxLayout()
+            Ltwo = QtWidgets.QHBoxLayout()
             Ltwo.addWidget(self.toscreenLabel)
             Ltwo.addWidget(self.toscreenB)
             Ltwo.addWidget(self.tozoneLabel)
             Ltwo.addWidget(self.tozoneB)
 
-            Lthree = QtGui.QFormLayout()
+            Lthree = QtWidgets.QFormLayout()
             Lthree.addRow("X:", self.xposB)
             Lthree.addRow("Y:", self.yposB)
 
-            Lfour = QtGui.QFormLayout()
+            Lfour = QtWidgets.QFormLayout()
             Lfour.addRow("X: ", self.xscrollB)
             Lfour.addRow("Y: ", self.yscrollB)
 
 
-            mainLayout = QtGui.QGridLayout()
+            mainLayout = QtWidgets.QGridLayout()
             mainLayout.addWidget(self.positionlabel, 0, 0)
             mainLayout.addLayout(Lthree, 1, 0)
             mainLayout.addWidget(self.scrollrate, 0, 1)
@@ -6151,10 +6204,10 @@ class BGTab(QtGui.QWidget):
 
 
     def createBGaViewer(self, z):
-            self.BGaViewer = QtGui.QGroupBox("Preview")
+            self.BGaViewer = QtWidgets.QGroupBox("Preview")
 
-            self.background_nameA = QtGui.QComboBox()
-            self.previewA = QtGui.QLabel()
+            self.background_nameA = QtWidgets.QComboBox()
+            self.previewA = QtWidgets.QLabel()
 
             #image = QtGui.QImage('reggiedata/bga/000A.png')
             #self.previewA.setPixmap(QtGui.QPixmap.fromImage(image))
@@ -6188,7 +6241,7 @@ class BGTab(QtGui.QWidget):
             self.background_nameA.activated.connect(self.viewboxA)
             self.viewboxA(self.background_nameA.currentIndex(), True)
 
-            mainLayout = QtGui.QVBoxLayout()
+            mainLayout = QtWidgets.QVBoxLayout()
             mainLayout.addWidget(self.background_nameA)
             mainLayout.addWidget(self.previewA)
             self.BGaViewer.setLayout(mainLayout)
@@ -6199,16 +6252,16 @@ class BGTab(QtGui.QWidget):
         if not loadFlag:
             if indexid == (self.background_nameA.count() - 1):
                 w = self.background_nameA
-                id = w.itemData(indexid).toPyObject()
+                id = toPyObject(w.itemData(indexid))
 
                 dbox = InputBox(InputBox.Type_HexSpinBox)
                 dbox.setWindowTitle('Choose a Background ID')
                 dbox.label.setText('Enter the hex ID of a custom background to use. The file must be named using the bgA_12AB.arc format and located within the game\'s Object folder.')
                 dbox.spinbox.setRange(0, 0xFFFF)
-                if id != None: dbox.spinbox.setValue(id)
+                if id is not None: dbox.spinbox.setValue(id)
                 result = dbox.exec_()
 
-                if result == QtGui.QDialog.Accepted:
+                if result == QtWidgets.QDialog.Accepted:
                     id = dbox.spinbox.value()
                     w.setItemText(indexid, 'Custom background ID... (%04X)' % id)
                     w.setItemData(indexid, id)
@@ -6216,7 +6269,7 @@ class BGTab(QtGui.QWidget):
                     w.setCurrentIndex(self.currentIndexA)
                     return
 
-        id = self.background_nameA.itemData(indexid).toPyObject()
+        id = toPyObject(self.background_nameA.itemData(indexid))
         filename = 'reggiedata/bga/%04X.png' % id
 
         if not os.path.isfile(filename):
@@ -6230,10 +6283,10 @@ class BGTab(QtGui.QWidget):
 
 
     def createBGbViewer(self, z):
-            self.BGbViewer = QtGui.QGroupBox("Preview")
+            self.BGbViewer = QtWidgets.QGroupBox("Preview")
 
-            self.background_nameB = QtGui.QComboBox()
-            self.previewB = QtGui.QLabel()
+            self.background_nameB = QtWidgets.QComboBox()
+            self.previewB = QtWidgets.QLabel()
 
             #image = QtGui.QImage('reggiedata/bgb/000A.png')
             #self.previewB.setPixmap(QtGui.QPixmap.fromImage(image))
@@ -6267,7 +6320,7 @@ class BGTab(QtGui.QWidget):
             self.background_nameB.activated.connect(self.viewboxB)
             self.viewboxB(self.background_nameB.currentIndex())
 
-            mainLayout = QtGui.QVBoxLayout()
+            mainLayout = QtWidgets.QVBoxLayout()
             mainLayout.addWidget(self.background_nameB)
             mainLayout.addWidget(self.previewB)
             self.BGbViewer.setLayout(mainLayout)
@@ -6278,16 +6331,16 @@ class BGTab(QtGui.QWidget):
         if not loadFlag:
             if indexid == (self.background_nameB.count() - 1):
                 w = self.background_nameB
-                id = w.itemData(indexid).toPyObject()
+                id = toPyObject(w.itemData(indexid))
 
                 dbox = InputBox(InputBox.Type_HexSpinBox)
                 dbox.setWindowTitle('Choose a Background ID')
                 dbox.label.setText('Enter the hex ID of a custom background to use. The file must be named using the bgB_12AB.arc format and located within the game\'s Object folder.')
                 dbox.spinbox.setRange(0, 0xFFFF)
-                if id != None: dbox.spinbox.setValue(id)
+                if id is not None: dbox.spinbox.setValue(id)
                 result = dbox.exec_()
 
-                if result == QtGui.QDialog.Accepted:
+                if result == QtWidgets.QDialog.Accepted:
                     id = dbox.spinbox.value()
                     w.setItemText(indexid, 'Custom background ID... (%04X)' % id)
                     w.setItemData(indexid, id)
@@ -6295,7 +6348,7 @@ class BGTab(QtGui.QWidget):
                     w.setCurrentIndex(self.currentIndexB)
                     return
 
-        id = self.background_nameB.itemData(indexid).toPyObject()
+        id = toPyObject(self.background_nameB.itemData(indexid))
         filename = 'reggiedata/bgb/%04X.png' % id
 
         if not os.path.isfile(filename):
@@ -6309,15 +6362,15 @@ class BGTab(QtGui.QWidget):
 
 
 #Sets up the Screen Cap Choice Dialog
-class ScreenCapChoiceDialog(QtGui.QDialog):
+class ScreenCapChoiceDialog(QtWidgets.QDialog):
     """Dialog which lets you choose which zone to take a pic of"""
     def __init__(self):
         """Creates and initialises the dialog"""
-        QtGui.QDialog.__init__(self)
+        super(ScreenCapChoiceDialog, self).__init__()
         self.setWindowTitle('Choose a Screenshot source')
 
         i=0
-        self.zoneCombo = QtGui.QComboBox()
+        self.zoneCombo = QtWidgets.QComboBox()
         self.zoneCombo.addItem("Current Screen")
         self.zoneCombo.addItem("All Zones")
         for z in Level.zones:
@@ -6325,39 +6378,39 @@ class ScreenCapChoiceDialog(QtGui.QDialog):
             self.zoneCombo.addItem("Zone " + str(i))
 
 
-        buttonBox = QtGui.QDialogButtonBox(QtGui.QDialogButtonBox.Ok | QtGui.QDialogButtonBox.Cancel)
+        buttonBox = QtWidgets.QDialogButtonBox(QtWidgets.QDialogButtonBox.Ok | QtWidgets.QDialogButtonBox.Cancel)
 
         buttonBox.accepted.connect(self.accept)
         buttonBox.rejected.connect(self.reject)
 
-        mainLayout = QtGui.QVBoxLayout()
+        mainLayout = QtWidgets.QVBoxLayout()
         mainLayout.addWidget(self.zoneCombo)
         mainLayout.addWidget(buttonBox)
         self.setLayout(mainLayout)
 
 
 
-class AutoSavedInfoDialog(QtGui.QDialog):
+class AutoSavedInfoDialog(QtWidgets.QDialog):
     """Dialog which lets you know that an auto saved level exists"""
 
     def __init__(self, filename):
         """Creates and initialises the dialog"""
-        QtGui.QDialog.__init__(self)
+        super(AutoSavedInfoDialog, self).__init__()
         self.setWindowTitle('Auto-saved backup found')
 
-        mainlayout = QtGui.QVBoxLayout(self)
+        mainlayout = QtWidgets.QVBoxLayout(self)
 
-        hlayout = QtGui.QHBoxLayout()
+        hlayout = QtWidgets.QHBoxLayout()
 
-        icon = QtGui.QLabel()
+        icon = QtWidgets.QLabel()
         hlayout.addWidget(icon)
 
-        label = QtGui.QLabel('Reggie! has found some level data which wasn\'t saved - possibly due to a crash within the editor or by your computer. Do you want to restore this level?<br><br>If you pick No, the autosaved level data will be deleted and will no longer be accessible.<br><br>Original file path: ' + filename)
+        label = QtWidgets.QLabel('Reggie! has found some level data which wasn\'t saved - possibly due to a crash within the editor or by your computer. Do you want to restore this level?<br><br>If you pick No, the autosaved level data will be deleted and will no longer be accessible.<br><br>Original file path: ' + filename)
         label.setWordWrap(True)
         hlayout.addWidget(label)
         hlayout.setStretch(1, 1)
 
-        buttonbox = QtGui.QDialogButtonBox(QtGui.QDialogButtonBox.No | QtGui.QDialogButtonBox.Yes)
+        buttonbox = QtWidgets.QDialogButtonBox(QtWidgets.QDialogButtonBox.No | QtWidgets.QDialogButtonBox.Yes)
         buttonbox.accepted.connect(self.accept)
         buttonbox.rejected.connect(self.reject)
 
@@ -6365,24 +6418,24 @@ class AutoSavedInfoDialog(QtGui.QDialog):
         mainlayout.addWidget(buttonbox)
 
 
-class AreaChoiceDialog(QtGui.QDialog):
+class AreaChoiceDialog(QtWidgets.QDialog):
     """Dialog which lets you choose an area"""
 
     def __init__(self, areacount):
         """Creates and initialises the dialog"""
-        QtGui.QDialog.__init__(self)
+        super(AreaChoiceDialog, self).__init__()
         self.setWindowTitle('Choose an Area')
 
-        self.areaCombo = QtGui.QComboBox()
-        for i in xrange(areacount):
+        self.areaCombo = QtWidgets.QComboBox()
+        for i in range(areacount):
             self.areaCombo.addItem('Area %d' % (i+1))
 
-        buttonBox = QtGui.QDialogButtonBox(QtGui.QDialogButtonBox.Ok | QtGui.QDialogButtonBox.Cancel)
+        buttonBox = QtWidgets.QDialogButtonBox(QtWidgets.QDialogButtonBox.Ok | QtWidgets.QDialogButtonBox.Cancel)
 
         buttonBox.accepted.connect(self.accept)
         buttonBox.rejected.connect(self.reject)
 
-        mainLayout = QtGui.QVBoxLayout()
+        mainLayout = QtWidgets.QVBoxLayout()
         mainLayout.addWidget(self.areaCombo)
         mainLayout.addWidget(buttonBox)
         self.setLayout(mainLayout)
@@ -6393,19 +6446,19 @@ class AreaChoiceDialog(QtGui.QDialog):
 
 
 
-class ReggieWindow(QtGui.QMainWindow):
+class ReggieWindow(QtWidgets.QMainWindow):
     """Reggie main level editor window"""
 
     def CreateAction(self, shortname, function, icon, text, statustext, shortcut, toggle=False):
         """Helper function to create an action"""
 
-        if icon != None:
-            act = QtGui.QAction(icon, text, self)
+        if icon is not None:
+            act = QtWidgets.QAction(icon, text, self)
         else:
-            act = QtGui.QAction(text, self)
+            act = QtWidgets.QAction(text, self)
 
-        if shortcut != None: act.setShortcut(shortcut)
-        if statustext != None: act.setStatusTip(statustext)
+        if shortcut is not None: act.setShortcut(shortcut)
+        if statustext is not None: act.setStatusTip(statustext)
         if toggle:
             act.setCheckable(True)
         act.triggered.connect(function)
@@ -6415,13 +6468,12 @@ class ReggieWindow(QtGui.QMainWindow):
 
     def __init__(self):
         """Editor window constructor"""
+        super(ReggieWindow, self).__init__(None)
 
         # Reggie Version number goes below here. 64 char max (32 if non-ascii).
         self.ReggieInfo = ReggieID
-        app.setStyleSheet('QToolTip {border: 2px solid black}')
 
         self.ZoomLevels = [10.0, 15.0, 20.0, 25.0, 30.0, 35.0, 40.0, 45.0, 50.0, 55.0, 60.0, 65.0, 70.0, 75.0, 85.0, 90.0, 95.0, 100.0, 125.0, 150.0, 175.0, 200.0, 250.0, 300.0]
-
 
         self.AutosaveTimer = QtCore.QTimer()
         self.AutosaveTimer.timeout.connect(self.Autosave)
@@ -6434,16 +6486,15 @@ class ReggieWindow(QtGui.QMainWindow):
         self.CurrentSelection = []
 
         # set up the window
-        QtGui.QMainWindow.__init__(self, None)
         self.setWindowTitle('Reggie! Level Editor')
         self.setWindowIcon(QtGui.QIcon('reggiedata/icon.png'))
         self.setIconSize(QtCore.QSize(16, 16))
-        
+
         # create the actions
         self.SetupActionsAndMenus()
 
         # set up the status bar
-        self.posLabel = QtGui.QLabel()
+        self.posLabel = QtWidgets.QLabel()
         self.statusBar().addWidget(self.posLabel)
 
         # create the various panels
@@ -6451,7 +6502,7 @@ class ReggieWindow(QtGui.QMainWindow):
 
         # create the level view
         self.scene = LevelScene(0, 0, 1024*24, 512*24, self)
-        self.scene.setItemIndexMethod(QtGui.QGraphicsScene.NoIndex)
+        self.scene.setItemIndexMethod(QtWidgets.QGraphicsScene.NoIndex)
         self.scene.selectionChanged.connect(self.ChangeSelectionHandler)
 
         self.view = LevelViewWidget(self.scene, self)
@@ -6466,7 +6517,7 @@ class ReggieWindow(QtGui.QMainWindow):
 
         # set up the clipboard stuff
         self.clipboard = None
-        self.systemClipboard = QtGui.QApplication.clipboard()
+        self.systemClipboard = QtWidgets.QApplication.clipboard()
         self.systemClipboard.dataChanged.connect(self.TrackClipboardUpdates)
 
         # we might have something there already, activate Paste if so
@@ -6474,16 +6525,16 @@ class ReggieWindow(QtGui.QMainWindow):
 
         # let's restore the geometry
         if settings.contains('MainWindowState'):
-            self.restoreState(settings.value('MainWindowState').toPyObject(), 0)
+            self.restoreState(toPyObject(settings.value('MainWindowState')), 0)
         if settings.contains('MainWindowGeometry'):
-            self.restoreGeometry(settings.value('MainWindowGeometry').toPyObject())
+            self.restoreGeometry(toPyObject(settings.value('MainWindowGeometry')))
 
         # now get stuff ready
         loaded = False
         if len(sys.argv) > 1 and os.path.isfile(sys.argv[1]) and IsNSMBLevel(sys.argv[1]):
             loaded = self.LoadLevel(sys.argv[1], True, 1)
         elif settings.contains('LastLevel'):
-            lastlevel = unicode(settings.value('LastLevel').toPyObject())
+            lastlevel = unicode(toPyObject(settings.value('LastLevel')))
             settings.remove('LastLevel')
 
             if lastlevel != 'None':
@@ -6493,7 +6544,7 @@ class ReggieWindow(QtGui.QMainWindow):
             self.LoadLevel('01-01', False, 1)
 
         QtCore.QTimer.singleShot(100, self.levelOverview.update)
-        
+
     def SetupActionsAndMenus(self):
         """Sets up Reggie's actions, menus and toolbars"""
         self.actions = {}
@@ -6534,7 +6585,7 @@ class ReggieWindow(QtGui.QMainWindow):
         self.CreateAction('backgrounds', self.HandleBG, GetIcon('background'), 'Backgrounds...', 'Apply backgrounds to individual zones in the current area', QtGui.QKeySequence('Ctrl+Alt+B'))
         self.CreateAction('metainfo', self.HandleInfo, None, 'Level Information...', 'Add title and author information to the metadata', QtGui.QKeySequence('Ctrl+Alt+I'))
 
-        self.CreateAction('aboutqt', QtGui.qApp.aboutQt, None, 'About PyQt...', 'About the Qt library Reggie! is based on', QtGui.QKeySequence('Ctrl+Shift+Y'))
+        self.CreateAction('aboutqt', QtWidgets.qApp.aboutQt, None, 'About PyQt...', 'About the Qt library Reggie! is based on', QtGui.QKeySequence('Ctrl+Shift+Y'))
         self.CreateAction('infobox', self.InfoBox, GetIcon('about'), 'About Reggie!', 'Info about the program, and the team behind it', QtGui.QKeySequence('Ctrl+Shift+I'))
         self.CreateAction('helpbox', self.HelpBox, GetIcon('help'), 'Reggie! Help...', 'Help Documentation for the needy newbie', QtGui.QKeySequence('Ctrl+Shift+H'))
         self.CreateAction('tipbox', self.TipBox, GetIcon('tips'), 'Reggie! Tips...', 'Tips and controls for beginners and power users', QtGui.QKeySequence('Ctrl+Shift+T'))
@@ -6660,7 +6711,7 @@ class ReggieWindow(QtGui.QMainWindow):
         self.toolbar.addAction(self.actions['backgrounds'])
         self.toolbar.addSeparator()
 
-        self.areaComboBox = QtGui.QComboBox()
+        self.areaComboBox = QtWidgets.QComboBox()
         self.areaComboBox.activated.connect(self.HandleSwitchArea)
         self.toolbar.addWidget(self.areaComboBox)
 
@@ -6669,8 +6720,8 @@ class ReggieWindow(QtGui.QMainWindow):
     def SetupDocksAndPanels(self):
         """Sets up the dock widgets and panels"""
         # level overview
-        dock = QtGui.QDockWidget('Level Overview', self)
-        dock.setFeatures(QtGui.QDockWidget.DockWidgetMovable | QtGui.QDockWidget.DockWidgetFloatable | QtGui.QDockWidget.DockWidgetClosable)
+        dock = QtWidgets.QDockWidget('Level Overview', self)
+        dock.setFeatures(QtWidgets.QDockWidget.DockWidgetMovable | QtWidgets.QDockWidget.DockWidgetFloatable | QtWidgets.QDockWidget.DockWidgetClosable)
         #dock.setAllowedAreas(QtCore.Qt.LeftDockWidgetArea | QtCore.Qt.RightDockWidgetArea)
         dock.setObjectName('leveloverview') #needed for the state to save/restore correctly
 
@@ -6687,9 +6738,9 @@ class ReggieWindow(QtGui.QMainWindow):
         self.vmenu.addAction(act)
 
         # create the sprite editor panel
-        dock = QtGui.QDockWidget('Modify Selected Sprite Properties', self)
+        dock = QtWidgets.QDockWidget('Modify Selected Sprite Properties', self)
         dock.setVisible(False)
-        dock.setFeatures(QtGui.QDockWidget.DockWidgetMovable | QtGui.QDockWidget.DockWidgetFloatable)
+        dock.setFeatures(QtWidgets.QDockWidget.DockWidgetMovable | QtWidgets.QDockWidget.DockWidgetFloatable)
         dock.setAllowedAreas(QtCore.Qt.LeftDockWidgetArea | QtCore.Qt.RightDockWidgetArea)
         dock.setObjectName('spriteeditor') #needed for the state to save/restore correctly
 
@@ -6702,9 +6753,9 @@ class ReggieWindow(QtGui.QMainWindow):
         dock.setFloating(True)
 
         # create the entrance editor panel
-        dock = QtGui.QDockWidget('Modify Selected Entry Point Properties', self)
+        dock = QtWidgets.QDockWidget('Modify Selected Entry Point Properties', self)
         dock.setVisible(False)
-        dock.setFeatures(QtGui.QDockWidget.DockWidgetMovable | QtGui.QDockWidget.DockWidgetFloatable)
+        dock.setFeatures(QtWidgets.QDockWidget.DockWidgetMovable | QtWidgets.QDockWidget.DockWidgetFloatable)
         dock.setAllowedAreas(QtCore.Qt.LeftDockWidgetArea | QtCore.Qt.RightDockWidgetArea)
         dock.setObjectName('entranceeditor') #needed for the state to save/restore correctly
 
@@ -6712,10 +6763,13 @@ class ReggieWindow(QtGui.QMainWindow):
         dock.setWidget(self.entranceEditor)
         self.entranceEditorDock = dock
 
+        self.addDockWidget(QtCore.Qt.RightDockWidgetArea, dock)
+        dock.setFloating(True)
+
         # create the path editor panel
-        dock = QtGui.QDockWidget('Modify Selected Path Node Properties', self)
+        dock = QtWidgets.QDockWidget('Modify Selected Path Node Properties', self)
         dock.setVisible(False)
-        dock.setFeatures(QtGui.QDockWidget.DockWidgetMovable | QtGui.QDockWidget.DockWidgetFloatable)
+        dock.setFeatures(QtWidgets.QDockWidget.DockWidgetMovable | QtWidgets.QDockWidget.DockWidgetFloatable)
         dock.setAllowedAreas(QtCore.Qt.LeftDockWidgetArea | QtCore.Qt.RightDockWidgetArea)
         dock.setObjectName('pathnodeeditor') #needed for the state to save/restore correctly
 
@@ -6728,9 +6782,9 @@ class ReggieWindow(QtGui.QMainWindow):
         dock.setFloating(True)
 
         # create the location editor panel
-        dock = QtGui.QDockWidget('Modify Selected Location Properties', self)
+        dock = QtWidgets.QDockWidget('Modify Selected Location Properties', self)
         dock.setVisible(False)
-        dock.setFeatures(QtGui.QDockWidget.DockWidgetMovable | QtGui.QDockWidget.DockWidgetFloatable)
+        dock.setFeatures(QtWidgets.QDockWidget.DockWidgetMovable | QtWidgets.QDockWidget.DockWidgetFloatable)
         dock.setAllowedAreas(QtCore.Qt.LeftDockWidgetArea | QtCore.Qt.RightDockWidgetArea)
         dock.setObjectName('locationeditor') #needed for the state to save/restore correctly
 
@@ -6742,8 +6796,8 @@ class ReggieWindow(QtGui.QMainWindow):
         dock.setFloating(True)
 
         # create the palette
-        dock = QtGui.QDockWidget('Palette', self)
-        dock.setFeatures(QtGui.QDockWidget.DockWidgetMovable | QtGui.QDockWidget.DockWidgetFloatable | QtGui.QDockWidget.DockWidgetClosable)
+        dock = QtWidgets.QDockWidget('Palette', self)
+        dock.setFeatures(QtWidgets.QDockWidget.DockWidgetMovable | QtWidgets.QDockWidget.DockWidgetFloatable | QtWidgets.QDockWidget.DockWidgetClosable)
         dock.setAllowedAreas(QtCore.Qt.LeftDockWidgetArea | QtCore.Qt.RightDockWidgetArea)
         dock.setObjectName('palette') #needed for the state to save/restore correctly
         self.creationDock = dock
@@ -6755,7 +6809,7 @@ class ReggieWindow(QtGui.QMainWindow):
         dock.setVisible(True)
 
         # add tabs to it
-        tabs = QtGui.QTabWidget()
+        tabs = QtWidgets.QTabWidget()
         tabs.setIconSize(QtCore.QSize(16, 16))
         tabs.currentChanged.connect(self.CreationTabChanged)
         dock.setWidget(tabs)
@@ -6764,33 +6818,33 @@ class ReggieWindow(QtGui.QMainWindow):
         # object choosing tabs
         tsicon = GetIcon('objects')
 
-        self.objTS0Tab = QtGui.QWidget()
-        self.objTS1Tab = QtGui.QWidget()
-        self.objTS2Tab = QtGui.QWidget()
-        self.objTS3Tab = QtGui.QWidget()
+        self.objTS0Tab = QtWidgets.QWidget()
+        self.objTS1Tab = QtWidgets.QWidget()
+        self.objTS2Tab = QtWidgets.QWidget()
+        self.objTS3Tab = QtWidgets.QWidget()
         tabs.addTab(self.objTS0Tab, tsicon, '1')
         tabs.addTab(self.objTS1Tab, tsicon, '2')
         tabs.addTab(self.objTS2Tab, tsicon, '3')
         tabs.addTab(self.objTS3Tab, tsicon, '4')
 
-        oel = QtGui.QVBoxLayout(self.objTS0Tab)
+        oel = QtWidgets.QVBoxLayout(self.objTS0Tab)
         self.createObjectLayout = oel
 
-        ll = QtGui.QHBoxLayout()
-        self.objUseLayer0 = QtGui.QRadioButton('0')
+        ll = QtWidgets.QHBoxLayout()
+        self.objUseLayer0 = QtWidgets.QRadioButton('0')
         self.objUseLayer0.setToolTip('<b>Layer 0:</b><br>This layer is mostly used for the hidden Yoshi\'s Island-style caves, but can also be used to overlay tiles to create effects. The flashlight effect will occur if Mario walks behind a tile on layer 0 and the zone has it enabled.')
-        self.objUseLayer1 = QtGui.QRadioButton('1')
+        self.objUseLayer1 = QtWidgets.QRadioButton('1')
         self.objUseLayer1.setToolTip('<b>Layer 1:</b><br>All or most of your normal level objects should be placed on this layer. This is the only layer where tile interactions (solids, slopes, etc) will work.')
-        self.objUseLayer2 = QtGui.QRadioButton('2')
+        self.objUseLayer2 = QtWidgets.QRadioButton('2')
         self.objUseLayer2.setToolTip('<b>Layer 2:</b><br>Background/wall tiles (such as those in the hidden caves) should be placed on this layer. Tiles on layer 2 have no effect on collisions.')
-        ll.addWidget(QtGui.QLabel('Paint on Layer:'))
+        ll.addWidget(QtWidgets.QLabel('Paint on Layer:'))
         ll.addWidget(self.objUseLayer0)
         ll.addWidget(self.objUseLayer1)
         ll.addWidget(self.objUseLayer2)
         ll.addStretch(1)
         oel.addLayout(ll)
 
-        lbg = QtGui.QButtonGroup(self)
+        lbg = QtWidgets.QButtonGroup(self)
         lbg.addButton(self.objUseLayer0, 0)
         lbg.addButton(self.objUseLayer1, 1)
         lbg.addButton(self.objUseLayer2, 2)
@@ -6803,20 +6857,20 @@ class ReggieWindow(QtGui.QMainWindow):
         oel.addWidget(self.objPicker, 1)
 
         # sprite choosing tabs
-        self.sprPickerTab = QtGui.QWidget()
+        self.sprPickerTab = QtWidgets.QWidget()
         tabs.addTab(self.sprPickerTab, GetIcon('sprites'), 'Sprites')
 
-        spl = QtGui.QVBoxLayout(self.sprPickerTab)
+        spl = QtWidgets.QVBoxLayout(self.sprPickerTab)
         self.sprPickerLayout = spl
 
-        svpl = QtGui.QHBoxLayout()
-        svpl.addWidget(QtGui.QLabel('View:'))
+        svpl = QtWidgets.QHBoxLayout()
+        svpl.addWidget(QtWidgets.QLabel('View:'))
 
-        sspl = QtGui.QHBoxLayout()
-        sspl.addWidget(QtGui.QLabel('Search:'))
+        sspl = QtWidgets.QHBoxLayout()
+        sspl.addWidget(QtWidgets.QLabel('Search:'))
 
         LoadSpriteCategories()
-        viewpicker = QtGui.QComboBox()
+        viewpicker = QtWidgets.QComboBox()
         for view in SpriteCategories:
             viewpicker.addItem(view[0])
         viewpicker.currentIndexChanged.connect(self.SelectNewSpriteView)
@@ -6824,7 +6878,7 @@ class ReggieWindow(QtGui.QMainWindow):
         self.spriteViewPicker = viewpicker
         svpl.addWidget(viewpicker, 1)
 
-        self.spriteSearchTerm = QtGui.QLineEdit()
+        self.spriteSearchTerm = QtWidgets.QLineEdit()
         self.spriteSearchTerm.textChanged.connect(self.NewSearchTerm)
         sspl.addWidget(self.spriteSearchTerm, 1)
 
@@ -6841,23 +6895,23 @@ class ReggieWindow(QtGui.QMainWindow):
         self.sprPicker.SwitchView(SpriteCategories[0])
         spl.addWidget(self.sprPicker, 1)
 
-        self.defaultPropButton = QtGui.QPushButton('Set Default Properties')
+        self.defaultPropButton = QtWidgets.QPushButton('Set Default Properties')
         self.defaultPropButton.setEnabled(False)
         self.defaultPropButton.clicked.connect(self.ShowDefaultProps)
 
-        sdpl = QtGui.QHBoxLayout()
+        sdpl = QtWidgets.QHBoxLayout()
         sdpl.addStretch(1)
         sdpl.addWidget(self.defaultPropButton)
         sdpl.addStretch(1)
         spl.addLayout(sdpl)
 
         # default data editor
-        ddock = QtGui.QDockWidget('Default Properties', self)
-        ddock.setFeatures(QtGui.QDockWidget.DockWidgetMovable | QtGui.QDockWidget.DockWidgetFloatable | QtGui.QDockWidget.DockWidgetClosable)
+        ddock = QtWidgets.QDockWidget('Default Properties', self)
+        ddock.setFeatures(QtWidgets.QDockWidget.DockWidgetMovable | QtWidgets.QDockWidget.DockWidgetFloatable | QtWidgets.QDockWidget.DockWidgetClosable)
         ddock.setAllowedAreas(QtCore.Qt.LeftDockWidgetArea | QtCore.Qt.RightDockWidgetArea)
         ddock.setObjectName('defaultprops') #needed for the state to save/restore correctly
 
-        self.defaultDataEditor = SpriteEditorWidget(True)
+        self.defaultDataEditor = SpriteEditorWidget()
         self.defaultDataEditor.setVisible(False)
         ddock.setWidget(self.defaultDataEditor)
 
@@ -6867,32 +6921,32 @@ class ReggieWindow(QtGui.QMainWindow):
         self.defaultPropDock = ddock
 
         # entrance tab
-        self.entEditorTab = QtGui.QWidget()
+        self.entEditorTab = QtWidgets.QWidget()
         tabs.addTab(self.entEditorTab, GetIcon('entrances'), 'Entrances')
 
-        eel = QtGui.QVBoxLayout(self.entEditorTab)
+        eel = QtWidgets.QVBoxLayout(self.entEditorTab)
         self.entEditorLayout = eel
 
-        elabel = QtGui.QLabel('Entrances currently in the level:<br>(Double-click one to jump to it instantly)')
+        elabel = QtWidgets.QLabel('Entrances currently in the level:<br>(Double-click one to jump to it instantly)')
         elabel.setWordWrap(True)
-        self.entranceList = QtGui.QListWidget()
+        self.entranceList = QtWidgets.QListWidget()
         self.entranceList.itemActivated.connect(self.HandleEntranceSelectByList)
 
         eel.addWidget(elabel)
         eel.addWidget(self.entranceList)
 
         # paths tab
-        self.pathEditorTab = QtGui.QWidget()
+        self.pathEditorTab = QtWidgets.QWidget()
         tabs.addTab(self.pathEditorTab, GetIcon('paths'), 'Paths')
 
-        pathel = QtGui.QVBoxLayout(self.pathEditorTab)
+        pathel = QtWidgets.QVBoxLayout(self.pathEditorTab)
         self.pathEditorLayout = pathel
 
-        pathlabel = QtGui.QLabel('Path nodes currently in the level:<br>(Double-click one to jump to its first node instantly)<br>To delete a path, remove all its nodes one by one.<br>To add new paths, hit the button below and right click.')
+        pathlabel = QtWidgets.QLabel('Path nodes currently in the level:<br>(Double-click one to jump to its first node instantly)<br>To delete a path, remove all its nodes one by one.<br>To add new paths, hit the button below and right click.')
         pathlabel.setWordWrap(True)
-        deselectbtn = QtGui.QPushButton('Deselect (then right click for new path)')
+        deselectbtn = QtWidgets.QPushButton('Deselect (then right click for new path)')
         deselectbtn.clicked.connect(self.DeselectPathSelection)
-        self.pathList = QtGui.QListWidget()
+        self.pathList = QtWidgets.QListWidget()
         self.pathList.itemActivated.connect(self.HandlePathSelectByList)
 
         pathel.addWidget(pathlabel)
@@ -6922,7 +6976,7 @@ class ReggieWindow(QtGui.QMainWindow):
     def TrackClipboardUpdates(self):
         """Catches systemwide clipboard updates"""
         clip = self.systemClipboard.text()
-        if clip != None and clip != '':
+        if clip is not None and clip != '':
             try:
                 clip = unicode(clip).strip()
             except UnicodeEncodeError:
@@ -6968,21 +7022,21 @@ class ReggieWindow(QtGui.QMainWindow):
         """Checks if the level is unsaved and asks for a confirmation if so - if it returns True, Cancel was picked"""
         if not Dirty: return False
 
-        msg = QtGui.QMessageBox()
+        msg = QtWidgets.QMessageBox()
         msg.setText('The level has unsaved changes in it.')
         msg.setInformativeText('Do you want to save them?')
-        msg.setStandardButtons(QtGui.QMessageBox.Save | QtGui.QMessageBox.Discard | QtGui.QMessageBox.Cancel)
-        msg.setDefaultButton(QtGui.QMessageBox.Save)
+        msg.setStandardButtons(QtWidgets.QMessageBox.Save | QtWidgets.QMessageBox.Discard | QtWidgets.QMessageBox.Cancel)
+        msg.setDefaultButton(QtWidgets.QMessageBox.Save)
         ret = msg.exec_()
 
-        if ret == QtGui.QMessageBox.Save:
+        if ret == QtWidgets.QMessageBox.Save:
             if not self.HandleSave():
                 # save failed
                 return True
             return False
-        elif ret == QtGui.QMessageBox.Discard:
+        elif ret == QtWidgets.QMessageBox.Discard:
             return False
-        elif ret == QtGui.QMessageBox.Cancel:
+        elif ret == QtWidgets.QMessageBox.Cancel:
             return True
 
     @QtCore.pyqtSlot()
@@ -7014,7 +7068,7 @@ class ReggieWindow(QtGui.QMainWindow):
         """Records the Level Meta Information"""
         if Level.areanum == 1:
             dlg = MetaInfoDialog()
-            if dlg.exec_() == QtGui.QDialog.Accepted:
+            if dlg.exec_() == QtWidgets.QDialog.Accepted:
                 Level.Title = dlg.levelName.text()
                 Level.Author = dlg.Author.text()
                 Level.Group = dlg.Group.text()
@@ -7023,7 +7077,7 @@ class ReggieWindow(QtGui.QMainWindow):
                 SetDirty()
                 return
         else:
-            dlg = QtGui.QMessageBox()
+            dlg = QtWidgets.QMessageBox()
             dlg.setText("Sorry!\n\nYou can only view or edit Level Information in Area 1.")
             dlg.exec_()
 
@@ -7109,7 +7163,7 @@ class ReggieWindow(QtGui.QMainWindow):
     @QtCore.pyqtSlot()
     def Paste(self):
         """Paste the selected items"""
-        if self.clipboard != None:
+        if self.clipboard is not None:
             self.placeEncodedObjects(self.clipboard)
 
     def encodeObjects(self, clipboard_o, clipboard_s):
@@ -7164,8 +7218,8 @@ class ReggieWindow(QtGui.QMainWindow):
             clip = encoded[11:-2].split('|')
 
             if func_len(clip) > 300:
-                result = QtGui.QMessageBox.warning(self, 'Reggie!', 'You\'re trying to paste over 300 items at once.\nThis may take a while (depending on your computer speed), are you sure you want to continue?', QtGui.QMessageBox.Yes, QtGui.QMessageBox.No)
-                if result == QtGui.QMessageBox.No:
+                result = QtWidgets.QMessageBox.warning(self, 'Reggie!', 'You\'re trying to paste over 300 items at once.\nThis may take a while (depending on your computer speed), are you sure you want to continue?', QtWidgets.QMessageBox.Yes, QtWidgets.QMessageBox.No)
+                if result == QtWidgets.QMessageBox.No:
                     return
 
             for item in clip:
@@ -7307,7 +7361,7 @@ class ReggieWindow(QtGui.QMainWindow):
         if len(items) == 0: return
 
         dlg = ObjectShiftDialog()
-        if dlg.exec_() == QtGui.QDialog.Accepted:
+        if dlg.exec_() == QtWidgets.QDialog.Accepted:
             xoffset = dlg.XOffset.value()
             yoffset = dlg.YOffset.value()
             if xoffset == 0 and yoffset == 0: return
@@ -7315,7 +7369,7 @@ class ReggieWindow(QtGui.QMainWindow):
             type_obj = LevelObjectEditorItem
             type_spr = SpriteEditorItem
             type_ent = EntranceEditorItem
-            type_loc = SpriteLocationItem
+            type_loc = LocationEditorItem
 
             if ((xoffset % 16) != 0) or ((yoffset % 16) != 0):
                 # warn if any objects exist
@@ -7330,8 +7384,8 @@ class ReggieWindow(QtGui.QMainWindow):
                 if objectsExist and spritesExist:
                     # no point in warning them if there are only objects
                     # since then, it will just silently reduce the offset and it won't be noticed
-                    result = QtGui.QMessageBox.information(None, 'Warning',  'You are trying to move object(s) by an offset which isn\'t a multiple of 16. It will work, but the objects will not be able to move exactly the same amount as the sprites. Are you sure you want to do this?', QtGui.QMessageBox.Yes, QtGui.QMessageBox.No)
-                    if result == QtGui.QMessageBox.No:
+                    result = QtWidgets.QMessageBox.information(None, 'Warning',  'You are trying to move object(s) by an offset which isn\'t a multiple of 16. It will work, but the objects will not be able to move exactly the same amount as the sprites. Are you sure you want to do this?', QtWidgets.QMessageBox.Yes, QtWidgets.QMessageBox.No)
+                    if result == QtWidgets.QMessageBox.No:
                         return
 
             xpoffset = xoffset * 1.5
@@ -7358,7 +7412,7 @@ class ReggieWindow(QtGui.QMainWindow):
         neww = 0
         newh = 0
 
-        type_loc = SpriteLocationItem
+        type_loc = LocationEditorItem
         for obj in items:
             if isinstance(obj, type_loc):
                 if obj.objx < newx:
@@ -7388,7 +7442,7 @@ class ReggieWindow(QtGui.QMainWindow):
                     break
                 newID += 1
 
-            loc = SpriteLocationItem(newx, newy, neww - newx, newh - newy, newID)
+            loc = LocationEditorItem(newx, newy, neww - newx, newh - newy, newID)
 
             mw = mainWindow
             loc.positionChanged = mw.HandleObjPosChange
@@ -7402,15 +7456,14 @@ class ReggieWindow(QtGui.QMainWindow):
     def HandleAddNewArea(self):
         """Adds a new area to the level"""
         if Level.areacount >= 4:
-            QtGui.QMessageBox.warning(self, 'Reggie!', 'You have reached the maximum amount of areas in this level.\nDue to the game\'s limitations, Reggie! only allows you to add up to 4 areas to a level.')
+            QtWidgets.QMessageBox.warning(self, 'Reggie!', 'You have reached the maximum amount of areas in this level.\nDue to the game\'s limitations, Reggie! only allows you to add up to 4 areas to a level.')
             return
 
         if self.CheckDirty():
             return
 
-        getit = open('reggiedata/blankcourse.bin', 'rb')
-        blank = getit.read()
-        getit.close()
+        with open('reggiedata/blankcourse.bin', 'rb') as getit:
+            blank = getit.read()
 
         newID = Level.areacount + 1
         Level.arc['course/course%d.bin' % newID] = blank
@@ -7423,18 +7476,17 @@ class ReggieWindow(QtGui.QMainWindow):
     def HandleImportArea(self):
         """Imports an area from another level"""
         if Level.areacount >= 4:
-            QtGui.QMessageBox.warning(self, 'Reggie!', 'You have reached the maximum amount of areas in this level.\nDue to the game\'s limitations, Reggie! only allows you to add up to 4 areas to a level.')
+            QtWidgets.QMessageBox.warning(self, 'Reggie!', 'You have reached the maximum amount of areas in this level.\nDue to the game\'s limitations, Reggie! only allows you to add up to 4 areas to a level.')
             return
 
         if self.CheckDirty():
             return
 
-        fn = QtGui.QFileDialog.getOpenFileName(self, 'Choose a level archive', '', 'Level archives (*.arc);;All Files(*)')
+        fn = QFileDialog_getOpenFileName(self, 'Choose a level archive', '', 'Level archives (*.arc);;All Files(*)')
         if fn == '': return
 
-        getit = open(unicode(fn), 'rb')
-        arcdata = getit.read()
-        getit.close()
+        with open(unicode(fn), 'rb') as getit:
+            arcdata = getit.read()
 
         arc = archive.U8.load(arcdata)
 
@@ -7442,7 +7494,7 @@ class ReggieWindow(QtGui.QMainWindow):
         areacount = 0
 
         for item,val in arc.files:
-            if val != None:
+            if val is not None:
                 # it's a file
                 fname = item[item.rfind('/')+1:]
                 if fname.startswith('course'):
@@ -7451,7 +7503,7 @@ class ReggieWindow(QtGui.QMainWindow):
 
         # choose one
         dlg = AreaChoiceDialog(areacount)
-        if dlg.exec_() == QtGui.QDialog.Rejected:
+        if dlg.exec_() == QtWidgets.QDialog.Rejected:
             return
 
         area = dlg.areaCombo.currentIndex()+1
@@ -7468,7 +7520,7 @@ class ReggieWindow(QtGui.QMainWindow):
         l2 = None
 
         for item,val in arc.files:
-            if val != None:
+            if val is not None:
                 fname = item[item.rfind('/')+1:]
                 if fname == reqcourse:
                     course = val
@@ -7482,9 +7534,9 @@ class ReggieWindow(QtGui.QMainWindow):
         # add them to our U8
         newID = Level.areacount + 1
         Level.arc['course/course%d.bin' % newID] = course
-        if l0 != None: Level.arc['course/course%d_bgdatL0.bin' % newID] = l0
-        if l1 != None: Level.arc['course/course%d_bgdatL1.bin' % newID] = l1
-        if l2 != None: Level.arc['course/course%d_bgdatL2.bin' % newID] = l2
+        if l0 is not None: Level.arc['course/course%d_bgdatL0.bin' % newID] = l0
+        if l1 is not None: Level.arc['course/course%d_bgdatL1.bin' % newID] = l1
+        if l2 is not None: Level.arc['course/course%d_bgdatL2.bin' % newID] = l2
 
         if not self.HandleSave(): return
         self.LoadLevel(Level.arcname, True, newID)
@@ -7493,8 +7545,8 @@ class ReggieWindow(QtGui.QMainWindow):
     @QtCore.pyqtSlot()
     def HandleDeleteArea(self):
         """Deletes the current area"""
-        result = QtGui.QMessageBox.warning(self, 'Reggie!', 'Are you <b>sure</b> you want to delete this area?<br><br>The level will automatically save afterwards - there is no way<br>you can undo the deletion or get it back afterwards!', QtGui.QMessageBox.Yes | QtGui.QMessageBox.No, QtGui.QMessageBox.No)
-        if result == QtGui.QMessageBox.No: return
+        result = QtWidgets.QMessageBox.warning(self, 'Reggie!', 'Are you <b>sure</b> you want to delete this area?<br><br>The level will automatically save afterwards - there is no way<br>you can undo the deletion or get it back afterwards!', QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.No, QtWidgets.QMessageBox.No)
+        if result == QtWidgets.QMessageBox.No: return
 
         if not self.HandleSave(): return
 
@@ -7503,7 +7555,7 @@ class ReggieWindow(QtGui.QMainWindow):
 
         newfiles = []
         for item,val in Level.arc.files:
-            if val != None:
+            if val is not None:
                 if item.startswith('course/course'):
                     id = int(item[13])
                     if id < deleting:
@@ -7522,9 +7574,8 @@ class ReggieWindow(QtGui.QMainWindow):
         Level.arc.files = newfiles
 
         # no error checking. if it saved last time, it will probably work now
-        f = open(Level.arcname, 'wb')
-        f.write(Level.arc._dump())
-        f.close()
+        with open(Level.arcname, 'wb') as f:
+            f.write(Level.arc._dump())
         self.LoadLevel(Level.arcname, True, 1)
 
 
@@ -7535,14 +7586,14 @@ class ReggieWindow(QtGui.QMainWindow):
 
         path = None
         while not isValidGamePath(path):
-            path = QtGui.QFileDialog.getExistingDirectory(None, 'Choose the game\'s Stage folder')
+            path = QtWidgets.QFileDialog.getExistingDirectory(None, 'Choose the game\'s Stage folder')
             if path == '':
                 return
 
             path = unicode(path)
 
             if not isValidGamePath(path):
-                QtGui.QMessageBox.information(None, 'Error',  'This folder doesn\'t have all of the files from the extracted NSMBWii Stage folder.')
+                QtWidgets.QMessageBox.information(None, 'Error',  'This folder doesn\'t have all of the files from the extracted NSMBWii Stage folder.')
             else:
                 settings.setValue('GamePath', path)
                 break
@@ -7564,7 +7615,7 @@ class ReggieWindow(QtGui.QMainWindow):
         if self.CheckDirty(): return
 
         dlg = ChooseLevelNameDialog()
-        if dlg.exec_() == QtGui.QDialog.Accepted:
+        if dlg.exec_() == QtWidgets.QDialog.Accepted:
             #start = time.clock()
             self.LoadLevel(dlg.currentlevel, False, 1)
             #end = time.clock()
@@ -7576,7 +7627,7 @@ class ReggieWindow(QtGui.QMainWindow):
         """Open a level using the filename"""
         if self.CheckDirty(): return
 
-        fn = QtGui.QFileDialog.getOpenFileName(self, 'Choose a level archive', '', 'Level archives (*.arc);;All Files(*)')
+        fn = QFileDialog_getOpenFileName(self, 'Choose a level archive', '', 'Level archives (*.arc);;All Files(*)')
         if fn == '': return
         self.LoadLevel(unicode(fn), True, 1)
 
@@ -7591,11 +7642,10 @@ class ReggieWindow(QtGui.QMainWindow):
         global Dirty, AutoSaveDirty
         data = Level.save()
         try:
-            f = open(Level.arcname, 'wb')
-            f.write(data)
-            f.close()
-        except IOError, e:
-            QtGui.QMessageBox.warning(None, 'Error', 'Error while Reggie was trying to save the level:\n(#%d) %s\n\n(Your work has not been saved! Try saving it under a different filename or in a different folder.)' % (e.args[0], e.args[1]))
+            with open(Level.arcname, 'wb') as f:
+                f.write(data)
+        except IOError as e:
+            QtWidgets.QMessageBox.warning(None, 'Error', 'Error while Reggie was trying to save the level:\n(#%d) %s\n\n(Your work has not been saved! Try saving it under a different filename or in a different folder.)' % (e.args[0], e.args[1]))
             return False
 
         Dirty = False
@@ -7610,7 +7660,7 @@ class ReggieWindow(QtGui.QMainWindow):
     @QtCore.pyqtSlot()
     def HandleSaveAs(self):
         """Save a level back to the archive, with a new filename"""
-        fn = QtGui.QFileDialog.getSaveFileName(self, 'Choose a new filename', '', 'Level archives (*.arc);;All Files(*)')
+        fn = QFileDialog_getSaveFileName(self, 'Choose a new filename', '', 'Level archives (*.arc);;All Files(*)')
         if fn == '': return
         fn = unicode(fn)
 
@@ -7624,9 +7674,8 @@ class ReggieWindow(QtGui.QMainWindow):
         Level.hasName = True
 
         data = Level.save()
-        f = open(fn, 'wb')
-        f.write(data)
-        f.close()
+        with open(fn, 'wb') as f:
+            f.write(data)
         settings.setValue('AutoSaveFilePath', fn)
         settings.setValue('AutoSaveFileData', 'x')
 
@@ -7695,8 +7744,8 @@ class ReggieWindow(QtGui.QMainWindow):
 
         global ObjectsNonFrozen
         ObjectsNonFrozen = checked
-        flag1 = QtGui.QGraphicsItem.ItemIsSelectable
-        flag2 = QtGui.QGraphicsItem.ItemIsMovable
+        flag1 = QtWidgets.QGraphicsItem.ItemIsSelectable
+        flag2 = QtWidgets.QGraphicsItem.ItemIsMovable
 
         for layer in Level.layers:
             for obj in layer:
@@ -7715,8 +7764,8 @@ class ReggieWindow(QtGui.QMainWindow):
 
         global SpritesNonFrozen
         SpritesNonFrozen = checked
-        flag1 = QtGui.QGraphicsItem.ItemIsSelectable
-        flag2 = QtGui.QGraphicsItem.ItemIsMovable
+        flag1 = QtWidgets.QGraphicsItem.ItemIsSelectable
+        flag2 = QtWidgets.QGraphicsItem.ItemIsMovable
 
         for spr in Level.sprites:
             spr.setFlag(flag1, checked)
@@ -7734,8 +7783,8 @@ class ReggieWindow(QtGui.QMainWindow):
 
         global EntrancesNonFrozen
         EntrancesNonFrozen = checked
-        flag1 = QtGui.QGraphicsItem.ItemIsSelectable
-        flag2 = QtGui.QGraphicsItem.ItemIsMovable
+        flag1 = QtWidgets.QGraphicsItem.ItemIsSelectable
+        flag2 = QtWidgets.QGraphicsItem.ItemIsMovable
 
         for ent in Level.entrances:
             ent.setFlag(flag1, checked)
@@ -7752,8 +7801,8 @@ class ReggieWindow(QtGui.QMainWindow):
 
         global PathsNonFrozen
         PathsNonFrozen = checked
-        flag1 = QtGui.QGraphicsItem.ItemIsSelectable
-        flag2 = QtGui.QGraphicsItem.ItemIsMovable
+        flag1 = QtWidgets.QGraphicsItem.ItemIsSelectable
+        flag2 = QtWidgets.QGraphicsItem.ItemIsMovable
 
         for node in Level.paths:
             node.setFlag(flag1, checked)
@@ -7770,8 +7819,8 @@ class ReggieWindow(QtGui.QMainWindow):
 
         global LocationsNonFrozen
         LocationsNonFrozen = checked
-        flag1 = QtGui.QGraphicsItem.ItemIsSelectable
-        flag2 = QtGui.QGraphicsItem.ItemIsMovable
+        flag1 = QtWidgets.QGraphicsItem.ItemIsSelectable
+        flag2 = QtWidgets.QGraphicsItem.ItemIsMovable
 
         for loc in Level.locations:
             loc.setFlag(flag1, checked)
@@ -7884,14 +7933,14 @@ class ReggieWindow(QtGui.QMainWindow):
     def LoadLevel(self, name, fullpath, area):
         """Load a level into the editor"""
 
-        if name != None:
+        if name is not None:
             if fullpath:
                 checkname = name
             else:
                 checkname = os.path.join(gamePath, name+'.arc')
 
             if not IsNSMBLevel(checkname):
-                QtGui.QMessageBox.warning(self, 'Reggie!', 'This file doesn\'t seem to be a valid level.', QtGui.QMessageBox.Ok)
+                QtWidgets.QMessageBox.warning(self, 'Reggie!', 'This file doesn\'t seem to be a valid level.', QtWidgets.QMessageBox.Ok)
                 return False
 
         global Dirty, DirtyOverride
@@ -7917,7 +7966,7 @@ class ReggieWindow(QtGui.QMainWindow):
         if HaveNSMBLib:
             progress = None
         else:
-            progress = QtGui.QProgressDialog(self)
+            progress = QtWidgets.QProgressDialog(self)
             # yes, I did alphabetise the setX calls on purpose..
             # code OCD is wonderful x_x
             progress.setCancelButton(None)
@@ -7940,14 +7989,14 @@ class ReggieWindow(QtGui.QMainWindow):
         global OverrideSnapping
         OverrideSnapping = True
 
-        if progress != None:
+        if progress is not None:
             progress.setLabelText('Loading level data...')
             progress.setValue(0)
 
         global Level
         Level = LevelUnit()
 
-        if name == None:
+        if name is None:
             Level.newLevel()
         else:
             global RestoredFromAutoSave
@@ -7960,7 +8009,7 @@ class ReggieWindow(QtGui.QMainWindow):
         OverrideSnapping = False
 
         # prepare the object picker
-        if progress != None:
+        if progress is not None:
             progress.setLabelText('Loading objects...')
             progress.setValue(6)
 
@@ -7975,7 +8024,7 @@ class ReggieWindow(QtGui.QMainWindow):
         self.creationTabs.setTabEnabled(3, (Level.tileset3 != ''))
 
         # add all the objects to the scene
-        if progress != None:
+        if progress is not None:
             progress.setLabelText('Preparing editor...')
             progress.setValue(7)
 
@@ -7984,12 +8033,9 @@ class ReggieWindow(QtGui.QMainWindow):
 
         entlist = self.entranceList
         entlist.clear()
-        entlist.selectionModel().setCurrentIndex(QtCore.QModelIndex(), QtGui.QItemSelectionModel.Clear)
 
         pathlist = self.pathList
         pathlist.clear()
-        pathlist.selectionModel().setCurrentIndex(QtCore.QModelIndex(), QtGui.QItemSelectionModel.Clear)
-        #entlist.selectionModel().clearSelection()
 
         addItem = scene.addItem
 
@@ -8008,7 +8054,7 @@ class ReggieWindow(QtGui.QMainWindow):
         for ent in Level.entrances:
             addItem(ent)
             ent.positionChanged = pcEvent
-            ent.listitem = QtGui.QListWidgetItem(ent.ListString())
+            ent.listitem = QtWidgets.QListWidgetItem(ent.ListString())
             entlist.addItem(ent.listitem)
 
         for zone in Level.zones:
@@ -8024,7 +8070,7 @@ class ReggieWindow(QtGui.QMainWindow):
         for path in Level.paths:
             addItem(path)
             path.positionChanged = self.HandlePathPosChange
-            path.listitem = QtGui.QListWidgetItem(path.ListString())
+            path.listitem = QtWidgets.QListWidgetItem(path.ListString())
             pathlist.addItem(path.listitem)
 
         for path in Level.pathdata:
@@ -8035,7 +8081,7 @@ class ReggieWindow(QtGui.QMainWindow):
 
         # fill up the area list
         self.areaComboBox.clear()
-        for i in xrange(1,Level.areacount+1):
+        for i in range(1,Level.areacount+1):
             self.areaComboBox.addItem('Area '+str(i))
 
         self.areaComboBox.setCurrentIndex(area-1)
@@ -8048,7 +8094,7 @@ class ReggieWindow(QtGui.QMainWindow):
             if ent.entid == startEntID: startEnt = ent
 
         self.view.centerOn(0,0)
-        if startEnt != None: self.view.centerOn(startEnt.objx*1.5, startEnt.objy*1.5)
+        if startEnt is not None: self.view.centerOn(startEnt.objx*1.5, startEnt.objy*1.5)
         self.ZoomTo(100.0)
 
         # reset some editor things
@@ -8073,8 +8119,8 @@ class ReggieWindow(QtGui.QMainWindow):
     @QtCore.pyqtSlot()
     def ReloadTilesets(self):
         tilesets = [Level.tileset0, Level.tileset1, Level.tileset2, Level.tileset3]
-        for idx, name in zip(xrange(4), tilesets):
-            if name != None and name != '':
+        for idx, name in zip(range(4), tilesets):
+            if name is not None and name != '':
                 LoadTileset(idx, name)
 
         self.objPicker.LoadFromTilesets()
@@ -8121,7 +8167,7 @@ class ReggieWindow(QtGui.QMainWindow):
         type_obj = LevelObjectEditorItem
         type_spr = SpriteEditorItem
         type_ent = EntranceEditorItem
-        type_loc = SpriteLocationItem
+        type_loc = LocationEditorItem
         type_path = PathEditorItem
 
         if len(selitems) == 0:
@@ -8172,7 +8218,7 @@ class ReggieWindow(QtGui.QMainWindow):
 
         #for x in self.CurrentSelection:
         #    s = x.scene()
-        #    if s != None:
+        #    if s is not None:
         #        s.update(x.x(), x.y(), x.BoundingRect.width(), x.BoundingRect.height())
         #
         #for x in selitems:
@@ -8216,7 +8262,7 @@ class ReggieWindow(QtGui.QMainWindow):
         CurrentLayer = nl
 
         # should we replace?
-        if QtGui.QApplication.keyboardModifiers() == QtCore.Qt.AltModifier:
+        if QtWidgets.QApplication.keyboardModifiers() == QtCore.Qt.AltModifier:
             items = self.scene.selectedItems()
             type_obj = LevelObjectEditorItem
             tileset = CurrentPaintType
@@ -8294,7 +8340,7 @@ class ReggieWindow(QtGui.QMainWindow):
         CurrentSprite = type
         if type != 1000 and type >= 0:
             self.defaultDataEditor.setSprite(type)
-            self.defaultDataEditor.data = '\0\0\0\0\0\0\0\0\0\0'
+            self.defaultDataEditor.data = b'\0\0\0\0\0\0\0\0\0\0'
             self.defaultDataEditor.update()
             self.defaultPropButton.setEnabled(True)
         else:
@@ -8384,7 +8430,7 @@ class ReggieWindow(QtGui.QMainWindow):
 
 
 
-    @QtCore.pyqtSlot(QtGui.QListWidgetItem)
+    @QtCore.pyqtSlot(QtWidgets.QListWidgetItem)
     def HandleEntranceSelectByList(self, item):
         """Handle an entrance being selected from the list"""
         if self.UpdateFlag: return
@@ -8396,13 +8442,13 @@ class ReggieWindow(QtGui.QMainWindow):
             if check.listitem == item:
                 ent = check
                 break
-        if ent == None: return
+        if ent is None: return
 
         ent.ensureVisible(QtCore.QRectF(), 192, 192)
         self.scene.clearSelection()
         ent.setSelected(True)
 
-    @QtCore.pyqtSlot(QtGui.QListWidgetItem)
+    @QtCore.pyqtSlot(QtWidgets.QListWidgetItem)
     def HandlePathSelectByList(self, item):
         """Handle a path node being selected"""
         #if self.UpdateFlag: return
@@ -8414,7 +8460,7 @@ class ReggieWindow(QtGui.QMainWindow):
            if check.listitem == item:
                 path = check
                 break
-        if path == None: return
+        if path is None: return
 
         path.ensureVisible(QtCore.QRectF(), 192, 192)
         self.scene.clearSelection()
@@ -8463,13 +8509,13 @@ class ReggieWindow(QtGui.QMainWindow):
         hovereditems = self.scene.items(QtCore.QPointF(x,y))
         hovered = None
         type_zone = ZoneItem
-        type_loc = SpriteLocationItem
+        type_loc = LocationEditorItem
         for item in hovereditems:
             if not isinstance(item, type_zone) and not isinstance(item, type_loc):
                 hovered = item
                 break
 
-        if hovered != None:
+        if hovered is not None:
             if isinstance(hovered, LevelObjectEditorItem):
                 info = ' - Object under mouse: size %dx%d at %d,%d on layer %d; type %d from tileset %d' % (hovered.width, hovered.height, hovered.objx, hovered.objy, hovered.layer, hovered.type, hovered.tileset+1)
             elif isinstance(hovered, SpriteEditorItem):
@@ -8500,14 +8546,14 @@ class ReggieWindow(QtGui.QMainWindow):
                 return
         self.levelOverview.update()
 
-        QtGui.QMainWindow.keyPressEvent(self, event)
+        QtWidgets.QMainWindow.keyPressEvent(self, event)
 
 
     @QtCore.pyqtSlot()
     def HandleAreaOptions(self):
         """Pops up the options for Area Dialogue"""
         dlg = AreaOptionsDialog()
-        if dlg.exec_() == QtGui.QDialog.Accepted:
+        if dlg.exec_() == QtWidgets.QDialog.Accepted:
             SetDirty()
             Level.timeLimit = dlg.LoadingTab.timer.value() - 200
             Level.startEntrance = dlg.LoadingTab.entrance.value()
@@ -8528,9 +8574,9 @@ class ReggieWindow(QtGui.QMainWindow):
 
             toUnload = []
 
-            for idx, oldname, assignment, widget in zip(xrange(4), oldnames, assignments, widgets):
+            for idx, oldname, assignment, widget in zip(range(4), oldnames, assignments, widgets):
                 ts_idx = widget.currentIndex()
-                fname = str(widget.itemData(ts_idx).toPyObject())
+                fname = str(toPyObject(widget.itemData(ts_idx)))
 
                 if fname == '':
                     toUnload.append(idx)
@@ -8549,7 +8595,7 @@ class ReggieWindow(QtGui.QMainWindow):
             defEvents = 0
             eventChooser = dlg.LoadingTab.eventChooser
             checked = QtCore.Qt.Checked
-            for i in xrange(32):
+            for i in range(32):
                 if eventChooser.item(i).checkState() == checked:
                     defEvents |= (1 << i)
 
@@ -8572,7 +8618,7 @@ class ReggieWindow(QtGui.QMainWindow):
     def HandleZones(self):
         """Pops up the options for Zone dialogue"""
         dlg = ZonesDialog()
-        if dlg.exec_() == QtGui.QDialog.Accepted:
+        if dlg.exec_() == QtWidgets.QDialog.Accepted:
             SetDirty()
             i = 0
 
@@ -8632,11 +8678,11 @@ class ReggieWindow(QtGui.QMainWindow):
                             if tab.Zone_camerazoom.currentIndex() == 0:
                                 z.cammode = 0
                                 z.camzoom = 8
-                                QtGui.QMessageBox.warning(None, 'Error', 'Zoom level -2 does not support bias modes.')
+                                QtWidgets.QMessageBox.warning(None, 'Error', 'Zoom level -2 does not support bias modes.')
                             elif tab.Zone_camerazoom.currentIndex() == 1:
                                 z.cammode = 3
                                 z.camzoom = 9
-                                QtGui.QMessageBox.warning(None, 'Error', 'Zoom level -1 does not support bias modes.')
+                                QtWidgets.QMessageBox.warning(None, 'Error', 'Zoom level -1 does not support bias modes.')
                             elif tab.Zone_camerazoom.currentIndex() == 2:
                                 z.cammode = 0
                                 z.camzoom = 1
@@ -8681,10 +8727,10 @@ class ReggieWindow(QtGui.QMainWindow):
                             z.cammode = 6
                             if tab.Zone_camerazoom.currentIndex() == 0:
                                 z.camzoom = 8
-                                QtGui.QMessageBox.warning(None, 'Error', 'Zoom level -2 does not support bias modes.')
+                                QtWidgets.QMessageBox.warning(None, 'Error', 'Zoom level -2 does not support bias modes.')
                             elif tab.Zone_camerazoom.currentIndex() == 1:
                                 z.camzoom = 1
-                                QtGui.QMessageBox.warning(None, 'Error', 'Zoom level -1 is not supported with these Tracking modes. Set to Zoom level 0')
+                                QtWidgets.QMessageBox.warning(None, 'Error', 'Zoom level -1 is not supported with these Tracking modes. Set to Zoom level 0')
                             elif tab.Zone_camerazoom.currentIndex() == 2:
                                 z.camzoom = 2
                             elif tab.Zone_camerazoom.currentIndex() == 3:
@@ -8695,7 +8741,7 @@ class ReggieWindow(QtGui.QMainWindow):
                                 z.camzoom = 3
                             elif tab.Zone_camerazoom.currentIndex() == 6:
                                 z.camzoom = 16
-                                QtGui.QMessageBox.warning(None, 'Error', 'Zoom mode 4 can be glitchy with these settings.')
+                                QtWidgets.QMessageBox.warning(None, 'Error', 'Zoom mode 4 can be glitchy with these settings.')
                         else:
                             #Xtrack, No YTrack, No Bias
                             z.cammode = 6
@@ -8703,7 +8749,7 @@ class ReggieWindow(QtGui.QMainWindow):
                                 z.camzoom = 8
                             elif tab.Zone_camerazoom.currentIndex() == 1:
                                 z.camzoom = 0
-                                QtGui.QMessageBox.warning(None, 'Error', 'Zoom level -1 is not supported with these Tracking modes. Set to Zoom level 0')
+                                QtWidgets.QMessageBox.warning(None, 'Error', 'Zoom level -1 is not supported with these Tracking modes. Set to Zoom level 0')
                             elif tab.Zone_camerazoom.currentIndex() == 2:
                                 z.camzoom = 0
                             elif tab.Zone_camerazoom.currentIndex() == 3:
@@ -8714,7 +8760,7 @@ class ReggieWindow(QtGui.QMainWindow):
                                 z.camzoom = 3
                             elif tab.Zone_camerazoom.currentIndex() == 6:
                                 z.camzoom = 16
-                                QtGui.QMessageBox.warning(None, 'Error', 'Zoom mode 4 can be glitchy with these settings.')
+                                QtWidgets.QMessageBox.warning(None, 'Error', 'Zoom mode 4 can be glitchy with these settings.')
                 else:
                     if tab.Zone_ytrack.isChecked():
                         if tab.Zone_camerabias.isChecked():
@@ -8722,11 +8768,11 @@ class ReggieWindow(QtGui.QMainWindow):
                             if tab.Zone_camerazoom.currentIndex() == 0:
                                 z.cammode = 1
                                 z.camzoom = 8
-                                QtGui.QMessageBox.warning(None, 'Error', 'Zoom level -2 does not support bias modes.')
+                                QtWidgets.QMessageBox.warning(None, 'Error', 'Zoom level -2 does not support bias modes.')
                             elif tab.Zone_camerazoom.currentIndex() == 1:
                                 z.cammode = 4
                                 z.camzoom = 9
-                                QtGui.QMessageBox.warning(None, 'Error', 'Zoom level -1 does not support bias modes.')
+                                QtWidgets.QMessageBox.warning(None, 'Error', 'Zoom level -1 does not support bias modes.')
                             elif tab.Zone_camerazoom.currentIndex() == 2:
                                 z.cammode = 1
                                 z.camzoom = 1
@@ -8771,61 +8817,61 @@ class ReggieWindow(QtGui.QMainWindow):
                             if tab.Zone_camerazoom.currentIndex() == 0:
                                 z.cammode = 9
                                 z.camzoom = 8
-                                QtGui.QMessageBox.warning(None, 'Error', 'No tracking mode is consistently glitchy and does not support bias.')
+                                QtWidgets.QMessageBox.warning(None, 'Error', 'No tracking mode is consistently glitchy and does not support bias.')
                             elif tab.Zone_camerazoom.currentIndex() == 1:
                                 z.cammode = 9
                                 z.camzoom = 20
-                                QtGui.QMessageBox.warning(None, 'Error', 'No tracking mode is consistently glitchy and does not support bias.')
+                                QtWidgets.QMessageBox.warning(None, 'Error', 'No tracking mode is consistently glitchy and does not support bias.')
                             elif tab.Zone_camerazoom.currentIndex() == 2:
                                 z.cammode = 9
                                 z.camzoom = 13
-                                QtGui.QMessageBox.warning(None, 'Error', 'No tracking mode is consistently glitchy and does not support bias.')
+                                QtWidgets.QMessageBox.warning(None, 'Error', 'No tracking mode is consistently glitchy and does not support bias.')
                             elif tab.Zone_camerazoom.currentIndex() == 3:
                                 z.cammode = 9
                                 z.camzoom = 12
-                                QtGui.QMessageBox.warning(None, 'Error', 'No tracking mode is consistently glitchy and does not support bias.')
+                                QtWidgets.QMessageBox.warning(None, 'Error', 'No tracking mode is consistently glitchy and does not support bias.')
                             elif tab.Zone_camerazoom.currentIndex() == 4:
                                 z.cammode = 9
                                 z.camzoom = 14
-                                QtGui.QMessageBox.warning(None, 'Error', 'No tracking mode is consistently glitchy and does not support bias.')
+                                QtWidgets.QMessageBox.warning(None, 'Error', 'No tracking mode is consistently glitchy and does not support bias.')
                             elif tab.Zone_camerazoom.currentIndex() == 5:
                                 z.cammode = 9
                                 z.camzoom = 15
-                                QtGui.QMessageBox.warning(None, 'Error', 'No tracking mode is consistently glitchy and does not support bias.')
+                                QtWidgets.QMessageBox.warning(None, 'Error', 'No tracking mode is consistently glitchy and does not support bias.')
                             elif tab.Zone_camerazoom.currentIndex() == 6:
                                 z.cammode = 9
                                 z.camzoom = 16
-                                QtGui.QMessageBox.warning(None, 'Error', 'No tracking mode is consistently glitchy and does not support bias.')
+                                QtWidgets.QMessageBox.warning(None, 'Error', 'No tracking mode is consistently glitchy and does not support bias.')
                         else:
                             #No Xtrack, No YTrack, No Bias (glitchy)
                             if tab.Zone_camerazoom.currentIndex() == 0:
                                 z.cammode = 9
                                 z.camzoom = 8
-                                QtGui.QMessageBox.warning(None, 'Error', 'No tracking mode is consistently glitchy.')
+                                QtWidgets.QMessageBox.warning(None, 'Error', 'No tracking mode is consistently glitchy.')
                             elif tab.Zone_camerazoom.currentIndex() == 1:
                                 z.cammode = 9
                                 z.camzoom = 19
-                                QtGui.QMessageBox.warning(None, 'Error', 'No tracking mode is consistently glitchy.')
+                                QtWidgets.QMessageBox.warning(None, 'Error', 'No tracking mode is consistently glitchy.')
                             elif tab.Zone_camerazoom.currentIndex() == 2:
                                 z.cammode = 9
                                 z.camzoom = 13
-                                QtGui.QMessageBox.warning(None, 'Error', 'No tracking mode is consistently glitchy.')
+                                QtWidgets.QMessageBox.warning(None, 'Error', 'No tracking mode is consistently glitchy.')
                             elif tab.Zone_camerazoom.currentIndex() == 3:
                                 z.cammode = 9
                                 z.camzoom = 12
-                                QtGui.QMessageBox.warning(None, 'Error', 'No tracking mode is consistently glitchy.')
+                                QtWidgets.QMessageBox.warning(None, 'Error', 'No tracking mode is consistently glitchy.')
                             elif tab.Zone_camerazoom.currentIndex() == 4:
                                 z.cammode = 9
                                 z.camzoom = 14
-                                QtGui.QMessageBox.warning(None, 'Error', 'No tracking mode is consistently glitchy.')
+                                QtWidgets.QMessageBox.warning(None, 'Error', 'No tracking mode is consistently glitchy.')
                             elif tab.Zone_camerazoom.currentIndex() == 5:
                                 z.cammode = 9
                                 z.camzoom = 15
-                                QtGui.QMessageBox.warning(None, 'Error', 'No tracking mode is consistently glitchy.')
+                                QtWidgets.QMessageBox.warning(None, 'Error', 'No tracking mode is consistently glitchy.')
                             elif tab.Zone_camerazoom.currentIndex() == 6:
                                 z.cammode = 9
                                 z.camzoom = 16
-                                QtGui.QMessageBox.warning(None, 'Error', 'No tracking mode is consistently glitchy.')
+                                QtWidgets.QMessageBox.warning(None, 'Error', 'No tracking mode is consistently glitchy.')
 
 
                 if tab.Zone_vnormal.isChecked():
@@ -8855,7 +8901,7 @@ class ReggieWindow(QtGui.QMainWindow):
     def HandleBG(self):
         """Pops up the Background settings Dialog"""
         dlg = BGDialog()
-        if dlg.exec_() == QtGui.QDialog.Accepted:
+        if dlg.exec_() == QtWidgets.QDialog.Accepted:
             SetDirty()
             i = 0
             for z in Level.zones:
@@ -8868,7 +8914,7 @@ class ReggieWindow(QtGui.QMainWindow):
 
                 z.ZoomA = tab.zoomA.currentIndex()
 
-                id = tab.background_nameA.itemData(tab.background_nameA.currentIndex()).toPyObject()
+                id = toPyObject(tab.background_nameA.itemData(tab.background_nameA.currentIndex()))
                 if tab.toscreenA.isChecked():
                     # mode 5
                     z.bg1A = id
@@ -8888,7 +8934,7 @@ class ReggieWindow(QtGui.QMainWindow):
 
                 z.ZoomB = tab.zoomB.currentIndex()
 
-                id = tab.background_nameB.itemData(tab.background_nameB.currentIndex()).toPyObject()
+                id = toPyObject(tab.background_nameB.itemData(tab.background_nameB.currentIndex()))
                 if tab.toscreenB.isChecked():
                     # mode 5
                     z.bg1B = id
@@ -8907,8 +8953,8 @@ class ReggieWindow(QtGui.QMainWindow):
         """Takes a screenshot of the entire level and saves it"""
 
         dlg = ScreenCapChoiceDialog()
-        if dlg.exec_() == QtGui.QDialog.Accepted:
-            fn = QtGui.QFileDialog.getSaveFileName(mainWindow, 'Choose a new filename', '/untitled.png', 'Portable Network Graphics (*.png)')
+        if dlg.exec_() == QtWidgets.QDialog.Accepted:
+            fn = QFileDialog_getSaveFileName(mainWindow, 'Choose a new filename', '/untitled.png', 'Portable Network Graphics (*.png)')
             if fn == '': return
             fn = unicode(fn)
 
@@ -8963,11 +9009,11 @@ def main():
     global app, mainWindow, settings
 
     # create an application
-    app = QtGui.QApplication(sys.argv)
+    app = QtWidgets.QApplication(sys.argv)
 
     # go to the script path
     path = module_path()
-    if path != None:
+    if path is not None:
         os.chdir(module_path())
 
     # check if required files are missing
@@ -8993,40 +9039,40 @@ def main():
     global EnableAlpha, GridEnabled
     global ObjectsNonFrozen, SpritesNonFrozen, EntrancesNonFrozen, LocationsNonFrozen, PathsNonFrozen
 
-    GridEnabled = (settings.value('GridEnabled', 'false').toPyObject() == 'true')
-    ObjectsNonFrozen = (settings.value('FreezeObjects', 'false').toPyObject() == 'false')
-    SpritesNonFrozen = (settings.value('FreezeSprites', 'false').toPyObject() == 'false')
-    EntrancesNonFrozen = (settings.value('FreezeEntrances', 'false').toPyObject() == 'false')
-    PathsNonFrozen = (settings.value('FreezePaths', 'false').toPyObject() == 'false')
-    LocationsNonFrozen = (settings.value('FreezeLocations', 'false').toPyObject() == 'false')
+    GridEnabled = (toPyObject(settings.value('GridEnabled', 'false')) == 'true')
+    ObjectsNonFrozen = (toPyObject(settings.value('FreezeObjects', 'false')) == 'false')
+    SpritesNonFrozen = (toPyObject(settings.value('FreezeSprites', 'false')) == 'false')
+    EntrancesNonFrozen = (toPyObject(settings.value('FreezeEntrances', 'false')) == 'false')
+    PathsNonFrozen = (toPyObject(settings.value('FreezePaths', 'false')) == 'false')
+    LocationsNonFrozen = (toPyObject(settings.value('FreezeLocations', 'false')) == 'false')
 
     if settings.contains('GamePath'):
-        SetGamePath(settings.value('GamePath').toPyObject())
+        SetGamePath(toPyObject(settings.value('GamePath')))
 
     # choose a folder for the game
     # let the user pick a folder without restarting the editor if they fail
     while not isValidGamePath():
-        path = QtGui.QFileDialog.getExistingDirectory(None, 'Choose the game\'s Stage folder')
+        path = QtWidgets.QFileDialog.getExistingDirectory(None, 'Choose the game\'s Stage folder')
         if path == '':
             sys.exit(0)
 
         SetGamePath(path)
         if not isValidGamePath():
-            QtGui.QMessageBox.information(None, 'Error',  'This folder doesn\'t seem to have the required files. In order to use Reggie, you need the Stage folder from the game, including the Texture folder and the level files contained within it.')
+            QtWidgets.QMessageBox.information(None, 'Error',  'This folder doesn\'t seem to have the required files. In order to use Reggie, you need the Stage folder from the game, including the Texture folder and the level files contained within it.')
         else:
             settings.setValue('GamePath', gamePath)
             break
 
     # check to see if we have anything saved
-    autofile = unicode(settings.value('AutoSaveFilePath', 'none').toPyObject())
+    autofile = unicode(toPyObject(settings.value('AutoSaveFilePath', 'none')))
     if autofile != 'none':
         try:
-            autofiledata = unicode(settings.value('AutoSaveFileData', 'x').toPyObject(), "utf-8")
+            autofiledata = unicode(toPyObject(settings.value('AutoSaveFileData', 'x')), "utf-8")
         except UnicodeDecodeError:
             autofiledata = 'x'
         if autofiledata != 'x':
             result = AutoSavedInfoDialog(autofile).exec_()
-            if result == QtGui.QDialog.Accepted:
+            if result == QtWidgets.QDialog.Accepted:
                 global RestoredFromAutoSave, AutoSavePath, AutoSaveData
                 RestoredFromAutoSave = True
                 AutoSavePath = autofile

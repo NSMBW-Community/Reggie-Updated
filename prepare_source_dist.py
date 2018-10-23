@@ -8,8 +8,8 @@ print '>> Destination directory: %s' % dir
 if os.path.isdir(dir): shutil.rmtree(dir)
 os.makedirs(dir)
 
-shutil.copytree('reggiedata', dir + '/reggiedata') 
-shutil.copytree('reggieextras', dir + '/reggieextras') 
+shutil.copytree('reggiedata', dir + '/reggiedata')
+shutil.copytree('reggieextras', dir + '/reggieextras')
 shutil.copy('license.txt', dir)
 shutil.copy('readme.txt', dir)
 shutil.copy('reggie.py', dir)

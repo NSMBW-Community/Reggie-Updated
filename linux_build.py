@@ -36,8 +36,8 @@ setup(
 print '>> Built frozen executable!'
 
 # now that it's built, configure everything
-if os.path.isdir(dir + '/reggiedata'): shutil.rmtree(dir + '/reggiedata') 
-shutil.copytree('reggiedata', dir + '/reggiedata') 
+if os.path.isdir(dir + '/reggiedata'): shutil.rmtree(dir + '/reggiedata')
+shutil.copytree('reggiedata', dir + '/reggiedata')
 shutil.copy('license.txt', dir)
 shutil.copy('readme.txt', dir)
 

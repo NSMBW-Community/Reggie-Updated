@@ -61,10 +61,10 @@ if upxFlag:
         print '>> In order to build Reggie! with UPX, place the upx.exe file into '\
               'this folder.'
 
-if os.path.isdir(dir + '/reggiedata'): shutil.rmtree(dir + '/reggiedata') 
-if os.path.isdir(dir + '/reggieextras'): shutil.rmtree(dir + '/reggieextras') 
-shutil.copytree('reggiedata', dir + '/reggiedata') 
-shutil.copytree('reggieextras', dir + '/reggieextras') 
+if os.path.isdir(dir + '/reggiedata'): shutil.rmtree(dir + '/reggiedata')
+if os.path.isdir(dir + '/reggieextras'): shutil.rmtree(dir + '/reggieextras')
+shutil.copytree('reggiedata', dir + '/reggiedata')
+shutil.copytree('reggieextras', dir + '/reggieextras')
 shutil.copy('license.txt', dir)
 shutil.copy('readme.txt', dir)
 

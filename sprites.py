@@ -18,7 +18,18 @@
 # with this program; if not, write to the Free Software Foundation, Inc.,
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
-from PyQt4 import QtCore, QtGui
+try:
+    from PyQt5 import QtCore, QtGui, QtWidgets
+except ImportError:
+    from PyQt4 import QtCore, QtGui
+    QtWidgets = QtGui
+
+# Some Py2/Py3 compatibility helpers
+_ord = ord
+def ord(x):
+    if isinstance(x, int):
+        return x
+    return _ord(x)
 
 OutlineColour = None
 OutlinePen = None
@@ -39,16 +50,16 @@ def Setup():
     LoadMovableItems()
 
 
-class AuxiliaryItem(QtGui.QGraphicsItem):
+class AuxiliaryItem(QtWidgets.QGraphicsItem):
     """Base class for auxiliary objects that accompany specific sprite types"""
     def __init__(self, parent):
         """Generic constructor for auxiliary items"""
-        QtGui.QGraphicsItem.__init__(self)
-        self.setFlag(QtGui.QGraphicsItem.ItemIsMovable, False)
-        self.setFlag(QtGui.QGraphicsItem.ItemIsSelectable, False)
-        self.setFlag(QtGui.QGraphicsItem.ItemStacksBehindParent, True)
+        QtWidgets.QGraphicsItem.__init__(self)
+        self.setFlag(QtWidgets.QGraphicsItem.ItemIsMovable, False)
+        self.setFlag(QtWidgets.QGraphicsItem.ItemIsSelectable, False)
+        self.setFlag(QtWidgets.QGraphicsItem.ItemStacksBehindParent, True)
         self.setParentItem(parent)
-    
+
     def boundingRect(self):
         """Required for Qt"""
         return self.BoundingRect
@@ -58,28 +69,28 @@ class AuxiliaryTrackObject(AuxiliaryItem):
     """Track shown behind moving platforms to show where they can move"""
     Horizontal = 1
     Vertical = 2
-    
+
     def __init__(self, parent, width, height, direction):
         """Constructor"""
         AuxiliaryItem.__init__(self, parent)
-        
+
         self.BoundingRect = QtCore.QRectF(0,0,width*1.5,height*1.5)
         self.setPos(0,0)
         self.width = width
         self.height = height
         self.direction = direction
-    
+
     def SetSize(self, width, height):
         self.prepareGeometryChange()
         self.BoundingRect = QtCore.QRectF(0,0,width*1.5,height*1.5)
         self.width = width
         self.height = height
-    
+
     def paint(self, painter, option, widget):
         painter.setClipRect(option.exposedRect)
         painter.setRenderHint(QtGui.QPainter.Antialiasing)
         painter.setPen(OutlinePen)
-        
+
         if self.direction == 1:
             lineY = self.height * 0.75
             painter.drawLine(20, lineY, (self.width*1.5) - 20, lineY)
@@ -96,11 +107,11 @@ class AuxiliaryCircleOutline(AuxiliaryItem):
     def __init__(self, parent, width):
         """Constructor"""
         AuxiliaryItem.__init__(self, parent)
-        
+
         self.BoundingRect = QtCore.QRectF(0,0,width*1.5,width*1.5)
         self.setPos((8 - (width / 2)) * 1.5, 0)
         self.width = width
-    
+
     def SetSize(self, width):
         self.prepareGeometryChange()
         self.BoundingRect = QtCore.QRectF(0,0,width*1.5,width*1.5)
@@ -118,13 +129,13 @@ class AuxiliaryRotationAreaOutline(AuxiliaryItem):
     def __init__(self, parent, width):
         """Constructor"""
         AuxiliaryItem.__init__(self, parent)
-        
+
         self.BoundingRect = QtCore.QRectF(0,0,width*1.5,width*1.5)
         self.setPos((8 - (width / 2)) * 1.5, (8 - (width / 2)) * 1.5)
         self.width = width
         self.startAngle = 0
         self.spanAngle = 0
-    
+
     def SetAngle(self, startAngle, spanAngle):
         self.startAngle = startAngle * 16
         self.spanAngle = spanAngle * 16
@@ -142,13 +153,13 @@ class AuxiliaryImage(AuxiliaryItem):
         """Constructor"""
         AuxiliaryItem.__init__(self, parent)
         self.BoundingRect = QtCore.QRectF(0,0,width,height)
-    
+
     def SetSize(self, width, height):
         self.prepareGeometryChange()
         self.BoundingRect = QtCore.QRectF(0,0,width,height)
         self.width = width
         self.height = height
-    
+
     def paint(self, painter, option, widget):
         painter.setClipRect(option.exposedRect)
         painter.drawPixmap(0, 0, self.image)
@@ -165,7 +176,7 @@ def InitParagoomba(sprite): # 21
     sprite.customPainter = PaintGenericObject
     sprite.image = ImageCache['Paragoomba']
     return (1,-10,24,26)
-	
+
 def InitMicrogoomba(sprite): # 200
     sprite.customPaint = True
     sprite.customPainter = PaintGenericObject
@@ -177,7 +188,7 @@ def InitGiantgoomba(sprite): # 198
     sprite.customPainter = PaintGenericObject
     sprite.image = ImageCache['Giantgoomba']
     return (-6,-19,32,36)
-	
+
 def InitMegagoomba(sprite): # 199
     sprite.customPaint = True
     sprite.customPainter = PaintGenericObject
@@ -187,14 +198,14 @@ def InitMegagoomba(sprite): # 199
 def InitHorzMovingPlatform(sprite): # 23
     if 'WoodenPlatformL' not in ImageCache:
         LoadPlatformImages()
-    
+
     xsize = ((ord(sprite.spritedata[5]) & 0xF) + 1) << 4
-    
+
     sprite.dynamicSize = True
     sprite.dynSizer = SizeHorzMovingPlatform
     sprite.customPaint = True
     sprite.customPainter = PaintWoodenPlatform
-    
+
     sprite.aux = AuxiliaryTrackObject(sprite, xsize, 16, AuxiliaryTrackObject.Horizontal)
     return (0,0,xsize,16)
 
@@ -203,7 +214,7 @@ def InitBuzzyBeetle(sprite): # 24
     sprite.dynSizer = SizeBuzzyBeetle
     sprite.customPaint = True
     sprite.customPainter = PaintGenericObject
-    
+
     return (0,0,16,16)
 
 def InitSpiny(sprite): # 25
@@ -221,44 +232,44 @@ def InitUpsideDownSpiny(sprite): # 26
 def InitUnusedVertStoneBlock(sprite): # 27
     if 'DSBlockTop' not in ImageCache:
         LoadDSStoneBlocks()
-    
+
     height = (ord(sprite.spritedata[4]) & 3) >> 4
     ysize = 4 << height
-    
+
     sprite.dynamicSize = True
     sprite.dynSizer = SizeUnusedVertStoneBlock
     sprite.customPaint = True
     sprite.customPainter = PaintDSStoneBlock
-    
+
     sprite.aux = AuxiliaryTrackObject(sprite, 32, ysize, AuxiliaryTrackObject.Vertical)
     return (0,0,32,ysize)
 
 def InitUnusedHorzStoneBlock(sprite): # 28
     if 'DSBlockTop' not in ImageCache:
         LoadDSStoneBlocks()
-    
+
     height = (ord(sprite.spritedata[4]) & 3) >> 4
     ysize = 4 << height
-    
+
     sprite.dynamicSize = True
     sprite.dynSizer = SizeUnusedHorzStoneBlock
     sprite.customPaint = True
     sprite.customPainter = PaintDSStoneBlock
-    
+
     sprite.aux = AuxiliaryTrackObject(sprite, 32, ysize, AuxiliaryTrackObject.Horizontal)
     return (0,0,32,ysize)
 
 def InitVertMovingPlatform(sprite): # 31
     if 'WoodenPlatformL' not in ImageCache:
         LoadPlatformImages()
-    
+
     xsize = ((ord(sprite.spritedata[5]) & 0xF) + 1) << 4
-    
+
     sprite.dynamicSize = True
     sprite.dynSizer = SizeVertMovingPlatform
     sprite.customPaint = True
     sprite.customPainter = PaintWoodenPlatform
-    
+
     sprite.aux = AuxiliaryTrackObject(sprite, xsize, 16, AuxiliaryTrackObject.Vertical)
     return (0,0,xsize,16)
 
@@ -271,7 +282,7 @@ def InitStarCoin(sprite): # 32, 155, 389
 def InitQuestionSwitch(sprite): # 40
     if 'QSwitch' not in ImageCache:
         LoadSwitches()
-    
+
     sprite.dynamicSize = True
     sprite.dynSizer = SizeSwitch
     sprite.customPaint = True
@@ -282,7 +293,7 @@ def InitQuestionSwitch(sprite): # 40
 def InitPSwitch(sprite): # 41
     if 'PSwitch' not in ImageCache:
         LoadSwitches()
-    
+
     sprite.dynamicSize = True
     sprite.dynSizer = SizeSwitch
     sprite.customPaint = True
@@ -293,7 +304,7 @@ def InitPSwitch(sprite): # 41
 def InitExcSwitch(sprite): # 42
     if 'ESwitch' not in ImageCache:
         LoadSwitches()
-    
+
     sprite.dynamicSize = True
     sprite.dynSizer = SizeSwitch
     sprite.customPaint = True
@@ -304,7 +315,7 @@ def InitExcSwitch(sprite): # 42
 def InitQuestionSwitchBlock(sprite): # 43
     if 'QSwitch' not in ImageCache:
         LoadSwitches()
-    
+
     sprite.customPaint = True
     sprite.customPainter = PaintGenericObject
     sprite.image = ImageCache['QSwitchBlock']
@@ -313,7 +324,7 @@ def InitQuestionSwitchBlock(sprite): # 43
 def InitPSwitchBlock(sprite): # 44
     if 'PSwitch' not in ImageCache:
         LoadSwitches()
-    
+
     sprite.customPaint = True
     sprite.customPainter = PaintGenericObject
     sprite.image = ImageCache['PSwitchBlock']
@@ -322,7 +333,7 @@ def InitPSwitchBlock(sprite): # 44
 def InitExcSwitchBlock(sprite): # 45
     if 'ESwitch' not in ImageCache:
         LoadSwitches()
-    
+
     sprite.customPaint = True
     sprite.customPainter = PaintGenericObject
     sprite.image = ImageCache['ESwitchBlock']
@@ -331,7 +342,7 @@ def InitExcSwitchBlock(sprite): # 45
 def InitPodoboo(sprite): # 46
     if 'Podoboo' not in ImageCache:
         LoadCastleStuff()
-    
+
     sprite.customPaint = True
     sprite.customPainter = PaintGenericObject
     sprite.image = ImageCache['Podoboo']
@@ -340,7 +351,7 @@ def InitPodoboo(sprite): # 46
 def InitThwomp(sprite): # 47
     if 'Thwomp' not in ImageCache:
         LoadCastleStuff()
-    
+
     sprite.customPaint = True
     sprite.customPainter = PaintGenericObject
     sprite.image = ImageCache['Thwomp']
@@ -349,7 +360,7 @@ def InitThwomp(sprite): # 47
 def InitGiantThwomp(sprite): # 48
     if 'GiantThwomp' not in ImageCache:
         LoadCastleStuff()
-    
+
     sprite.customPaint = True
     sprite.customPainter = PaintGenericObject
     sprite.image = ImageCache['GiantThwomp']
@@ -358,7 +369,7 @@ def InitGiantThwomp(sprite): # 48
 def InitUnused49(sprite): # 49
     if 'Unused49' not in ImageCache:
         LoadUnusedStuff()
-    
+
     sprite.customPaint = True
     sprite.customPainter = PaintGenericObject
     sprite.image = ImageCache['Unused49']
@@ -367,20 +378,20 @@ def InitUnused49(sprite): # 49
 def InitFallingPlatform(sprite): # 50
     if 'WoodenPlatformL' not in ImageCache:
         LoadPlatformImages()
-    
+
     xsize = ((ord(sprite.spritedata[5]) & 0xF) + 1) << 4
-    
+
     sprite.dynamicSize = True
     sprite.dynSizer = SizeFallingPlatform
     sprite.customPaint = True
     sprite.customPainter = PaintWoodenPlatform
-    
+
     return (0,0,xsize,16)
 
 def InitTiltingGirder(sprite): # 51
     if 'TiltingGirder' not in ImageCache:
         LoadPlatformImages()
-    
+
     sprite.customPaint = True
     sprite.customPainter = PaintGenericObject
     sprite.image = ImageCache['TiltingGirder']
@@ -389,7 +400,7 @@ def InitTiltingGirder(sprite): # 51
 def InitLakitu(sprite): # 54
     if 'Lakitu' not in ImageCache:
         LoadDesertStuff()
-    
+
     sprite.customPaint = True
     sprite.customPainter = PaintGenericObject
     sprite.image = ImageCache['Lakitu']
@@ -420,7 +431,7 @@ def InitSpikeTop(sprite): # 60
         ImageCache['SpikeTopUR'] = QtGui.QPixmap.fromImage(SpikeTopUp.mirrored(True, False))
         ImageCache['SpikeTopDL'] = QtGui.QPixmap.fromImage(SpikeTopDown)
         ImageCache['SpikeTopDR'] = QtGui.QPixmap.fromImage(SpikeTopDown.mirrored(True, False))
-    
+
     sprite.dynamicSize = True
     sprite.dynSizer = SizeSpikeTop
     sprite.customPaint = True
@@ -431,11 +442,11 @@ def InitBigBoo(sprite): # 61
     global ImageCache
     if 'BigBoo' not in ImageCache:
         ImageCache['BigBoo'] = QtGui.QPixmap('reggiedata/sprites/bigboo.png')
-    
+
     sprite.aux = AuxiliaryImage(sprite, 243, 248)
     sprite.aux.image = ImageCache['BigBoo']
     sprite.aux.setPos(-48, -48)
-    
+
     sprite.customPaint = True
     sprite.customPainter = PaintNothing
     return (-38,-80,96,96)
@@ -443,7 +454,7 @@ def InitBigBoo(sprite): # 61
 def InitSpikeBall(sprite): # 63
     if 'SpikeBall' not in ImageCache:
         LoadCastleStuff()
-    
+
     sprite.customPaint = True
     sprite.customPainter = PaintGenericObject
     sprite.image = ImageCache['SpikeBall']
@@ -533,7 +544,7 @@ def InitShipKey(sprite): # 77
     global ImageCache
     if 'ShipKey' not in ImageCache:
         ImageCache['ShipKey'] = QtGui.QPixmap('reggiedata/sprites/ship_key.png')
-    
+
     sprite.customPaint = True
     sprite.customPainter = PaintGenericObject
     sprite.image = ImageCache['ShipKey']
@@ -544,7 +555,7 @@ def InitCloudTrampoline(sprite): # 78
     if 'CloudTrBig' not in ImageCache:
         ImageCache['CloudTrBig'] = QtGui.QPixmap('reggiedata/sprites/cloud_trampoline_big.png')
         ImageCache['CloudTrSmall'] = QtGui.QPixmap('reggiedata/sprites/cloud_trampoline_small.png')
-    
+
     sprite.dynamicSize = True
     sprite.dynSizer = SizeCloudTrampoline
     sprite.customPaint = True
@@ -555,7 +566,7 @@ def InitFireBro(sprite): # 80
     global ImageCache
     if 'FireBro' not in ImageCache:
         ImageCache['FireBro'] = QtGui.QPixmap('reggiedata/sprites/firebro.png')
-    
+
     sprite.customPaint = True
     sprite.customPainter = PaintGenericObject
     sprite.image = ImageCache['FireBro']
@@ -577,7 +588,7 @@ def InitOldStoneBlock(sprite): # 81, 82, 83, 84, 85, 86
         ImageCache['SpikeL'] = QtGui.QPixmap('reggiedata/sprites/spike_left.png')
         ImageCache['SpikeR'] = QtGui.QPixmap('reggiedata/sprites/spike_right.png')
         ImageCache['SpikeD'] = QtGui.QPixmap('reggiedata/sprites/spike_down.png')
-    
+
     sprite.dynamicSize = True
     sprite.dynSizer = SizeOldStoneBlock
     sprite.customPaint = True
@@ -590,7 +601,7 @@ def InitBulletBillLauncher(sprite): # 92
     if 'BBLauncherT' not in ImageCache:
         ImageCache['BBLauncherT'] = QtGui.QPixmap('reggiedata/sprites/bullet_launcher_top.png')
         ImageCache['BBLauncherM'] = QtGui.QPixmap('reggiedata/sprites/bullet_launcher_middle.png')
-    
+
     sprite.dynamicSize = True
     sprite.dynSizer = SizeBulletBillLauncher
     sprite.customPaint = True
@@ -601,7 +612,7 @@ def InitBanzaiBillLauncher(sprite): # 93
     global ImageCache
     if 'BanzaiLauncher' not in ImageCache:
         ImageCache['BanzaiLauncher'] = QtGui.QPixmap('reggiedata/sprites/banzai_launcher.png')
-    
+
     sprite.customPaint = True
     sprite.customPainter = PaintGenericObject
     sprite.image = ImageCache['BanzaiLauncher']
@@ -611,7 +622,7 @@ def InitBoomerangBro(sprite): # 94
     global ImageCache
     if 'BoomerangBro' not in ImageCache:
         ImageCache['BoomerangBro'] = QtGui.QPixmap('reggiedata/sprites/boomerangbro.png')
-    
+
     sprite.customPaint = True
     sprite.customPainter = PaintGenericObject
     sprite.image = ImageCache['BoomerangBro']
@@ -621,7 +632,7 @@ def InitHammerBro(sprite): # 95, 308
     global ImageCache
     if 'HammerBro' not in ImageCache:
         ImageCache['HammerBro'] = QtGui.QPixmap('reggiedata/sprites/hammerbro.png')
-    
+
     sprite.customPaint = True
     sprite.customPainter = PaintGenericObject
     sprite.image = ImageCache['HammerBro']
@@ -631,14 +642,14 @@ def InitRotationControllerSwaying(sprite): # 96
     sprite.setZValue(100000)
     sprite.dynamicSize = True
     sprite.dynSizer = SizeRotationControllerSwaying
-    
+
     sprite.aux = AuxiliaryRotationAreaOutline(sprite, 48)
     return (0,0,16,16)
 
 def InitGiantSpikeBall(sprite): # 98
     if 'SpikeBall' not in ImageCache:
         LoadCastleStuff()
-    
+
     sprite.customPaint = True
     sprite.customPainter = PaintGenericObject
     sprite.image = ImageCache['GiantSpikeBall']
@@ -648,7 +659,7 @@ def InitSwooper(sprite): # 100
     global ImageCache
     if 'Swooper' not in ImageCache:
         ImageCache['Swooper'] = QtGui.QPixmap('reggiedata/sprites/swooper.png')
-    
+
     sprite.customPaint = True
     sprite.customPainter = PaintGenericObject
     sprite.image = ImageCache['Swooper']
@@ -658,7 +669,7 @@ def InitBobomb(sprite): # 101
     global ImageCache
     if 'Bobomb' not in ImageCache:
         ImageCache['Bobomb'] = QtGui.QPixmap('reggiedata/sprites/bobomb.png')
-    
+
     sprite.customPaint = True
     sprite.customPainter = PaintGenericObject
     sprite.image = ImageCache['Bobomb']
@@ -668,7 +679,7 @@ def InitBroozer(sprite): # 102
     global ImageCache
     if 'Broozer' not in ImageCache:
         ImageCache['Broozer'] = QtGui.QPixmap('reggiedata/sprites/broozer.png')
-    
+
     sprite.customPaint = True
     sprite.customPainter = PaintGenericObject
     sprite.image = ImageCache['Broozer']
@@ -677,7 +688,7 @@ def InitBroozer(sprite): # 102
 def InitPlatformGenerator(sprite): # 103
     if 'WoodenPlatformL' not in ImageCache:
         LoadPlatformImages()
-    
+
     sprite.dynamicSize = True
     sprite.dynSizer = SizePlatformGenerator
     sprite.customPaint = True
@@ -688,7 +699,7 @@ def InitAmp(sprite): # 104, 108
     global ImageCache
     if 'Amp' not in ImageCache:
         ImageCache['Amp'] = QtGui.QPixmap('reggiedata/sprites/amp.png')
-    
+
     sprite.customPaint = True
     sprite.customPainter = PaintGenericObject
     sprite.image = ImageCache['Amp']
@@ -697,7 +708,7 @@ def InitAmp(sprite): # 104, 108
 def InitPokey(sprite): # 105
     if 'PokeyTop' not in ImageCache:
         LoadDesertStuff()
-    
+
     sprite.dynamicSize = True
     sprite.dynSizer = SizePokey
     sprite.customPaint = True
@@ -707,7 +718,7 @@ def InitPokey(sprite): # 105
 def InitLinePlatform(sprite): # 106
     if 'WoodenPlatformL' not in ImageCache:
         LoadPlatformImages()
-    
+
     sprite.dynamicSize = True
     sprite.dynSizer = SizeLinePlatform
     sprite.customPaint = True
@@ -721,7 +732,7 @@ def InitChainBall(sprite): # 109
         ImageCache['ChainBallR'] = QtGui.QPixmap('reggiedata/sprites/chainball_right.png')
         ImageCache['ChainBallD'] = QtGui.QPixmap('reggiedata/sprites/chainball_down.png')
         ImageCache['ChainBallL'] = QtGui.QPixmap('reggiedata/sprites/chainball_left.png')
-    
+
     sprite.dynamicSize = True
     sprite.dynSizer = SizeChainBall
     sprite.customPaint = True
@@ -732,7 +743,7 @@ def InitBlooper(sprite): # 111
     global ImageCache
     if 'Blooper' not in ImageCache:
         ImageCache['Blooper'] = QtGui.QPixmap('reggiedata/sprites/blooper.png')
-    
+
     sprite.customPaint = True
     sprite.customPainter = PaintGenericObject
     sprite.image = ImageCache['Blooper']
@@ -742,7 +753,7 @@ def InitBlooperBabies(sprite): # 112
     global ImageCache
     if 'BlooperBabies' not in ImageCache:
         ImageCache['BlooperBabies'] = QtGui.QPixmap('reggiedata/sprites/blooper_babies.png')
-    
+
     sprite.customPaint = True
     sprite.customPainter = PaintGenericObject
     sprite.image = ImageCache['BlooperBabies']
@@ -751,13 +762,13 @@ def InitBlooperBabies(sprite): # 112
 def InitFlagpole(sprite): # 113
     if 'Flagpole' not in ImageCache:
         LoadFlagpole()
-    
+
     sprite.dynamicSize = True
     sprite.dynSizer = SizeFlagpole
     sprite.customPaint = True
     sprite.customPainter = PaintGenericObject
     sprite.image = ImageCache['Flagpole']
-    
+
     sprite.aux = AuxiliaryImage(sprite, 144, 149)
     return (-30,-144,46,160)
 
@@ -767,7 +778,7 @@ def InitCheep(sprite): # 115
         ImageCache['CheepRed'] = QtGui.QPixmap('reggiedata/sprites/cheep_red.png')
         ImageCache['CheepGreen'] = QtGui.QPixmap('reggiedata/sprites/cheep_green.png')
         ImageCache['CheepYellow'] = QtGui.QPixmap('reggiedata/sprites/cheep_yellow.png')
-    
+
     sprite.dynamicSize = True
     sprite.dynSizer = SizeCheep
     sprite.customPaint = True
@@ -778,7 +789,7 @@ def InitDryBones(sprite): # 118
     global ImageCache
     if 'DryBones' not in ImageCache:
         ImageCache['DryBones'] = QtGui.QPixmap('reggiedata/sprites/drybones.png')
-    
+
     sprite.customPaint = True
     sprite.customPainter = PaintGenericObject
     sprite.image = ImageCache['DryBones']
@@ -788,7 +799,7 @@ def InitGiantDryBones(sprite): # 119
     global ImageCache
     if 'GiantDryBones' not in ImageCache:
         ImageCache['GiantDryBones'] = QtGui.QPixmap('reggiedata/sprites/giant_drybones.png')
-    
+
     sprite.customPaint = True
     sprite.customPainter = PaintGenericObject
     sprite.image = ImageCache['GiantDryBones']
@@ -798,7 +809,7 @@ def InitSledgeBro(sprite): # 120
     global ImageCache
     if 'SledgeBro' not in ImageCache:
         ImageCache['SledgeBro'] = QtGui.QPixmap('reggiedata/sprites/sledgebro.png')
-    
+
     sprite.customPaint = True
     sprite.customPainter = PaintGenericObject
     sprite.image = ImageCache['SledgeBro']
@@ -807,7 +818,7 @@ def InitSledgeBro(sprite): # 120
 def InitOneWayPlatform(sprite): # 122
     if 'WoodenPlatformL' not in ImageCache:
         LoadPlatformImages()
-    
+
     sprite.dynamicSize = True
     sprite.dynSizer = SizeOneWayPlatform
     sprite.customPaint = True
@@ -818,7 +829,7 @@ def InitFenceKoopaHorz(sprite): # 125
     global ImageCache
     if 'FenceKoopaH' not in ImageCache:
         ImageCache['FenceKoopaH'] = QtGui.QPixmap('reggiedata/sprites/fencekoopa_horz.png')
-    
+
     sprite.customPaint = True
     sprite.customPainter = PaintGenericObject
     sprite.image = ImageCache['FenceKoopaH']
@@ -828,7 +839,7 @@ def InitFenceKoopaVert(sprite): # 126
     global ImageCache
     if 'FenceKoopaV' not in ImageCache:
         ImageCache['FenceKoopaV'] = QtGui.QPixmap('reggiedata/sprites/fencekoopa_vert.png')
-    
+
     sprite.customPaint = True
     sprite.customPainter = PaintGenericObject
     sprite.image = ImageCache['FenceKoopaV']
@@ -838,7 +849,7 @@ def InitFlipFence(sprite): # 127
     global ImageCache
     if 'FlipFence' not in ImageCache:
         ImageCache['FlipFence'] = QtGui.QPixmap('reggiedata/sprites/flipfence.png')
-    
+
     sprite.customPaint = True
     sprite.customPainter = PaintGenericObject
     sprite.image = ImageCache['FlipFence']
@@ -848,7 +859,7 @@ def InitFlipFenceLong(sprite): # 128
     global ImageCache
     if 'FlipFenceLong' not in ImageCache:
         ImageCache['FlipFenceLong'] = QtGui.QPixmap('reggiedata/sprites/flipfence_long.png')
-    
+
     sprite.customPaint = True
     sprite.customPainter = PaintGenericObject
     sprite.image = ImageCache['FlipFenceLong']
@@ -858,7 +869,7 @@ def Init4Spinner(sprite): # 129
     global ImageCache
     if '4Spinner' not in ImageCache:
         ImageCache['4Spinner'] = QtGui.QPixmap('reggiedata/sprites/4spinner.png')
-    
+
     sprite.customPaint = True
     sprite.customPainter = PaintGenericObject
     sprite.image = ImageCache['4Spinner']
@@ -874,11 +885,11 @@ def InitBoo(sprite): # 131
     global ImageCache
     if 'Boo' not in ImageCache:
         ImageCache['Boo'] = QtGui.QPixmap('reggiedata/sprites/boo.png')
-    
+
     sprite.aux = AuxiliaryImage(sprite, 50, 51)
     sprite.aux.image = ImageCache['Boo']
     sprite.aux.setPos(-11, -11)
-    
+
     sprite.customPaint = True
     sprite.customPainter = PaintNothing
     return (-1,-4,22,22)
@@ -888,11 +899,11 @@ def InitStalagmitePlatform(sprite): # 133
     if 'StalagmitePlatformTop' not in ImageCache:
         ImageCache['StalagmitePlatformTop'] = QtGui.QPixmap('reggiedata/sprites/stalagmite_platform_top.png')
         ImageCache['StalagmitePlatformBottom'] = QtGui.QPixmap('reggiedata/sprites/stalagmite_platform_bottom.png')
-    
+
     sprite.aux = AuxiliaryImage(sprite, 48, 156)
     sprite.aux.image = ImageCache['StalagmitePlatformBottom']
     sprite.aux.setPos(24, 60)
-    
+
     sprite.customPaint = True
     sprite.customPainter = PaintGenericObject
     sprite.image = ImageCache['StalagmitePlatformTop']
@@ -902,7 +913,7 @@ def InitCrow(sprite): # 134
     global ImageCache
     if 'Crow' not in ImageCache:
         ImageCache['Crow'] = QtGui.QPixmap('reggiedata/sprites/crow.png')
-    
+
     sprite.customPaint = True
     sprite.customPainter = PaintGenericObject
     sprite.image = ImageCache['Crow']
@@ -913,11 +924,11 @@ def InitHangingPlatform(sprite): # 135
     if 'HangingPlatformTop' not in ImageCache:
         ImageCache['HangingPlatformTop'] = QtGui.QPixmap('reggiedata/sprites/hanging_platform_top.png')
         ImageCache['HangingPlatformBottom'] = QtGui.QPixmap('reggiedata/sprites/hanging_platform_bottom.png')
-    
+
     sprite.aux = AuxiliaryImage(sprite, 11, 378)
     sprite.aux.image = ImageCache['HangingPlatformTop']
     sprite.aux.setPos(138,-378)
-    
+
     sprite.customPaint = True
     sprite.customPainter = PaintGenericObject
     sprite.image = ImageCache['HangingPlatformBottom']
@@ -931,7 +942,7 @@ def InitSpikedStake(sprite): # 137, 140, 141, 142
             ImageCache['StakeM1%s' % dir] = QtGui.QPixmap('reggiedata/sprites/stake_%s_m_1.png' % dir)
             ImageCache['StakeE0%s' % dir] = QtGui.QPixmap('reggiedata/sprites/stake_%s_e_0.png' % dir)
             ImageCache['StakeE1%s' % dir] = QtGui.QPixmap('reggiedata/sprites/stake_%s_e_1.png' % dir)
-    
+
     sprite.dynamicSize = True
     sprite.dynSizer = SizeSpikedStake
     sprite.customPaint = True
@@ -941,9 +952,9 @@ def InitSpikedStake(sprite): # 137, 140, 141, 142
 def InitArrow(sprite): # 143
     global ImageCache
     if 'Arrow0' not in ImageCache:
-        for i in xrange(8):
+        for i in range(8):
             ImageCache['Arrow%d' % i] = QtGui.QPixmap('reggiedata/sprites/arrow_%d.png' % i)
-    
+
     sprite.dynamicSize = True
     sprite.dynSizer = SizeArrow
     sprite.customPaint = True
@@ -960,7 +971,7 @@ def InitChainChomp(sprite): # 146
     global ImageCache
     if 'ChainChomp' not in ImageCache:
         ImageCache['ChainChomp'] = QtGui.QPixmap('reggiedata/sprites/chain_chomp.png')
-    
+
     sprite.customPaint = True
     sprite.customPainter = PaintGenericObject
     sprite.image = ImageCache['ChainChomp']
@@ -998,7 +1009,7 @@ def InitFireSnake(sprite): # 158
     global ImageCache
     if 'FireSnake' not in ImageCache:
         LoadFireSnake()
-    
+
     sprite.dynamicSize = True
     sprite.dynSizer = SizeFireSnake
     sprite.customPaint = True
@@ -1013,7 +1024,7 @@ def InitScrewMushroom(sprite): # 172, 382
         ImageCache['ScrewShroomT'] = QtGui.QPixmap('reggiedata/sprites/screw_shroom_top.png')
         ImageCache['ScrewShroomM'] = QtGui.QPixmap('reggiedata/sprites/screw_shroom_middle.png')
         ImageCache['ScrewShroomB'] = QtGui.QPixmap('reggiedata/sprites/screw_shroom_bottom.png')
-    
+
     sprite.dynamicSize = True
     sprite.dynSizer = SizeScrewMushroom
     sprite.customPaint = True
@@ -1024,7 +1035,7 @@ def InitGiantFloatingLog(sprite): # 173
     global ImageCache
     if 'GiantFloatingLog' not in ImageCache:
         ImageCache['GiantFloatingLog'] = QtGui.QPixmap('reggiedata/sprites/giant_floating_log.png')
-    
+
     sprite.customPaint = True
     sprite.customPainter = PaintGenericObject
     sprite.image = ImageCache['GiantFloatingLog']
@@ -1039,7 +1050,7 @@ def InitFlyingQBlock(sprite): # 175
     sprite.dynSizer = SizeFlyingQBlock
     sprite.customPaint = True
     sprite.customPainter = PaintGenericObject
-    
+
     return (-12,-16,46,36)
 
 def InitRouletteBlock(sprite): # 176
@@ -1056,7 +1067,7 @@ def InitScalePlatform(sprite): # 178
         ImageCache['ScaleRopeH'] = QtGui.QPixmap('reggiedata/sprites/scale_rope_horz.png')
         ImageCache['ScaleRopeV'] = QtGui.QPixmap('reggiedata/sprites/scale_rope_vert.png')
         ImageCache['ScalePulley'] = QtGui.QPixmap('reggiedata/sprites/scale_pulley.png')
-    
+
     sprite.dynamicSize = True
     sprite.dynSizer = SizeScalePlatform
     sprite.customPaint = True
@@ -1084,7 +1095,7 @@ def InitPlayerBlock(sprite): # 187
 def InitMidwayPoint(sprite): # 188
     if 'MidwayFlag' not in ImageCache:
         LoadFlagpole()
-    
+
     sprite.customPaint = True
     sprite.customPainter = PaintGenericObject
     sprite.image = ImageCache['MidwayFlag']
@@ -1122,18 +1133,18 @@ def InitClam(sprite): # 197
     global ImageCache
     if 'Clam0' not in ImageCache:
         LoadClams()
-    
+
     sprite.dynamicSize = True
     sprite.dynSizer = SizeClam
     sprite.customPaint = True
     sprite.customPainter = PaintGenericObject
     return (-28,-50,74,70)
-	
+
 def InitIcicle(sprite): # 201
     global ImageCache
     if 'IcicleSmall' not in ImageCache:
         LoadIceStuff()
-    
+
     sprite.dynamicSize = True
     sprite.dynSizer = SizeIcicle
     sprite.customPaint = True
@@ -1143,7 +1154,7 @@ def InitIcicle(sprite): # 201
 def InitMGCannon(sprite): # 202
     if 'MGCannon' not in ImageCache:
         LoadMinigameStuff()
-    
+
     sprite.customPaint = True
     sprite.customPainter = PaintGenericObject
     sprite.image = ImageCache['MGCannon']
@@ -1152,7 +1163,7 @@ def InitMGCannon(sprite): # 202
 def InitMGChest(sprite): # 203
     if 'MGChest' not in ImageCache:
         LoadMinigameStuff()
-    
+
     sprite.customPaint = True
     sprite.customPainter = PaintGenericObject
     sprite.image = ImageCache['MGChest']
@@ -1162,10 +1173,10 @@ RollingHillSizes = [2*16, 18*16, 32*16, 50*16, 64*16, 10*16, 14*16, 20*16, 0, 0,
 def InitRollingHill(sprite): # 212
     size = (ord(sprite.spritedata[3]) >> 4) & 0xF
     realSize = RollingHillSizes[size]
-    
+
     sprite.dynamicSize = True
     sprite.dynSizer = SizeRollingHill
-    
+
     sprite.aux = AuxiliaryCircleOutline(sprite, realSize)
     return (0,0,16,16)
 
@@ -1174,7 +1185,7 @@ def InitSpringBlock(sprite): # 223
     sprite.dynSizer = SizeSpringBlock
     sprite.customPaint = True
     sprite.customPainter = PaintGenericObject
-    
+
     return (0,0,16,16)
 
 def InitJumboRay(sprite): # 224
@@ -1183,7 +1194,7 @@ def InitJumboRay(sprite): # 224
         Ray = QtGui.QImage('reggiedata/sprites/jumbo_ray.png')
         ImageCache['JumboRayL'] = QtGui.QPixmap.fromImage(Ray)
         ImageCache['JumboRayR'] = QtGui.QPixmap.fromImage(Ray.mirrored(True, False))
-    
+
     sprite.dynamicSize = True
     sprite.dynSizer = SizeJumboRay
     sprite.customPaint = True
@@ -1208,19 +1219,19 @@ def InitExtendShroom(sprite): # 228
         ImageCache['ExtendShroomS'] = QtGui.QPixmap('reggiedata/sprites/extend_shroom_small.png')
         ImageCache['ExtendShroomC'] = QtGui.QPixmap('reggiedata/sprites/extend_shroom_cont.png')
         ImageCache['ExtendShroomStem'] = QtGui.QPixmap('reggiedata/sprites/extend_shroom_stem.png')
-    
+
     sprite.dynamicSize = True
     sprite.dynSizer = SizeExtendShroom
     sprite.customPaint = True
     sprite.customPainter = PaintExtendShroom
-    
+
     return (0,0,16,16)
 
 def InitBramball(sprite): # 230
     global ImageCache
     if 'Bramball' not in ImageCache:
         ImageCache['Bramball'] = QtGui.QPixmap('reggiedata/sprites/bramball.png')
-    
+
     sprite.customPaint = True
     sprite.customPainter = PaintGenericObject
     sprite.image = ImageCache['Bramball']
@@ -1233,19 +1244,19 @@ def InitWiggleShroom(sprite): # 231
         ImageCache['WiggleShroomM'] = QtGui.QPixmap('reggiedata/sprites/wiggle_shroom_middle.png')
         ImageCache['WiggleShroomR'] = QtGui.QPixmap('reggiedata/sprites/wiggle_shroom_right.png')
         ImageCache['WiggleShroomS'] = QtGui.QPixmap('reggiedata/sprites/wiggle_shroom_stem.png')
-    
+
     sprite.dynamicSize = True
     sprite.dynSizer = SizeWiggleShroom
     sprite.customPaint = True
     sprite.customPainter = PaintWiggleShroom
-    
+
     return (0,0,16,16)
 
 def InitMechaKoopa(sprite): # 232
     global ImageCache
     if 'Mechakoopa' not in ImageCache:
         ImageCache['Mechakoopa'] = QtGui.QPixmap('reggiedata/sprites/mechakoopa.png')
-    
+
     sprite.customPaint = True
     sprite.customPainter = PaintGenericObject
     sprite.image = ImageCache['Mechakoopa']
@@ -1267,7 +1278,7 @@ def InitFoo(sprite): # 238
     global ImageCache
     if 'Foo' not in ImageCache:
         ImageCache['Foo'] = QtGui.QPixmap('reggiedata/sprites/foo.png')
-    
+
     sprite.customPaint = True
     sprite.customPainter = PaintGenericObject
     sprite.image = ImageCache['Foo']
@@ -1277,11 +1288,11 @@ def InitFallingLedgeBar(sprite): # 242
     global ImageCache
     if 'FallingLedgeBar' not in ImageCache:
         ImageCache['FallingLedgeBar'] = QtGui.QPixmap('reggiedata/sprites/falling_ledge_bar.png')
-    
+
     sprite.customPaint = True
     sprite.customPainter = PaintGenericObject
     sprite.image = ImageCache['FallingLedgeBar']
-    
+
     return (0,0,80,16)
 
 def InitSpecialCoin(sprite): # 253, 371, 390
@@ -1301,14 +1312,14 @@ DoorTypes = {
 def InitDoor(sprite): # 182, 259, 276, 277, 278, 452
     sprite.dynamicSize = True
     sprite.dynSizer = SizeDoor
-    
+
     sprite.customPaint = True
     if sprite.type == 182: # switch door
         sprite.customPainter = PaintAlphaObject
         sprite.alpha = 0.5
     else:
         sprite.customPainter = PaintGenericObject
-    
+
     type = DoorTypes[sprite.type]
     sprite.doorType = type[0]
     sprite.doorSize = type[1]
@@ -1318,7 +1329,7 @@ def InitPoltergeistItem(sprite): #262
     global ImageCache
     if 'PoltergeistItem' not in ImageCache:
         LoadPolterItems()
-    
+
     sprite.dynamicSize = True
     sprite.dynSizer = SizePoltergeistItem
     sprite.customPaint = True
@@ -1329,7 +1340,7 @@ def InitWaterPiranha(sprite): # 263
     global ImageCache
     if 'WaterPiranha' not in ImageCache:
         ImageCache['WaterPiranha'] = QtGui.QPixmap('reggiedata/sprites/water_piranha.png')
-    
+
     sprite.customPaint = True
     sprite.customPainter = PaintGenericObject
     sprite.image = ImageCache['WaterPiranha']
@@ -1339,7 +1350,7 @@ def InitWalkingPiranha(sprite): # 264
     global ImageCache
     if 'WalkPiranha' not in ImageCache:
         ImageCache['WalkPiranha'] = QtGui.QPixmap('reggiedata/sprites/walk_piranha.png')
-    
+
     sprite.customPaint = True
     sprite.customPainter = PaintGenericObject
     sprite.image = ImageCache['WalkPiranha']
@@ -1349,7 +1360,7 @@ def InitFallingIcicle(sprite): # 265
     global ImageCache
     if 'IcicleSmall' not in ImageCache:
         LoadIceStuff()
-    
+
     sprite.dynamicSize = True
     sprite.dynSizer = SizeFallingIcicle
     sprite.customPaint = True
@@ -1360,13 +1371,13 @@ def InitRotatingChainLink(sprite): # 266
     global ImageCache
     if 'RotatingChainLink' not in ImageCache:
         ImageCache['RotatingChainLink'] = QtGui.QPixmap('reggiedata/sprites/rotating_chainlink.png')
-    
+
     sprite.customPaint = True
     sprite.customPainter = PaintGenericObject
     sprite.image = ImageCache['RotatingChainLink']
     im = sprite.image
     return (-((2.0/3.0)*(im.width()/2.0-12.0)), -((2.0/3.0)*(im.height()/2.0-12.0)), (2.0/3.0)*im.width(), (2.0/3.0)*im.height())
-    
+
 
 def InitTiltGrate(sprite): # 267
     global ImageCache
@@ -1375,7 +1386,7 @@ def InitTiltGrate(sprite): # 267
         ImageCache['TiltGrateD'] = QtGui.QPixmap('reggiedata/sprites/tilt_grate_down.png')
         ImageCache['TiltGrateL'] = QtGui.QPixmap('reggiedata/sprites/tilt_grate_left.png')
         ImageCache['TiltGrateR'] = QtGui.QPixmap('reggiedata/sprites/tilt_grate_right.png')
-    
+
     sprite.dynamicSize = True
     sprite.dynSizer = SizeTiltGrate
     sprite.customPaint = True
@@ -1386,7 +1397,7 @@ def InitParabomb(sprite): # 269
     global ImageCache
     if 'Parabomb' not in ImageCache:
         ImageCache['Parabomb'] = QtGui.QPixmap('reggiedata/sprites/parabomb.png')
-    
+
     sprite.customPaint = True
     sprite.customPainter = PaintGenericObject
     sprite.image = ImageCache['Parabomb']
@@ -1396,19 +1407,19 @@ def InitLittleMouser(sprite): # 271
     global ImageCache
     if 'LittleMouser0' not in ImageCache:
         LoadMice()
-		
+
     sprite.dynamicSize = True
     sprite.dynSizer = SizeLittleMouser
     sprite.customPaint = True
     sprite.customPainter = PaintGenericObject
-    
+
     return (-6,-2,30,18)
 
 def InitIceBro(sprite): # 272
     global ImageCache
     if 'IceBro' not in ImageCache:
         ImageCache['IceBro'] = QtGui.QPixmap('reggiedata/sprites/icebro.png')
-    
+
     sprite.customPaint = True
     sprite.customPainter = PaintGenericObject
     sprite.image = ImageCache['IceBro']
@@ -1425,13 +1436,13 @@ def InitCastleGear(sprite): #274
     isBig = (ord(sprite.spritedata[4]) & 0xF) == 1
     sprite.image = ImageCache['CastleGearL'] if isBig else ImageCache['CastleGearS']
     return (-(((sprite.image.width()/2.0)-12)*(2.0/3.0)), -(((sprite.image.height()/2.0)-12)*(2.0/3.0)), sprite.image.width()*(2.0/3.0), sprite.image.height()*(2.0/3.0))
-    
-    
+
+
 def InitGiantIceBlock(sprite): # 280
     global ImageCache
     if 'IcicleSmall' not in ImageCache:
         LoadIceStuff()
-    
+
     sprite.dynamicSize = True
     sprite.dynSizer = SizeGiantIceBlock
     sprite.customPaint = True
@@ -1444,7 +1455,7 @@ def InitWoodCircle(sprite): # 286
         ImageCache['WoodCircle0'] = QtGui.QPixmap('reggiedata/sprites/wood_circle_0.png')
         ImageCache['WoodCircle1'] = QtGui.QPixmap('reggiedata/sprites/wood_circle_1.png')
         ImageCache['WoodCircle2'] = QtGui.QPixmap('reggiedata/sprites/wood_circle_2.png')
-    
+
     sprite.dynamicSize = True
     sprite.dynSizer = SizeWoodCircle
     sprite.customPaint = True
@@ -1468,7 +1479,7 @@ def InitBox(sprite): # 289
         ImageCache['BoxMetalWide'] = QtGui.QPixmap('reggiedata/sprites/box_metal_wide.png')
         ImageCache['BoxMetalTall'] = QtGui.QPixmap('reggiedata/sprites/box_metal_tall.png')
         ImageCache['BoxMetalBig'] = QtGui.QPixmap('reggiedata/sprites/box_metal_big.png')
-    
+
     sprite.dynamicSize = True
     sprite.dynSizer = SizeBox
     sprite.customPaint = True
@@ -1482,7 +1493,7 @@ def InitParabeetle(sprite): # 291
         ImageCache['Parabeetle1'] = QtGui.QPixmap('reggiedata/sprites/parabeetle_left.png')
         ImageCache['Parabeetle2'] = QtGui.QPixmap('reggiedata/sprites/parabeetle_moreright.png')
         ImageCache['Parabeetle3'] = QtGui.QPixmap('reggiedata/sprites/parabeetle_atyou.png')
-    
+
     sprite.dynamicSize = True
     sprite.dynSizer = SizeParabeetle
     sprite.customPaint = True
@@ -1496,7 +1507,7 @@ def InitHeavyParabeetle(sprite): # 292
         ImageCache['HeavyParabeetle1'] = QtGui.QPixmap('reggiedata/sprites/heavy_parabeetle_left.png')
         ImageCache['HeavyParabeetle2'] = QtGui.QPixmap('reggiedata/sprites/heavy_parabeetle_moreright.png')
         ImageCache['HeavyParabeetle3'] = QtGui.QPixmap('reggiedata/sprites/heavy_parabeetle_atyou.png')
-    
+
     sprite.dynamicSize = True
     sprite.dynSizer = SizeHeavyParabeetle
     sprite.customPaint = True
@@ -1507,7 +1518,7 @@ def InitIceCube(sprite): # 294
     global ImageCache
     if 'IceCube' not in ImageCache:
         ImageCache['IceCube'] = QtGui.QPixmap('reggiedata/sprites/ice_cube.png')
-    
+
     sprite.customPaint = True
     sprite.customPainter = PaintGenericObject
     sprite.image = ImageCache['IceCube']
@@ -1519,7 +1530,7 @@ def InitMegaBuzzy(sprite): # 296
         ImageCache['MegaBuzzyL'] = QtGui.QPixmap('reggiedata/sprites/megabuzzy_left.png')
         ImageCache['MegaBuzzyF'] = QtGui.QPixmap('reggiedata/sprites/megabuzzy_front.png')
         ImageCache['MegaBuzzyR'] = QtGui.QPixmap('reggiedata/sprites/megabuzzy_right.png')
-    
+
     sprite.customPaint = True
     sprite.customPainter = PaintGenericObject
     sprite.dynamicSize = True
@@ -1531,7 +1542,7 @@ def InitRotCannon(sprite): # 300
     if 'RotCannon' not in ImageCache:
         ImageCache['RotCannon'] = QtGui.QPixmap('reggiedata/sprites/rot_cannon.png')
         ImageCache['RotCannonU'] = QtGui.QPixmap('reggiedata/sprites/rot_cannon_u.png')
-    
+
     sprite.dynamicSize = True
     sprite.dynSizer = SizeRotCannon
     sprite.customPaint = True
@@ -1543,7 +1554,7 @@ def InitRotCannonPipe(sprite): # 301
     if 'RotCannonPipe' not in ImageCache:
         ImageCache['RotCannonPipe'] = QtGui.QPixmap('reggiedata/sprites/rot_cannon_pipe.png')
         ImageCache['RotCannonPipeU'] = QtGui.QPixmap('reggiedata/sprites/rot_cannon_pipe_u.png')
-    
+
     sprite.dynamicSize = True
     sprite.dynSizer = SizeRotCannonPipe
     sprite.customPaint = True
@@ -1555,7 +1566,7 @@ def InitMontyMole(sprite): # 303
     if 'Mole' not in ImageCache:
         ImageCache['Mole'] = QtGui.QPixmap('reggiedata/sprites/monty_mole.png')
         ImageCache['MoleCave'] = QtGui.QPixmap('reggiedata/sprites/monty_mole_hole.png')
-    
+
     sprite.dynamicSize = True
     sprite.dynSizer = SizeMontyMole
     sprite.customPaint = True
@@ -1565,9 +1576,9 @@ def InitMontyMole(sprite): # 303
 def InitArrowSign(sprite): # 310
     global ImageCache
     if 'ArrowSign0' not in ImageCache:
-        for i in xrange(8):
+        for i in range(8):
             ImageCache['ArrowSign%d' % i] = QtGui.QPixmap('reggiedata/sprites/arrow_sign_%d.png' % i)
-    
+
     sprite.dynamicSize = True
     sprite.dynSizer = SizeArrowSign
     sprite.customPaint = True
@@ -1578,7 +1589,7 @@ def InitMegaIcicle(sprite): # 311
     global ImageCache
     if 'MegaIcicle' not in ImageCache:
         ImageCache['MegaIcicle'] = QtGui.QPixmap('reggiedata/sprites/mega_icicle.png')
-    
+
     sprite.customPaint = True
     sprite.customPainter = PaintGenericObject
     sprite.image = ImageCache['MegaIcicle']
@@ -1588,7 +1599,7 @@ def InitBolt(sprite): # 315
     global ImageCache
     if 'Bolt' not in ImageCache:
         ImageCache['Bolt'] = QtGui.QPixmap('reggiedata/sprites/bolt.png')
-    
+
     sprite.customPaint = True
     sprite.customPainter = PaintGenericObject
     sprite.image = ImageCache['Bolt']
@@ -1606,7 +1617,7 @@ def InitBoltBox(sprite): # 316
         ImageCache['BoltBoxBL'] = QtGui.QPixmap('reggiedata/sprites/boltbox_bl.png')
         ImageCache['BoltBoxB'] = QtGui.QPixmap('reggiedata/sprites/boltbox_b.png')
         ImageCache['BoltBoxBR'] = QtGui.QPixmap('reggiedata/sprites/boltbox_br.png')
-    
+
     sprite.dynamicSize = True
     sprite.dynSizer = SizeBoltBox
     sprite.customPaint = True
@@ -1629,7 +1640,7 @@ def InitArrowBlock(sprite): # 321
         ImageCache['ArrowBlock1'] = QtGui.QPixmap('reggiedata/sprites/arrow_block_down.png')
         ImageCache['ArrowBlock2'] = QtGui.QPixmap('reggiedata/sprites/arrow_block_left.png')
         ImageCache['ArrowBlock3'] = QtGui.QPixmap('reggiedata/sprites/arrow_block_right.png')
-    
+
     sprite.dynamicSize = True
     sprite.dynSizer = SizeArrowBlock
     sprite.customPaint = True
@@ -1640,7 +1651,7 @@ def InitGhostHouseStand(sprite): # 325
     global ImageCache
     if 'GhostHouseStand' not in ImageCache:
         ImageCache['GhostHouseStand'] = QtGui.QPixmap('reggiedata/sprites/ghost_house_stand.png')
-    
+
     sprite.customPaint = True
     sprite.customPainter = PaintGenericObject
     sprite.image = ImageCache['GhostHouseStand']
@@ -1650,7 +1661,7 @@ def InitRopeLadder(sprite): # 330
     global ImageCache
     if 'RopeLadder0' not in ImageCache:
         LoadEnvStuff()
-    
+
     sprite.dynamicSize = True
     sprite.dynSizer = SizeRopeLadder
     sprite.customPaint = True
@@ -1669,7 +1680,7 @@ def InitCheepGiant(sprite): # 334
         cheep = QtGui.QImage('reggiedata/sprites/cheep_giant.png')
         ImageCache['CheepGiantL'] = QtGui.QPixmap.fromImage(cheep)
         ImageCache['CheepGiantR'] = QtGui.QPixmap.fromImage(cheep.mirrored(True, False))
-    
+
     sprite.dynamicSize = True
     sprite.dynSizer = SizeCheepGiant
     sprite.customPaint = True
@@ -1688,7 +1699,7 @@ def InitPipe(sprite): # 339, 353, 377, 378, 379, 380, 450
             ImageCache['PipeCenter%d' % i] = QtGui.QPixmap('reggiedata/sprites/pipe_%s_center.png' % colour)
             ImageCache['PipeRight%d' % i] = QtGui.QPixmap('reggiedata/sprites/pipe_%s_right.png' % colour)
             i += 1
-    
+
     sprite.dynamicSize = True
     sprite.dynSizer = SizePipe
     sprite.customPaint = True
@@ -1701,7 +1712,7 @@ def InitBigShell(sprite): # 341
     if 'BigShell' not in ImageCache:
         ImageCache['BigShell'] = QtGui.QPixmap('reggiedata/sprites/bigshell.png')
         ImageCache['BigShellGrass'] = QtGui.QPixmap('reggiedata/sprites/bigshell_grass.png')
-    
+
     sprite.dynamicSize = True
     sprite.dynSizer = SizeBigShell
     sprite.customPaint = True
@@ -1720,7 +1731,7 @@ def InitFuzzy(sprite): # 343
     if 'Fuzzy' not in ImageCache:
         ImageCache['Fuzzy'] = QtGui.QPixmap('reggiedata/sprites/fuzzy.png')
         ImageCache['FuzzyGiant'] = QtGui.QPixmap('reggiedata/sprites/fuzzy_giant.png')
-    
+
     sprite.dynamicSize = True
     sprite.dynSizer = SizeFuzzy
     sprite.customPaint = True
@@ -1731,7 +1742,7 @@ def InitChainHolder(sprite): # 345
     global ImageCache
     if 'ChainHolder' not in ImageCache:
         ImageCache['ChainHolder'] = QtGui.QPixmap('reggiedata/sprites/chain_holder.png')
-    
+
     sprite.customPaint = True
     sprite.customPainter = PaintGenericObject
     sprite.image = ImageCache['ChainHolder']
@@ -1741,7 +1752,7 @@ def InitRockyWrench(sprite): # 352
     global ImageCache
     if 'RockyWrench' not in ImageCache:
         ImageCache['RockyWrench'] = QtGui.QPixmap('reggiedata/sprites/rocky_wrench.png')
-    
+
     sprite.customPaint = True
     sprite.customPainter = PaintGenericObject
     sprite.image = ImageCache['RockyWrench']
@@ -1763,7 +1774,7 @@ def InitBrownBlock(sprite):
         ImageCache['BrownBlockBL'] = QtGui.QPixmap('reggiedata/sprites/brown_block_bl.png')
         ImageCache['BrownBlockBM'] = QtGui.QPixmap('reggiedata/sprites/brown_block_bm.png')
         ImageCache['BrownBlockBR'] = QtGui.QPixmap('reggiedata/sprites/brown_block_br.png')
-    
+
     sprite.dynamicSize = True
     sprite.dynSizer = SizeBrownBlock
     sprite.customPaint = True
@@ -1771,7 +1782,7 @@ def InitBrownBlock(sprite):
     if(sprite.type == 354): return (0,0,16,16)
     sprite.aux = AuxiliaryTrackObject(sprite, 16, 16, AuxiliaryTrackObject.Horizontal)
     return (0,0,16,16)
-    
+
 
 
 
@@ -1786,7 +1797,7 @@ def InitWallLantern(sprite): # 359
     global ImageCache
     if 'WallLantern' not in ImageCache:
         ImageCache['WallLantern'] = QtGui.QPixmap('reggiedata/sprites/wall_lantern.png')
-    
+
     sprite.customPaint = True
     sprite.customPainter = PaintGenericObject
     sprite.image = ImageCache['WallLantern']
@@ -1798,7 +1809,7 @@ def InitColouredBox(sprite): # 362
         for colour in [0,1,2,3]:
             for direction in ['TL','T','TR','L','M','R','BL','B','BR']:
                 ImageCache['CBox%d%s' % (colour,direction)] = QtGui.QPixmap('reggiedata/sprites/cbox_%s_%d.png' % (direction,colour))
-    
+
     sprite.dynamicSize = True
     sprite.dynSizer = SizeColouredBox
     sprite.customPaint = True
@@ -1810,7 +1821,7 @@ def InitCubeKinokoRot(sprite): # 366
     if 'CubeKinokoG' not in ImageCache:
         ImageCache['CubeKinokoG'] = QtGui.QPixmap('reggiedata/sprites/cube_kinoko_g.png')
         ImageCache['CubeKinokoR'] = QtGui.QPixmap('reggiedata/sprites/cube_kinoko_r.png')
-    
+
     sprite.dynamicSize = True
     sprite.dynSizer = SizeCubeKinokoRot
     sprite.customPaint = True
@@ -1821,7 +1832,7 @@ def InitCubeKinokoLine(sprite): # 367
     global ImageCache
     if 'CubeKinokoP' not in ImageCache:
         ImageCache['CubeKinokoP'] = QtGui.QPixmap('reggiedata/sprites/cube_kinoko_p.png')
-    
+
     sprite.customPaint = True
     sprite.customPainter = PaintGenericObject
     sprite.image = ImageCache['CubeKinokoP']
@@ -1833,7 +1844,7 @@ def InitSlidingPenguin(sprite): # 369
         penguin = QtGui.QImage('reggiedata/sprites/sliding_penguin.png')
         ImageCache['PenguinL'] = QtGui.QPixmap.fromImage(penguin)
         ImageCache['PenguinR'] = QtGui.QPixmap.fromImage(penguin.mirrored(True, False))
-    
+
     sprite.dynamicSize = True
     sprite.dynSizer = SizeSlidingPenguin
     sprite.customPaint = True
@@ -1844,7 +1855,7 @@ def InitCloudBlock(sprite): # 370
     global ImageCache
     if 'CloudBlock' not in ImageCache:
         ImageCache['CloudBlock'] = QtGui.QPixmap('reggiedata/sprites/cloud_block.png')
-    
+
     sprite.customPaint = True
     sprite.customPainter = PaintGenericObject
     sprite.image = ImageCache['CloudBlock']
@@ -1864,10 +1875,10 @@ def InitMovingChainLink(sprite): #376
 def InitIceBlock(sprite): # 385
     global ImageCache
     if 'IceBlock00' not in ImageCache:
-        for i in xrange(4):
-            for j in xrange(4):
+        for i in range(4):
+            for j in range(4):
                 ImageCache['IceBlock%d%d' % (i,j)] = QtGui.QPixmap('reggiedata/sprites/iceblock%d%d.png' % (i,j))
-    
+
     sprite.dynamicSize = True
     sprite.dynSizer = SizeIceBlock
     sprite.customPaint = True
@@ -1898,7 +1909,7 @@ def InitGlowBlock(sprite): # 391
     sprite.aux = AuxiliaryImage(sprite, 48, 48)
     sprite.aux.image = ImageCache['GlowBlock']
     sprite.aux.setPos(-12, -12)
-    
+
     sprite.customPaint = True
     sprite.customPainter = PaintNothing
     return (0,0,16,16)
@@ -1913,7 +1924,7 @@ def InitLemmyBall(sprite): # 394
     global ImageCache
     if 'LemmyBall' not in ImageCache:
         ImageCache['LemmyBall'] = QtGui.QPixmap('reggiedata/sprites/lemmyball.png')
-    
+
     sprite.customPaint = True
     sprite.customPainter = PaintGenericObject
     sprite.image = ImageCache['LemmyBall']
@@ -1936,7 +1947,7 @@ def InitWendyRing(sprite): # 413
     global ImageCache
     if 'WendyRing' not in ImageCache:
         ImageCache['WendyRing'] = QtGui.QPixmap('reggiedata/sprites/wendy_ring.png')
-    
+
     sprite.customPaint = True
     sprite.customPainter = PaintGenericObject
     sprite.image = ImageCache['WendyRing']
@@ -1948,7 +1959,7 @@ def InitGabon(sprite): # 414
         ImageCache['GabonLeft'] = QtGui.QPixmap('reggiedata/sprites/gabon_l.png')
         ImageCache['GabonRight'] = QtGui.QPixmap('reggiedata/sprites/gabon_r.png')
         ImageCache['GabonDown'] = QtGui.QPixmap('reggiedata/sprites/gabon_d.png')
-    
+
     sprite.dynamicSize = True
     sprite.dynSizer = SizeGabon
     sprite.customPaint = True
@@ -1965,7 +1976,7 @@ def InitSpinjumpCoin(sprite): # 417
     global ImageCache
     if 'SpinjumpCoin' not in ImageCache:
         ImageCache['SpinjumpCoin'] = QtGui.QPixmap('reggiedata/sprites/spinjump_coin.png')
-    
+
     sprite.customPaint = True
     sprite.customPainter = PaintGenericObject
     sprite.image = ImageCache['SpinjumpCoin']
@@ -1974,9 +1985,9 @@ def InitSpinjumpCoin(sprite): # 417
 def InitPalmTree(sprite): # 424
     global ImageCache
     if 'PalmTree0' not in ImageCache:
-        for i in xrange(8):
+        for i in range(8):
             ImageCache['PalmTree%d' % i] = QtGui.QPixmap('reggiedata/sprites/palmtree_%d.png' % i)
-    
+
     sprite.dynamicSize = True
     sprite.dynSizer = SizePalmTree
     sprite.customPaint = True
@@ -1993,7 +2004,7 @@ def InitToad(sprite): # 432
     global ImageCache
     if 'Toad' not in ImageCache:
         ImageCache['Toad'] = QtGui.QPixmap('reggiedata/sprites/toad.png')
-    
+
     sprite.customPaint = True
     sprite.customPainter = PaintGenericObject
     sprite.image = ImageCache['Toad']
@@ -2005,7 +2016,7 @@ def InitWarpCannon(sprite): # 434
         ImageCache['Warp0'] = QtGui.QPixmap('reggiedata/sprites/warp_w5.png')
         ImageCache['Warp1'] = QtGui.QPixmap('reggiedata/sprites/warp_w6.png')
         ImageCache['Warp2'] = QtGui.QPixmap('reggiedata/sprites/warp_w8.png')
-    
+
     sprite.dynamicSize = True
     sprite.dynSizer = SizeWarpCannon
     sprite.customPaint = True
@@ -2018,19 +2029,19 @@ def InitPurplePole(sprite): # 437
         ImageCache['VertPoleTop'] = QtGui.QPixmap('reggiedata/sprites/purple_pole_top.png')
         ImageCache['VertPole'] = QtGui.QPixmap('reggiedata/sprites/purple_pole_middle.png')
         ImageCache['VertPoleBottom'] = QtGui.QPixmap('reggiedata/sprites/purple_pole_bottom.png')
-    
+
     sprite.dynamicSize = True
     sprite.dynSizer = SizePurplePole
     sprite.customPaint = True
     sprite.customPainter = PaintPurplePole
-    
+
     return (0,0,16,16)
 
 def InitCagePeachFake(sprite): # 439
     global ImageCache
     if 'CagePeachFake' not in ImageCache:
         ImageCache['CagePeachFake'] = QtGui.QPixmap('reggiedata/sprites/cage_peach_fake.png')
-    
+
     sprite.customPaint = True
     sprite.customPainter = PaintGenericObject
     sprite.image = ImageCache['CagePeachFake']
@@ -2041,30 +2052,30 @@ def InitHorizontalRope(sprite): # 440
     if 'HorzRope' not in ImageCache:
         ImageCache['HorzRope'] = QtGui.QPixmap('reggiedata/sprites/horizontal_rope_middle.png')
         ImageCache['HorzRopeEnd'] = QtGui.QPixmap('reggiedata/sprites/horizontal_rope_end.png')
-    
+
     sprite.dynamicSize = True
     sprite.dynSizer = SizeHorizontalRope
     sprite.customPaint = True
     sprite.customPainter = PaintHorizontalRope
-    
+
     return (0,0,16,16)
 
 def InitMushroomPlatform(sprite): # 441
     if 'RedShroomL' not in ImageCache:
         LoadMushrooms()
-    
+
     sprite.dynamicSize = True
     sprite.dynSizer = SizeMushroomPlatform
     sprite.customPaint = True
     sprite.customPainter = PaintMushroomPlatform
-    
+
     return (0,0,32,32)
 
 def InitReplayBlock(sprite): # 443
     global ImageCache
     if 'ReplayBlock' not in ImageCache:
         ImageCache['ReplayBlock'] = QtGui.QPixmap('reggiedata/sprites/replay_block.png')
-    
+
     sprite.customPaint = True
     sprite.customPainter = PaintGenericObject
     sprite.image = ImageCache['ReplayBlock']
@@ -2075,19 +2086,19 @@ def InitSwingingVine(sprite): # 444, 464
     if 'SwingVine' not in ImageCache:
         ImageCache['SwingVine'] = QtGui.QPixmap('reggiedata/sprites/swing_vine.png')
         ImageCache['SwingChain'] = QtGui.QPixmap('reggiedata/sprites/swing_chain.png')
-    
+
     sprite.dynamicSize = True
     sprite.dynSizer = SizeSwingVine
     sprite.customPaint = True
     sprite.customPainter = PaintGenericObject
-    
+
     return (0,0,16,144)
 
 def InitCagePeachReal(sprite): # 445
     global ImageCache
     if 'CagePeachReal' not in ImageCache:
         ImageCache['CagePeachReal'] = QtGui.QPixmap('reggiedata/sprites/cage_peach_real.png')
-    
+
     sprite.customPaint = True
     sprite.customPainter = PaintGenericObject
     sprite.image = ImageCache['CagePeachReal']
@@ -2097,7 +2108,7 @@ def InitMetalBar(sprite): # 448
     global ImageCache
     if 'MetalBar' not in ImageCache:
         ImageCache['MetalBar'] = QtGui.QPixmap('reggiedata/sprites/metal_bar.png')
-    
+
     sprite.customPaint = True
     sprite.customPainter = PaintGenericObject
     sprite.image = ImageCache['MetalBar']
@@ -2112,9 +2123,9 @@ def InitBowserBossDoor(sprite): # 452
 def InitSeaweed(sprite): # 453
     global ImageCache
     if 'Seaweed0' not in ImageCache:
-        for i in xrange(4):
+        for i in range(4):
             ImageCache['Seaweed%d' % i] = QtGui.QPixmap('reggiedata/sprites/seaweed_%d.png' % i)
-    
+
     sprite.dynamicSize = True
     sprite.dynSizer = SizeSeaweed
     sprite.customPaint = True
@@ -2125,7 +2136,7 @@ def InitHammerPlatform(sprite): # 455
     global ImageCache
     if 'HammerPlatform' not in ImageCache:
         ImageCache['HammerPlatform'] = QtGui.QPixmap('reggiedata/sprites/hammer_platform.png')
-    
+
     sprite.customPaint = True
     sprite.customPainter = PaintGenericObject
     sprite.image = ImageCache['HammerPlatform']
@@ -2138,7 +2149,7 @@ def InitBossBridge(sprite): # 456
         ImageCache['BossBridgeL'] = QtGui.QPixmap('reggiedata/sprites/boss_bridge_left.png')
         ImageCache['BossBridgeM'] = QtGui.QPixmap('reggiedata/sprites/boss_bridge_middle.png')
         ImageCache['BossBridgeR'] = QtGui.QPixmap('reggiedata/sprites/boss_bridge_right.png')
-    
+
     sprite.dynamicSize = True
     sprite.dynSizer = SizeBossBridge
     sprite.customPaint = True
@@ -2149,7 +2160,7 @@ def InitSpinningThinBars(sprite): # 457
     global ImageCache
     if 'SpinningThinBars' not in ImageCache:
         ImageCache['SpinningThinBars'] = QtGui.QPixmap('reggiedata/sprites/spinning_thin_bars.png')
-    
+
     sprite.customPaint = True
     sprite.customPainter = PaintGenericObject
     sprite.image = ImageCache['SpinningThinBars']
@@ -2160,7 +2171,7 @@ def InitLavaIronBlock(sprite): # 466
     global ImageCache
     if 'LavaIronBlock' not in ImageCache:
         ImageCache['LavaIronBlock'] = QtGui.QPixmap('reggiedata/sprites/lava_iron_block.png')
-    
+
     sprite.customPaint = True
     sprite.customPainter = PaintGenericObject
     sprite.image = ImageCache['LavaIronBlock']
@@ -2170,7 +2181,7 @@ def InitMovingGemBlock(sprite): # 467
     global ImageCache
     if 'MovingGemBlock' not in ImageCache:
         ImageCache['MovingGemBlock'] = QtGui.QPixmap('reggiedata/sprites/moving_gem_block.png')
-    
+
     sprite.customPaint = True
     sprite.customPainter = PaintGenericObject
     sprite.image = ImageCache['MovingGemBlock']
@@ -2182,19 +2193,19 @@ def InitBoltPlatform(sprite): # 469
         ImageCache['BoltPlatformL'] = QtGui.QPixmap('reggiedata/sprites/bolt_platform_left.png')
         ImageCache['BoltPlatformM'] = QtGui.QPixmap('reggiedata/sprites/bolt_platform_middle.png')
         ImageCache['BoltPlatformR'] = QtGui.QPixmap('reggiedata/sprites/bolt_platform_right.png')
-    
+
     sprite.dynamicSize = True
     sprite.dynSizer = SizeBoltPlatform
     sprite.customPaint = True
     sprite.customPainter = PaintBoltPlatform
-    
+
     return (0,-2.5,16,18)
 
 def InitBoltPlatformWire(sprite): # 470
     global ImageCache
     if 'BoltPlatformWire' not in ImageCache:
         ImageCache['BoltPlatformWire'] = QtGui.QPixmap('reggiedata/sprites/bolt_platform_wire.png')
-    
+
     sprite.customPaint = True
     sprite.customPainter = PaintGenericObject
     sprite.image = ImageCache['BoltPlatformWire']
@@ -2205,17 +2216,17 @@ def InitLiftDokan(sprite): # 471
     if 'LiftDokanT' not in ImageCache:
         ImageCache['LiftDokanT'] = QtGui.QPixmap('reggiedata/sprites/lift_dokan_top.png')
         ImageCache['LiftDokanM'] = QtGui.QPixmap('reggiedata/sprites/lift_dokan_middle.png')
-    
+
     sprite.customPaint = True
     sprite.customPainter = PaintLiftDokan
-    
+
     return (-12,-2,51,386)
 
 
 def InitFlyingWrench(sprite): # 476
     if 'Wrench' not in ImageCache:
         LoadDoomshipStuff()
-    
+
     sprite.customPaint = True
     sprite.customPainter = PaintGenericObject
     sprite.image = ImageCache['Wrench']
@@ -2476,28 +2487,28 @@ Initialisers = {
 def SizeHorzMovingPlatform(sprite): # 23
     # get width and distance
     sprite.xsize = ((ord(sprite.spritedata[5]) & 0xF) + 1) << 4
-    if sprite.xsize == 16: sprite.xsize = 32 
-    
+    if sprite.xsize == 16: sprite.xsize = 32
+
     distance = (ord(sprite.spritedata[4]) & 0xF) << 4
-    
+
     # update the track
     sprite.aux.SetSize(sprite.xsize + distance, 16)
-    
+
     if (ord(sprite.spritedata[3]) & 1) == 0:
         # platform goes right
         sprite.aux.setPos(0, 0)
     else:
         # platform goes left
         sprite.aux.setPos(-distance*1.5, 0)
-    
+
     # set colour
     sprite.colour = (ord(sprite.spritedata[3]) >> 4) & 1
-    
+
     sprite.aux.update()
 
 def SizeBuzzyBeetle(sprite): # 24
     upsidedown = ord(sprite.spritedata[5]) & 1
-    
+
     if upsidedown == 0:
         sprite.image = ImageCache['BuzzyBeetle']
     else:
@@ -2511,17 +2522,17 @@ def SizeUnusedVertStoneBlock(sprite): # 27
     sprite.xsize = (16 + (width << 4))
     sprite.ysize = (16 << ((byte5 & 0x30) >> 4)) - 4
     distance = (byte5 & 0xF) << 4
-    
+
     # update the track
     sprite.aux.SetSize(sprite.xsize, distance + sprite.ysize)
-    
+
     if (ord(sprite.spritedata[3]) & 1) == 0:
         # block goes up
         sprite.aux.setPos(0, -distance*1.5)
     else:
         # block goes down
         sprite.aux.setPos(0, 0)
-    
+
     sprite.aux.update()
 
 def SizeUnusedHorzStoneBlock(sprite): # 28
@@ -2532,44 +2543,44 @@ def SizeUnusedHorzStoneBlock(sprite): # 28
     sprite.xsize = (16 + (width << 4))
     sprite.ysize = (16 << ((byte5 & 0x30) >> 4)) - 5
     distance = (byte5 & 0xF) << 4
-    
+
     # update the track
     sprite.aux.SetSize(distance + sprite.xsize, sprite.ysize)
-    
+
     if (ord(sprite.spritedata[3]) & 1) == 0:
         # block goes right
         sprite.aux.setPos(0, 0)
     else:
         # block goes left
         sprite.aux.setPos(-distance*1.5, 0)
-    
+
     sprite.aux.update()
 
 def SizeVertMovingPlatform(sprite): # 31
     # get width and distance
     sprite.xsize = ((ord(sprite.spritedata[5]) & 0xF) + 1) << 4
     if sprite.xsize == 16: sprite.xsize = 32
-    
+
     distance = (ord(sprite.spritedata[4]) & 0xF) << 4
-    
+
     # update the track
     sprite.aux.SetSize(sprite.xsize, distance + 16)
-    
+
     if (ord(sprite.spritedata[3]) & 1) == 0:
         # platform goes up
         sprite.aux.setPos(0, -distance*1.5)
     else:
         # platform goes down
         sprite.aux.setPos(0, 0)
-    
+
     # set colour
     sprite.colour = (ord(sprite.spritedata[3]) >> 4) & 1
-    
+
     sprite.aux.update()
 
 def SizeSwitch(sprite): # 40,41,42
     upsideDown = ord(sprite.spritedata[5]) & 1
-    
+
     if upsideDown == 0:
         sprite.image = ImageCache[sprite.switchType + 'Switch']
     else:
@@ -2577,55 +2588,55 @@ def SizeSwitch(sprite): # 40,41,42
 
 def SizeGroundPiranha(sprite): # 73
     upsideDown = ord(sprite.spritedata[5]) & 1
-    
+
     if upsideDown == 0:
         sprite.yoffset = 6
         sprite.image = ImageCache['GroundPiranha']
     elif upsideDown == 1:
         sprite.yoffset = 0
         sprite.image = ImageCache['GroundPiranhaU']
-    
+
 
 def SizeBigGroundPiranha(sprite): # 74
     upsideDown = ord(sprite.spritedata[5]) & 1
-    
+
     if upsideDown == 0:
         sprite.yoffset = -32
         sprite.image = ImageCache['BigGroundPiranha']
     elif upsideDown == 1:
         sprite.yoffset = 0
         sprite.image = ImageCache['BigGroundPiranhaU']
-    
+
 
 def SizeGroundFiretrap(sprite): # 75
     upsideDown = ord(sprite.spritedata[5]) & 1
-    
+
     if upsideDown == 0:
         sprite.yoffset = -10
         sprite.image = ImageCache['GroundFiretrap']
     elif upsideDown == 1:
         sprite.yoffset = 0
         sprite.image = ImageCache['GroundFiretrapU']
-    
+
 
 def SizeBigGroundFiretrap(sprite): # 76
     upsideDown = ord(sprite.spritedata[5]) & 1
-    
+
     if upsideDown == 0:
         sprite.yoffset = -68
         sprite.image = ImageCache['BigGroundFiretrap']
     elif upsideDown == 1:
         sprite.yoffset = 0
         sprite.image = ImageCache['BigGroundFiretrapU']
-    
+
 
 def SizeFallingPlatform(sprite): # 50
     # get width
     sprite.xsize = ((ord(sprite.spritedata[5]) & 0xF) + 1) << 4
-    
+
     # override this for the "glitchy" effect caused by length=0
     if sprite.xsize == 16: sprite.xsize = 24
-    
+
     # set colour
     colour = (ord(sprite.spritedata[3]) >> 4)
     if colour == 1:
@@ -2640,14 +2651,14 @@ def SizeKoopaTroopa(sprite): # 57
     props = ord(sprite.spritedata[5])
     shell = (props >> 4) & 1
     colour = props & 1
-    
+
     if shell == 0:
         sprite.xoffset = -7
         sprite.yoffset = -15
         sprite.xsize = 24
         sprite.ysize = 32
         sprite.setPos(int((sprite.objx+sprite.xoffset)*1.5),int((sprite.objy+sprite.yoffset)*1.5))
-        
+
         if colour == 0:
             sprite.image = ImageCache['KoopaG']
         else:
@@ -2658,7 +2669,7 @@ def SizeKoopaTroopa(sprite): # 57
         sprite.xsize = 16
         sprite.ysize = 16
         sprite.setPos(int((sprite.objx+sprite.xoffset)*1.5),int((sprite.objy+sprite.yoffset)*1.5))
-        
+
         if colour == 0:
             sprite.image = ImageCache['KoopaShellG']
         else:
@@ -2667,7 +2678,7 @@ def SizeKoopaTroopa(sprite): # 57
 def SizeKoopaParatroopa(sprite): # 58
     # get properties
     colour = ord(sprite.spritedata[5]) & 1
-    
+
     if colour == 0:
         sprite.image = ImageCache['ParakoopaG']
     else:
@@ -2682,9 +2693,9 @@ def SizeOldStoneBlock(sprite): # 30, 81, 82, 83, 84, 85, 86
         width = 1 if width == 0 else width
     sprite.xsize = width * 16 + 16
     sprite.ysize = height * 16 + 16
-    
+
     type = sprite.type
-    
+
     if type == 81 or type == 83: # left spikes
         sprite.xoffset = -16
         sprite.xsize += 16
@@ -2695,21 +2706,21 @@ def SizeOldStoneBlock(sprite): # 30, 81, 82, 83, 84, 85, 86
         sprite.xsize += 16
     if type == 85 or type == 86: # bottom spikes
         sprite.ysize += 16
-    
-    
-    
-    
+
+
+
+
     # now set up the track
     direction = ord(sprite.spritedata[2]) & 3
     distance = (ord(sprite.spritedata[4]) & 0xF0) >> 4
-    
+
     if direction <= 1: # horizontal
         sprite.aux.direction = 1
         sprite.aux.SetSize(sprite.xsize + (distance * 16), sprite.ysize)
     else: # vertical
         sprite.aux.direction = 2
         sprite.aux.SetSize(sprite.xsize, sprite.ysize + (distance * 16))
-    
+
     if direction == 0 or direction == 3: # right, down
         sprite.aux.setPos(0,0)
     elif direction == 1: # left
@@ -2719,7 +2730,7 @@ def SizeOldStoneBlock(sprite): # 30, 81, 82, 83, 84, 85, 86
 
 def SizeBulletBillLauncher(sprite): # 92
     height = (ord(sprite.spritedata[5]) & 0xF0) >> 4
-    
+
     sprite.ysize = (height + 2) * 16
     sprite.yoffset = (height + 1) * -16
 
@@ -2727,12 +2738,12 @@ def SizeRotationControllerSwaying(sprite): # 96
     # get the swing arc: 4 == 90 degrees (45 left from the origin, 45 right)
     swingArc = ord(sprite.spritedata[2]) >> 4
     realSwingArc = swingArc * 11.25
-    
+
     # angle starts at the right position (3 o'clock)
     # negative = clockwise, positive = anti clockwise
     startAngle = 90 - realSwingArc
     spanAngle = realSwingArc * 2
-    
+
     sprite.aux.SetAngle(startAngle, spanAngle)
     sprite.aux.update()
 
@@ -2740,23 +2751,23 @@ def SizeSpikeTop(sprite): # 60
     value = ord(sprite.spritedata[5])
     vertical = (value & 0x20) >> 5
     horizontal = value & 1
-    
+
     if vertical == 0: # up
         sprite.yoffset = -4
         v = 'U'
     else:
         sprite.yoffset = 0
         v = 'D'
-    
+
     if horizontal == 0: # right
         sprite.image = ImageCache['SpikeTop%sR' % v]
     else:
         sprite.image = ImageCache['SpikeTop%sL' % v]
-    
+
 
 def SizeCloudTrampoline(sprite): # 78
     size = (ord(sprite.spritedata[4]) & 0x10) >> 4
-    
+
     if size == 0:
         sprite.image = ImageCache['CloudTrSmall']
         sprite.xsize = 68
@@ -2769,13 +2780,13 @@ def SizeCloudTrampoline(sprite): # 78
 def SizePlatformGenerator(sprite): # 103
     # get width
     sprite.xsize = (((ord(sprite.spritedata[5]) & 0xF0) >> 4) + 1) << 4
-    
+
     # length=0 becomes length=4
     if sprite.xsize == 16: sprite.xsize = 64
-    
+
     # override this for the "glitchy" effect caused by length=0
     if sprite.xsize == 32: sprite.xsize = 24
-    
+
     sprite.colour = 0
 
 def SizePokey(sprite): # 105
@@ -2787,27 +2798,27 @@ def SizePokey(sprite): # 105
 def SizeLinePlatform(sprite): # 106
     # get width
     sprite.xsize = (ord(sprite.spritedata[5]) & 0xF) << 4
-    
+
     # length=0 becomes length=4
     if sprite.xsize == 0: sprite.xsize = 64
-    
+
     # override this for the "glitchy" effect caused by length=0
     if sprite.xsize == 16: sprite.xsize = 24
-    
+
     colour = (ord(sprite.spritedata[4]) & 0xF0) >> 4
     if colour > 1: colour = 0
     sprite.colour = colour
 
 def SizeChainBall(sprite): # 109
     direction = ord(sprite.spritedata[5]) & 3
-    
+
     if direction % 2 == 0: # horizontal
         sprite.xsize = 96
         sprite.ysize = 38
     else: # vertical
         sprite.xsize = 37
         sprite.ysize = 96
-    
+
     if direction == 0: # right
         sprite.xoffset = 3
         sprite.yoffset = -8.5
@@ -2824,18 +2835,18 @@ def SizeChainBall(sprite): # 109
         sprite.xoffset = -11
         sprite.yoffset = 3.5
         sprite.image = ImageCache['ChainBallD']
-    
+
 
 def SizeFlagpole(sprite): # 113
     # get the info
     exit = (ord(sprite.spritedata[2]) >> 4) & 1
     snow = ord(sprite.spritedata[5]) & 1
-    
+
     if snow == 0:
         sprite.aux.setPos(356,97)
     else:
         sprite.aux.setPos(356,91)
-    
+
     if exit == 0:
         sprite.image = ImageCache['Flagpole']
         if snow == 0:
@@ -2862,9 +2873,9 @@ def SizeOneWayPlatform(sprite): # 122
     width = ord(sprite.spritedata[5]) & 0xF
     if width < 2: width = 2
     sprite.xsize = width * 32 + 32
-    
+
     sprite.xoffset = sprite.xsize * -0.5
-    
+
     colour = (ord(sprite.spritedata[4]) & 0xF0) >> 4
     if colour > 1: colour = 0
     sprite.colour = colour
@@ -2874,7 +2885,7 @@ def SizeArrow(sprite): # 143
     direction = ord(sprite.spritedata[5]) & 7
     image = ImageCache['Arrow%d' % direction]
     sprite.image = image
-    
+
     sprite.xsize = image.width() / 1.5
     sprite.ysize = image.height() / 1.5
     offset = ArrowOffsets[direction]
@@ -2882,7 +2893,7 @@ def SizeArrow(sprite): # 143
 
 def SizeFireSnake(sprite): # 158
     move = ord(sprite.spritedata[5]) & 15
-    
+
     if move == 1:
         sprite.image = ImageCache['FireSnakeWait']
     else:
@@ -2895,7 +2906,7 @@ def SizeScrewMushroom(sprite): # 172, 382
     # I wish I knew what this does
     SomeOffset = ord(sprite.spritedata[3])
     if SomeOffset == 0 or SomeOffset > 8: SomeOffset = 8
-    
+
     sprite.xsize = 122
     sprite.ysize = 198
     sprite.xoffset = 3
@@ -2921,19 +2932,19 @@ def SizeScalePlatform(sprite): # 178
     info2 = ord(sprite.spritedata[5])
     sprite.platformWidth = (info1 & 0xF0) >> 4
     if sprite.platformWidth > 12: sprite.platformWidth = -1
-    
+
     sprite.ropeLengthLeft = info1 & 0xF
     sprite.ropeLengthRight = (info2 & 0xF0) >> 4
     sprite.ropeWidth = info2 & 0xF
-    
+
     ropeWidth = sprite.ropeWidth * 16
     platformWidth = (sprite.platformWidth + 3) * 16
     sprite.xsize = ropeWidth + platformWidth
-    
+
     maxRopeHeight = max(sprite.ropeLengthLeft, sprite.ropeLengthRight)
     sprite.ysize = maxRopeHeight * 16 + 19
     if maxRopeHeight == 0: sprite.ysize += 8
-    
+
     sprite.xoffset = -((sprite.platformWidth + 3) * 16 / 2)
 
 def SizeHuckit(sprite): # 195
@@ -2945,13 +2956,13 @@ def SizeHuckit(sprite): # 195
     else:
         imgDirection = ''
         sprite.xoffset = -14
-    
+
     sprite.image = ImageCache['Huckit%s' % imgDirection]
 
 def SizeClam(sprite): # 197
     upsidedown = ord(sprite.spritedata[4]) & 15
     contents = ord(sprite.spritedata[5]) & 15
-    
+
     if upsidedown == 1 and contents == 4:
         sprite.image = ImageCache['ClamPSwitchU']
     else:
@@ -2959,7 +2970,7 @@ def SizeClam(sprite): # 197
 
 def SizeIcicle(sprite): # 201
     size = ord(sprite.spritedata[5]) & 1
-    
+
     if size == 0:
         sprite.image = ImageCache['IcicleSmallS']
         sprite.ysize = 16
@@ -2979,10 +2990,10 @@ def SizeBlock(sprite): # 207, 208, 209, 221, 255, 256, 402, 403, 422, 423
     # 403 = Line Brick Block
     # 422 = Toad Question Block
     # 423 = Toad Brick Block
-    
+
     type = sprite.type
     contents = ord(sprite.spritedata[5]) & 0xF
-    
+
     # SET TILE TYPE
     if type == 207 or type == 208 or type == 255 or type == 402 or type == 422:
         sprite.tilenum = 49
@@ -2990,48 +3001,48 @@ def SizeBlock(sprite): # 207, 208, 209, 221, 255, 256, 402, 403, 422, 423
         sprite.tilenum = 48
     else:
         sprite.tilenum = 1315
-    
+
     # SET CONTENTS
     # In the blocks.png file:
     # 0 = Empty, 1 = Coin, 2 = Mushroom, 3 = Fire Flower, 4 = Propeller, 5 = Penguin Suit,
     # 6 = Mini Shroom, 7 = Star, 8 = Continuous Star, 9 = Yoshi Egg, 10 = 10 Coins,
     # 11 = 1-up, 12 = Vine, 13 = Spring, 14 = Shroom/Coin, 15 = Ice Flower, 16 = Toad
-    
+
     if type == 422 or type == 423: # Force Toad
         contents = 16
     elif type == 255 or type == 256: # Contents is a different nybble here
         contents = ord(sprite.spritedata[4]) & 0xF
-    
+
     if contents == 2: # 1 and 2 are always fire flowers
         contents = 3
-    
+
     if contents == 12 and (type == 208 or type == 255 or type == 256 or type == 402):
         contents = 2 # 12 is a mushroom on some types
-    
+
     sprite.image = ImageCache['Blocks'][contents]
-    
+
     # SET UP ROTATION
     if type == 255 or type == 256:
         transform = QtGui.QTransform()
         transform.translate(12, 12)
-        
+
         angle = (ord(sprite.spritedata[4]) & 0xF0) >> 4
         leftTilt = ord(sprite.spritedata[3]) & 1
-        
+
         angle *= (45.0 / 16.0)
-        
+
         if leftTilt == 0:
             transform.rotate(angle)
         else:
             transform.rotate(360.0 - angle)
-        
+
         transform.translate(-12, -12)
         sprite.setTransform(transform)
 
 def SizeRollingHill(sprite): # 212
     size = (ord(sprite.spritedata[3]) >> 4) & 0xF
     realSize = RollingHillSizes[size]
-    
+
     sprite.aux.SetSize(realSize)
     sprite.aux.update()
 
@@ -3044,7 +3055,7 @@ def SizeSpringBlock(sprite): # 223
 
 def SizeJumboRay(sprite): # 224
     flyleft = ord(sprite.spritedata[4]) & 15
-    
+
     if flyleft == 1:
         sprite.image = ImageCache['JumboRayL']
     else:
@@ -3055,13 +3066,13 @@ def SizeJumboRay(sprite): # 224
         sprite.image = ImageCache['JumboRayR']
 
 def SizePipeCannon(sprite): # 227
-    fireDirection = ord(sprite.spritedata[5]) & 15    
+    fireDirection = ord(sprite.spritedata[5]) & 15
 
     if fireDirection == 1 or fireDirection == 3 or fireDirection == 6:
         imgDirection = 'Flipped'
     else:
         imgDirection = ''
-    
+
     if fireDirection == 0 or fireDirection == 1:
         imgNumber = 0
     elif fireDirection == 2 or fireDirection == 3:
@@ -3112,11 +3123,11 @@ def SizePipeCannon(sprite): # 227
 
 def SizeExtendShroom(sprite): # 228
     props = ord(sprite.spritedata[5])
-    
+
     width = ord(sprite.spritedata[4]) & 1
     start = (props & 0x10) >> 4
     stemlength = props & 0xF
-    
+
     if start == 0: # contracted
         sprite.image = ImageCache['ExtendShroomC']
         xsize = 32
@@ -3127,33 +3138,33 @@ def SizeExtendShroom(sprite): # 228
         else: # small
             sprite.image = ImageCache['ExtendShroomS']
             xsize = 96
-    
+
     sprite.xoffset = 8 - (xsize / 2)
     sprite.xsize = xsize
     sprite.ysize = stemlength * 16 + 48
-    
+
     sprite.setZValue(24999)
 
 def SizeWiggleShroom(sprite): # 231
     width = (ord(sprite.spritedata[4]) & 0xF0) >> 4
     stemlength = ord(sprite.spritedata[3]) & 3
-    
+
     sprite.xoffset = width * -8 - 20
     sprite.xsize = width * 16 + 56
     sprite.ysize = stemlength * 16 + 48 + 16
-    
+
     sprite.setZValue(24999)
 
 def SizeTiltGrate(sprite): # 256
     direction = ord(sprite.spritedata[5]) & 3
-    
+
     if direction < 2:
         sprite.xsize = 69
         sprite.ysize = 166
     else:
         sprite.xsize = 166
         sprite.ysize = 69
-    
+
     if direction == 0:
         sprite.xoffset = -36
         sprite.yoffset = -115
@@ -3170,7 +3181,7 @@ def SizeTiltGrate(sprite): # 256
         sprite.xoffset = -20
         sprite.yoffset = 0
         sprite.image = ImageCache['TiltGrateR']
-    
+
 
 def SizeDoor(sprite): # 182, 259, 276, 277, 278, 452
     rotstatus = ord(sprite.spritedata[4])
@@ -3178,7 +3189,7 @@ def SizeDoor(sprite): # 182, 259, 276, 277, 278, 452
         direction = 0
     else:
         direction = (rotstatus & 0x30) >> 4
-    
+
     doorType = sprite.doorType
     doorSize = sprite.doorSize
     if direction == 0:
@@ -3208,7 +3219,7 @@ def SizeDoor(sprite): # 182, 259, 276, 277, 278, 452
 
 def SizePoltergeistItem(sprite): # 262
     style = ord(sprite.spritedata[5]) & 15
-    
+
     if style == 0:
         sprite.image = ImageCache['PolterQBlock']
     else:
@@ -3216,10 +3227,10 @@ def SizePoltergeistItem(sprite): # 262
         sprite.ysize = 40
         sprite.yoffset = -23
         sprite.image = ImageCache['PolterStand']
-    
+
 def SizeFallingIcicle(sprite): # 265
     size = ord(sprite.spritedata[5]) & 1
-    
+
     if size == 0:
         sprite.image = ImageCache['IcicleSmall']
         sprite.ysize = 19
@@ -3238,7 +3249,7 @@ def SizeLittleMouser(sprite): # 271
         imgDirection = ''
     else:
         imgDirection = 'Flipped'
-    
+
     sprite.image = ImageCache['LittleMouser%s%d' % (imgDirection, mice)]
     if imgDirection == '':
         if one:
@@ -3255,7 +3266,7 @@ def SizeLittleMouser(sprite): # 271
             sprite.xsize = 128
     else:
         if one:
-            sprite.xsize = 30        
+            sprite.xsize = 30
         elif two:
             sprite.xsize = 61
         elif three:
@@ -3269,14 +3280,14 @@ def SizeCastleGear(sprite): #274
     sprite.xoffset = -(((sprite.image.width()/2.0)-12)*(2.0/3.0))
     sprite.yoffset = -(((sprite.image.height()/2.0)-12)*(2.0/3.0))
     sprite.xsize = sprite.image.width()*(2.0/3.0)
-    sprite.ysize = sprite.image.height()*(2.0/3.0)   
-    
-    
-    
+    sprite.ysize = sprite.image.height()*(2.0/3.0)
+
+
+
 def SizeGiantIceBlock(sprite): # 280
     item = ord(sprite.spritedata[5]) & 3
     if item == 3: item = 0
-    
+
     if item == 0:
         sprite.image = ImageCache['BigIceBlockEmpty']
     elif item == 1:
@@ -3287,9 +3298,9 @@ def SizeGiantIceBlock(sprite): # 280
 def SizeWoodCircle(sprite): # 286
     size = ord(sprite.spritedata[5]) & 3
     if size == 3: size = 0
-    
+
     sprite.image = ImageCache['WoodCircle%d' % size]
-    
+
     if size == 0:
         sprite.xoffset = -24
         sprite.yoffset = -24
@@ -3305,16 +3316,16 @@ def SizeWoodCircle(sprite): # 286
         sprite.yoffset = -56
         sprite.xsize = 128
         sprite.ysize = 128
-    
+
 
 BoxSizes = [('Small', 32, 32), ('Wide', 64, 32), ('Tall', 32, 64), ('Big', 64, 64)]
 def SizeBox(sprite): # 289
     style = ord(sprite.spritedata[4]) & 1
     size = (ord(sprite.spritedata[5]) >> 4) & 3
-    
+
     style = 'Wood' if style == 0 else 'Metal'
     size = BoxSizes[size]
-    
+
     sprite.image = ImageCache['Box%s%s' % (style, size[0])]
     sprite.xsize = size[1]
     sprite.ysize = size[2]
@@ -3322,7 +3333,7 @@ def SizeBox(sprite): # 289
 def SizeParabeetle(sprite): # 291
     direction = ord(sprite.spritedata[5]) & 3
     sprite.image = ImageCache['Parabeetle%d' % direction]
-    
+
     if direction == 0: # right
         sprite.xoffset = -12
         sprite.xsize = 39
@@ -3335,12 +3346,12 @@ def SizeParabeetle(sprite): # 291
     elif direction == 3: # at you
         sprite.xoffset = -26
         sprite.xsize = 67
-    
+
 
 def SizeHeavyParabeetle(sprite): # 292
     direction = ord(sprite.spritedata[5]) & 3
     sprite.image = ImageCache['HeavyParabeetle%d' % direction]
-    
+
     if direction == 0: # right
         sprite.xoffset = -38
         sprite.xsize = 93
@@ -3353,11 +3364,11 @@ def SizeHeavyParabeetle(sprite): # 292
     elif direction == 3: # at you
         sprite.xoffset = -52
         sprite.xsize = 110
-    
+
 
 def SizeMegaBuzzy(sprite): # 296
     dir = ord(sprite.spritedata[5]) & 3
-    
+
     if dir == 0 or dir == 3:
         sprite.image = ImageCache['MegaBuzzyR']
     elif dir == 1:
@@ -3367,10 +3378,10 @@ def SizeMegaBuzzy(sprite): # 296
 
 def SizeRotCannon(sprite): # 300
     direction = (ord(sprite.spritedata[5]) & 0x10) >> 4
-    
+
     sprite.xsize = 40
     sprite.ysize = 45
-    
+
     if direction == 0:
         sprite.xoffset = -12
         sprite.yoffset = -29
@@ -3379,14 +3390,14 @@ def SizeRotCannon(sprite): # 300
         sprite.xoffset = -12
         sprite.yoffset = 0
         sprite.image = ImageCache['RotCannonU']
-    
+
 
 def SizeRotCannonPipe(sprite): # 301
     direction = (ord(sprite.spritedata[5]) & 0x10) >> 4
-    
+
     sprite.xsize = 80
     sprite.ysize = 90
-    
+
     if direction == 0:
         sprite.xoffset = -40
         sprite.yoffset = -74
@@ -3395,7 +3406,7 @@ def SizeRotCannonPipe(sprite): # 301
         sprite.xoffset = -40
         sprite.yoffset = 0
         sprite.image = ImageCache['RotCannonPipeU']
-    
+
 
 def SizeMontyMole(sprite): # 303
     mode = ord(sprite.spritedata[5])
@@ -3430,13 +3441,13 @@ def SizeRopeLadder(sprite): # 330
 
 def SizeCheepGiant(sprite): # 334
     mode = ord(sprite.spritedata[5]) & 0xF
-    
+
     if mode != 3:
         sprite.image = ImageCache['CheepGiantL']
     else:
         sprite.image = ImageCache['CheepGiantR']
 
-def SizePipe(sprite): # 339, 353, 377, 378, 379, 380, 450 
+def SizePipe(sprite): # 339, 353, 377, 378, 379, 380, 450
     # Sprite types:
     # 339 = Moving Pipe Facing Up
     # 353 = Moving Pipe Facing Down
@@ -3445,15 +3456,15 @@ def SizePipe(sprite): # 339, 353, 377, 378, 379, 380, 450
     # 379 = Pipe Right
     # 380 = Pipe Left
     # 450 = Enterable Pipe Up
-    
+
     type = sprite.type
     props = ord(sprite.spritedata[5])
-    
+
     if type > 353: # normal pipes
         sprite.moving = False
         sprite.colour = (props & 0x30) >> 4
         length = props & 0xF
-        
+
         size = length * 16 + 32
         if type == 379 or type == 380: # horizontal
             sprite.xsize = size
@@ -3466,7 +3477,7 @@ def SizePipe(sprite): # 339, 353, 377, 378, 379, 380, 450
                 sprite.direction = 'L'
                 sprite.xoffset = 16 - size
             sprite.yoffset = 0
-            
+
         else: # vertical
             sprite.xsize = 32
             sprite.ysize = size
@@ -3478,29 +3489,29 @@ def SizePipe(sprite): # 339, 353, 377, 378, 379, 380, 450
                 sprite.direction = 'U'
                 sprite.yoffset = 16 - size
             sprite.xoffset = 0
-        
+
     else: # moving pipes
         sprite.moving = True
-        
+
         sprite.colour = ord(sprite.spritedata[3])
         length1 = (props & 0xF0) >> 4
         length2 = (props & 0xF)
         size = max(length1, length2) * 16 + 32
-        
+
         sprite.xsize = 32
         sprite.ysize = size
         sprite.orientation = 'V'
-        
+
         if type == 339: # facing up
             sprite.direction = 'U'
             sprite.yoffset = 16 - size
         else:
             sprite.direction = 'D'
             sprite.yoffset = 0
-        
+
         sprite.length1 = length1 * 16 + 32
         sprite.length2 = length2 * 16 + 32
-    
+
 
 def SizeBigShell(sprite): # 341
     style = ord(sprite.spritedata[5]) & 1
@@ -3518,7 +3529,7 @@ def SizeMuncher(sprite): # 342
 
 def SizeFuzzy(sprite): # 343
     giant = ord(sprite.spritedata[4]) & 1
-    
+
     if giant == 0:
         sprite.xoffset = -7
         sprite.yoffset = -7
@@ -3531,7 +3542,7 @@ def SizeFuzzy(sprite): # 343
         sprite.xsize = 52
         sprite.ysize = 52
         sprite.image = ImageCache['FuzzyGiant']
-    
+
 def SizeBrownBlock(sprite): # 356
     size = ord(sprite.spritedata[5])
     height = (size & 0xF0) >> 4
@@ -3540,20 +3551,20 @@ def SizeBrownBlock(sprite): # 356
     width = 1 if width == 0 else width
     sprite.xsize = width * 16 + 16
     sprite.ysize = height * 16 + 16
-    
+
     type = sprite.type
     # now set up the track
     if(type == 354): return
     direction = ord(sprite.spritedata[2]) & 3
     distance = (ord(sprite.spritedata[4]) & 0xF0) >> 4
-    
+
     if direction <= 1: # horizontal
         sprite.aux.direction = 1
         sprite.aux.SetSize(sprite.xsize + (distance * 16), sprite.ysize)
     else: # vertical
         sprite.aux.direction = 2
         sprite.aux.SetSize(sprite.xsize, sprite.ysize + (distance * 16))
-    
+
     if direction == 0 or direction == 3: # right, down
         sprite.aux.setPos(0,0)
     elif direction == 1: # left
@@ -3561,7 +3572,7 @@ def SizeBrownBlock(sprite): # 356
     elif direction == 2: # up
         sprite.aux.setPos(0,-distance * 24)
 
-        
+
 def SizeFruit(sprite): # 357
     style = ord(sprite.spritedata[5]) & 1
     if style == 0:
@@ -3571,17 +3582,17 @@ def SizeFruit(sprite): # 357
 
 def SizeColouredBox(sprite): # 362
     sprite.colour = (ord(sprite.spritedata[3]) >> 4) & 3
-    
+
     size = ord(sprite.spritedata[4])
     width = size >> 4
     height = size & 0xF
-    
+
     sprite.xsize = ((width + 3) * 16)
     sprite.ysize = ((height + 3) * 16)
 
 def SizeCubeKinokoRot(sprite): # 366
     style = (ord(sprite.spritedata[4]) & 1)
-    
+
     if style == 0:
         sprite.image = ImageCache['CubeKinokoR']
         sprite.xsize = 80
@@ -3593,7 +3604,7 @@ def SizeCubeKinokoRot(sprite): # 366
 
 def SizeSlidingPenguin(sprite): # 369
     direction = ord(sprite.spritedata[5]) & 1
-    
+
     if direction == 0:
         sprite.image = ImageCache['PenguinL']
     else:
@@ -3624,7 +3635,7 @@ def SizeIceBlock(sprite): # 385
     size = ord(sprite.spritedata[5])
     height = (size & 0x30) >> 4
     width = size & 3
-    
+
     sprite.image = ImageCache['IceBlock%d%d' % (width,height)]
     sprite.xoffset = width * -4
     sprite.yoffset = height * -8
@@ -3635,9 +3646,9 @@ def SizeBush(sprite): # 387
     props = ord(sprite.spritedata[5])
     style = (props >> 4) & 1
     size = props & 3
-    
+
     sprite.image = ImageCache['Bush%d%d' % (style, size)]
-    
+
     if size == 0:
         sprite.xoffset = -22
         sprite.yoffset = -25
@@ -3658,12 +3669,12 @@ def SizeBush(sprite): # 387
         sprite.yoffset = -80
         sprite.xsize = 108
         sprite.ysize = 86
-    
+
 
 def SizeGabon(sprite): # 414
     throwdir = ord(sprite.spritedata[5]) & 1
     facing = ord(sprite.spritedata[4]) & 1
-    
+
     if throwdir == 0: # down
         sprite.image = ImageCache['GabonDown']
         sprite.xoffset = -5
@@ -3681,7 +3692,7 @@ def SizeGabon(sprite): # 414
             sprite.yoffset = -30
         sprite.xsize = 29
         sprite.ysize = 49
-    
+
 
 def SizePalmTree(sprite): # 424
     size = ord(sprite.spritedata[5]) & 7
@@ -3708,7 +3719,7 @@ def SizeMushroomPlatform(sprite): # 441
     sprite.colour = ord(sprite.spritedata[4]) & 1
     sprite.shroomsize = (ord(sprite.spritedata[5]) >> 4) & 1
     sprite.ysize = 16 * (sprite.shroomsize+1)
-    
+
     # get width
     width = ord(sprite.spritedata[5]) & 0xF
     if sprite.shroomsize == 0:
@@ -3719,12 +3730,12 @@ def SizeMushroomPlatform(sprite): # 441
         sprite.xsize = (width << 5) + 64
         sprite.xoffset = 16 - (sprite.xsize / 2)
         sprite.yoffset = -16
-    
+
 
 def SizeSwingVine(sprite): # 444, 464
     style = ord(sprite.spritedata[5]) & 1
     if sprite.type == 444: style = 0
-    
+
     if style == 0:
         sprite.image = ImageCache['SwingVine']
     else:
@@ -3737,7 +3748,7 @@ def SizeSeaweed(sprite): # 453
     style = ord(sprite.spritedata[5]) & 0xF
     if style > 4: style = 4
     size = SeaweedSizes[style]
-    
+
     image = ImageCache['Seaweed%d' % size]
     sprite.image = image
     sprite.xsize = image.width() / 1.5
@@ -3807,27 +3818,27 @@ def LoadBasicSuite():
     ImageCache['PipeFiretrapDown'] = QtGui.QPixmap('reggiedata/sprites/firetrap_pipe_down.png')
     ImageCache['PipeFiretrapLeft'] = QtGui.QPixmap('reggiedata/sprites/firetrap_pipe_left.png')
     ImageCache['PipeFiretrapRight'] = QtGui.QPixmap('reggiedata/sprites/firetrap_pipe_right.png')
-    
+
     GP = QtGui.QImage('reggiedata/sprites/ground_piranha.png')
     ImageCache['GroundPiranha'] = QtGui.QPixmap.fromImage(GP)
     ImageCache['GroundPiranhaU'] = QtGui.QPixmap.fromImage(GP.mirrored(False, True))
-    
+
     BGP = QtGui.QImage('reggiedata/sprites/big_ground_piranha.png')
     ImageCache['BigGroundPiranha'] = QtGui.QPixmap.fromImage(BGP)
     ImageCache['BigGroundPiranhaU'] = QtGui.QPixmap.fromImage(BGP.mirrored(False, True))
-    
+
     GF = QtGui.QImage('reggiedata/sprites/ground_firetrap.png')
     ImageCache['GroundFiretrap'] = QtGui.QPixmap.fromImage(GF)
     ImageCache['GroundFiretrapU'] = QtGui.QPixmap.fromImage(GF.mirrored(False, True))
-    
+
     BGF = QtGui.QImage('reggiedata/sprites/big_ground_firetrap.png')
     ImageCache['BigGroundFiretrap'] = QtGui.QPixmap.fromImage(BGF)
     ImageCache['BigGroundFiretrapU'] = QtGui.QPixmap.fromImage(BGF.mirrored(False, True))
-    
+
     BlockImage = QtGui.QPixmap('reggiedata/sprites/blocks.png')
     Blocks = []
-    count = BlockImage.width() / 24
-    for i in xrange(count):
+    count = BlockImage.width() // 24
+    for i in range(count):
         Blocks.append(BlockImage.copy(i*24, 0, 24, 24))
     ImageCache['Blocks'] = Blocks
 
@@ -3904,7 +3915,7 @@ def LoadEnvItems():
     ImageCache['Bush11'] = QtGui.QPixmap('reggiedata/sprites/bush_yellow_med.png')
     ImageCache['Bush12'] = QtGui.QPixmap('reggiedata/sprites/bush_yellow_large.png')
     ImageCache['Bush13'] = QtGui.QPixmap('reggiedata/sprites/bush_yellow_xlarge.png')
-    
+
     doors = {'Door': 'door', 'GhostDoor': 'ghost_door', 'TowerDoor': 'tower_door', 'CastleDoor': 'castle_door', 'BowserDoor': 'bowser_door'}
     transform90 = QtGui.QTransform()
     transform180 = QtGui.QTransform()
@@ -3912,8 +3923,8 @@ def LoadEnvItems():
     transform90.rotate(90)
     transform180.rotate(180)
     transform270.rotate(270)
-    
-    for door, filename in doors.iteritems():
+
+    for door, filename in doors.items():
         image = QtGui.QImage('reggiedata/sprites/%s.png' % filename)
         ImageCache[door+'U'] = QtGui.QPixmap.fromImage(image)
         ImageCache[door+'R'] = QtGui.QPixmap.fromImage(image.transformed(transform90))
@@ -3932,11 +3943,11 @@ def LoadMovableItems():
 def LoadClams():
     global ImageCache
     ImageCache['ClamPSwitchU'] = QtGui.QPixmap('reggiedata/sprites/clam_5.png')
-    for i in xrange(8):
+    for i in range(8):
         ImageCache['Clam%d' % i] = QtGui.QPixmap('reggiedata/sprites/clam_%d.png' % i)
 
 def LoadMice():
-    for i in xrange(8):
+    for i in range(8):
         ImageCache['LittleMouser%d' % i] = QtGui.QPixmap('reggiedata/sprites/little_mouser_%d.png' % i)
         originalImg = QtGui.QImage('reggiedata/sprites/little_mouser_%d.png' % i)
         ImageCache['LittleMouserFlipped%d' % i] = QtGui.QPixmap.fromImage(originalImg.mirrored(True, False))
@@ -3963,17 +3974,17 @@ def LoadFlyingBlocks():
         ImageCache['FlyingQBlock%s' % color] = QtGui.QPixmap('reggiedata/sprites/flying_qblock_%s.png' % color)
 
 def LoadPipeCannon():
-    for i in xrange(8):
+    for i in range(8):
         ImageCache['PipeCannon%d' % i] = QtGui.QPixmap('reggiedata/sprites/pipe_cannon_%d.png' % i)
         originalImg = QtGui.QImage('reggiedata/sprites/pipe_cannon_%d.png' % i)
         ImageCache['PipeCannonFlipped%d' % i] = QtGui.QPixmap.fromImage(originalImg.mirrored(True, False))
 
 def LoadMovingChainLink():
-    for shape in xrange(4):
+    for shape in range(4):
         ImageCache['MovingChainLink%d' % shape] = QtGui.QPixmap('reggiedata/sprites/moving_chain_link_%d.png' % shape)
     for arrow in ['ud', 'lr']:
         ImageCache['MovingChainArrow%s' % arrow] = QtGui.QPixmap('reggiedata/sprites/arrow_%s.png' % arrow)
- 
+
 def LoadIceStuff():
     global ImageCache
     ImageCache['IcicleSmall'] = QtGui.QPixmap('reggiedata/sprites/icicle_small.png')
@@ -4044,7 +4055,7 @@ def PaintAlphaObject(sprite, painter):
 
 def PaintBlock(sprite, painter):
     painter.setRenderHint(QtGui.QPainter.Antialiasing)
-    if Tiles[sprite.tilenum] != None:
+    if Tiles[sprite.tilenum] is not None:
         painter.drawPixmap(0, 0, Tiles[sprite.tilenum])
     painter.drawPixmap(0, 0, sprite.image)
 
@@ -4055,10 +4066,10 @@ def PaintWoodenPlatform(sprite, painter):
         colour = 'Stone'
     elif sprite.colour == 2:
         colour = 'Bone'
-    
+
     if sprite.xsize > 32:
         painter.drawTiledPixmap(27, 0, ((sprite.xsize * 1.5) - 51), 24, ImageCache[colour + 'PlatformM'])
-    
+
     if sprite.xsize == 24:
         # replicate glitch effect forced by sprite 50
         painter.drawPixmap(0, 0, ImageCache[colour + 'PlatformR'])
@@ -4077,14 +4088,14 @@ def PaintDSStoneBlock(sprite, painter):
     middle_height = (sprite.ysize * 1.5) - 16
     bottom_y = (sprite.ysize * 1.5) - 8
     right_x = (sprite.xsize - 16) * 1.5
-    
+
     painter.drawPixmap(0, 0, ImageCache['DSBlockTopLeft'])
     painter.drawTiledPixmap(24, 0, middle_width, 8, ImageCache['DSBlockTop'])
     painter.drawPixmap(right_x, 0, ImageCache['DSBlockTopRight'])
-    
+
     painter.drawTiledPixmap(0, 8, 24, middle_height, ImageCache['DSBlockLeft'])
     painter.drawTiledPixmap(right_x, 8, 24, middle_height, ImageCache['DSBlockRight'])
-    
+
     painter.drawPixmap(0, bottom_y, ImageCache['DSBlockBottomLeft'])
     painter.drawTiledPixmap(24, bottom_y, middle_width, 8, ImageCache['DSBlockBottom'])
     painter.drawPixmap(right_x, bottom_y, ImageCache['DSBlockBottomRight'])
@@ -4095,7 +4106,7 @@ def PaintOldStoneBlock(sprite, painter):
     type = sprite.type
     width = sprite.xsize*1.5
     height = sprite.ysize*1.5
-    
+
     if type == 81 or type == 83: # left spikes
         painter.drawTiledPixmap(0, 0, 24, height, ImageCache['SpikeL'])
         blockX = 24
@@ -4110,20 +4121,20 @@ def PaintOldStoneBlock(sprite, painter):
     if type == 85 or type == 86: # bottom spikes
         painter.drawTiledPixmap(0, blockY+height-24, width, 24, ImageCache['SpikeD'])
         height -= 24
-    
+
     column2x = blockX + 24
     column3x = blockX + width - 24
     row2y = blockY + 24
     row3y = blockY + height - 24
-    
+
     painter.drawPixmap(blockX, blockY, ImageCache['OldStoneTL'])
     painter.drawTiledPixmap(column2x, blockY, width-48, 24, ImageCache['OldStoneT'])
     painter.drawPixmap(column3x, blockY, ImageCache['OldStoneTR'])
-    
+
     painter.drawTiledPixmap(blockX, row2y, 24, height-48, ImageCache['OldStoneL'])
     painter.drawTiledPixmap(column2x, row2y, width-48, height-48, ImageCache['OldStoneM'])
     painter.drawTiledPixmap(column3x, row2y, 24, height-48, ImageCache['OldStoneR'])
-    
+
     painter.drawPixmap(blockX, row3y, ImageCache['OldStoneBL'])
     painter.drawTiledPixmap(column2x, row3y, width-48, 24, ImageCache['OldStoneB'])
     painter.drawPixmap(column3x, row3y, ImageCache['OldStoneBR'])
@@ -4140,7 +4151,7 @@ def PaintMushroomPlatform(sprite, painter):
             colour = 'Red'
         else:
             colour = 'Green'
-    
+
     painter.drawPixmap(0, 0, ImageCache[colour + 'ShroomL'])
     painter.drawTiledPixmap(tilesize, 0, (sprite.xsize*1.5) - (tilesize * 2), tilesize, ImageCache[colour + 'ShroomM'])
     painter.drawPixmap((sprite.xsize*1.5) - tilesize, 0, ImageCache[colour + 'ShroomR'])
@@ -4183,31 +4194,31 @@ def PaintColouredBox(sprite, painter):
     prefix = 'CBox%d' % sprite.colour
     xsize = sprite.xsize*1.5
     ysize = sprite.ysize*1.5
-    
+
     painter.drawPixmap(0, 0, ImageCache[prefix+'TL'])
     painter.drawPixmap(xsize-25, 0, ImageCache[prefix+'TR'])
     painter.drawPixmap(0, ysize-25, ImageCache[prefix+'BL'])
     painter.drawPixmap(xsize-25, ysize-25, ImageCache[prefix+'BR'])
-    
+
     painter.drawTiledPixmap(25, 0, xsize-50, 25, ImageCache[prefix+'T'])
     painter.drawTiledPixmap(25, ysize-25, xsize-50, 25, ImageCache[prefix+'B'])
     painter.drawTiledPixmap(0, 25, 25, ysize-50, ImageCache[prefix+'L'])
     painter.drawTiledPixmap(xsize-25, 25, 25, ysize-50, ImageCache[prefix+'R'])
-    
+
     painter.drawTiledPixmap(25, 25, xsize-50, ysize-50, ImageCache[prefix+'M'])
 
 def PaintBoltBox(sprite, painter):
     xsize = sprite.xsize*1.5
     ysize = sprite.ysize*1.5
-    
+
     painter.drawPixmap(0, 0, ImageCache['BoltBoxTL'])
     painter.drawTiledPixmap(24, 0, xsize-48, 24, ImageCache['BoltBoxT'])
     painter.drawPixmap(xsize-24, 0, ImageCache['BoltBoxTR'])
-    
+
     painter.drawTiledPixmap(0, 24, 24, ysize-48, ImageCache['BoltBoxL'])
     painter.drawTiledPixmap(24, 24, xsize-48, ysize-48, ImageCache['BoltBoxM'])
     painter.drawTiledPixmap(xsize-24, 24, 24, ysize-48, ImageCache['BoltBoxR'])
-    
+
     painter.drawPixmap(0, ysize-24, ImageCache['BoltBoxBL'])
     painter.drawTiledPixmap(24, ysize-24, xsize-48, 24, ImageCache['BoltBoxB'])
     painter.drawPixmap(xsize-24, ysize-24, ImageCache['BoltBoxBR'])
@@ -4229,25 +4240,25 @@ def PaintScalePlatform(sprite, painter):
     # this is FUN!! (not)
     ropeLeft = sprite.ropeLengthLeft * 24 + 4
     if sprite.ropeLengthLeft == 0: ropeLeft += 12
-    
+
     ropeRight = sprite.ropeLengthRight * 24 + 4
     if sprite.ropeLengthRight == 0: ropeRight += 12
-    
+
     ropeWidth = sprite.ropeWidth * 24 + 8
     platformWidth = (sprite.platformWidth + 3) * 24
-    
+
     ropeX = platformWidth / 2 - 4
-    
+
     painter.drawTiledPixmap(ropeX + 8, 0, ropeWidth - 16, 8, ImageCache['ScaleRopeH'])
-    
+
     ropeVertImage = ImageCache['ScaleRopeV']
     painter.drawTiledPixmap(ropeX, 8, 8, ropeLeft - 8, ropeVertImage)
     painter.drawTiledPixmap(ropeX + ropeWidth - 8, 8, 8, ropeRight - 8, ropeVertImage)
-    
+
     pulleyImage = ImageCache['ScalePulley']
     painter.drawPixmap(ropeX, 0, pulleyImage)
     painter.drawPixmap(ropeX + ropeWidth - 20, 0, pulleyImage)
-    
+
     platforms = [(0, ropeLeft), (ropeX+ropeWidth-(platformWidth/2)-4, ropeRight)]
     for x,y in platforms:
         painter.drawPixmap(x, y, ImageCache['WoodenPlatformL'])
@@ -4280,20 +4291,20 @@ def PaintBrownBlock(sprite, painter):
     type = sprite.type
     width = sprite.xsize*1.5
     height = sprite.ysize*1.5
-    
+
     column2x = blockX + 24
     column3x = blockX + width - 24
     row2y = blockY + 24
     row3y = blockY + height - 24
-    
+
     painter.drawPixmap(blockX, blockY, ImageCache['BrownBlockTL'])
     painter.drawTiledPixmap(column2x, blockY, width-48, 24, ImageCache['BrownBlockTM'])
     painter.drawPixmap(column3x, blockY, ImageCache['BrownBlockTR'])
-    
+
     painter.drawTiledPixmap(blockX, row2y, 24, height-48, ImageCache['BrownBlockML'])
     painter.drawTiledPixmap(column2x, row2y, width-48, height-48, ImageCache['BrownBlockMM'])
     painter.drawTiledPixmap(column3x, row2y, 24, height-48, ImageCache['BrownBlockMR'])
-    
+
     painter.drawPixmap(blockX, row3y, ImageCache['BrownBlockBL'])
     painter.drawTiledPixmap(column2x, row3y, width-48, 24, ImageCache['BrownBlockBM'])
     painter.drawPixmap(column3x, row3y, ImageCache['BrownBlockBR'])
@@ -4303,7 +4314,7 @@ def PaintPipe(sprite, painter):
     colour = sprite.colour
     xsize = sprite.xsize*1.5
     ysize = sprite.ysize*1.5
-    
+
     if not sprite.moving:
         # Static pipes
         if sprite.orientation == 'V': # vertical
@@ -4326,22 +4337,22 @@ def PaintPipe(sprite, painter):
         length2 = sprite.length2*1.5
         low = min(length1, length2)
         high = max(length1, length2)
-        
+
         if sprite.direction == 'U':
             y1 = ysize - low
             y2 = ysize - high
-            
+
             # draw semi transparent pipe
             painter.save()
             painter.setOpacity(0.5)
             painter.drawPixmap(0, y2, ImageCache['PipeTop%d' % colour])
             painter.drawTiledPixmap(0, y2+24, 48, high-24, ImageCache['PipeMiddle%d' % colour])
             painter.restore()
-            
+
             # draw opaque pipe
             painter.drawPixmap(0, y1, ImageCache['PipeTop%d' % colour])
             painter.drawTiledPixmap(0, y1+24, 48, low-24, ImageCache['PipeMiddle%d' % colour])
-        
+
         else:
             # draw semi transparent pipe
             painter.save()
@@ -4349,7 +4360,7 @@ def PaintPipe(sprite, painter):
             painter.drawTiledPixmap(0, 0, 48, high-24, ImageCache['PipeMiddle%d' % colour])
             painter.drawPixmap(0, high-24, ImageCache['PipeBottom%d' % colour])
             painter.restore()
-            
+
             # draw opaque pipe
             painter.drawTiledPixmap(0, 0, 48, low-24, ImageCache['PipeMiddle%d' % colour])
             painter.drawPixmap(0, low-24, ImageCache['PipeBottom%d' % colour])
