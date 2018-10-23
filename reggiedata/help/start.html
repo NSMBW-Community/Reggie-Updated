@@ -40,28 +40,24 @@
             <h1><b>Introduction</b></h1>
                 <p>Hello, and welcome to Reggie!</p>
                 <p>You are probably thinking - "I'm 12 years old and fail at life, and I can't figure out how to use such a simple editor as Reggie! Where can I go to ask people all of my stupid questions since I can't figure out jack squat myself?"</p>
-                <p>Fear not! You need not ask anyone, all your stupid, pathetic, worthless questions can be answered within this document. Continue to read and navigate through the red coloured links by clicking on them with the mouse pointer. If this proves too difficult, try operating <i>Reggie!</i> with your Mom.</p>
+                <p>Fear not! You need not ask anyone, all your stupid, pathetic, worthless questions can be answered within this document. Continue to read and navigate through the red coloured links by clicking on them with the mouse pointer. If this proves too difficult, try operating <i>Reggie!</i> with your mom.</p>
                 <p><br></p>
             
-            <h2><b>Extracting an ISO</b></h2>
-                <p>To run Reggie, you'll need an ISO of the game. We use the extracted ISO files to display the level graphics, and for access to the game's original levels (giving you some starting examples).</p>
-                <p>The recommended method for obtaining an ISO is to use the superdump program. Other methods are available, but left to the user as an exercise.</p>
-                <p>Once you have an ISO, download <a href="http://gbatemp.net/index.php?showtopic=135884"><span class="s1">WiiScrubber</span></a>. Begin by running the included key.bin generator program, type in 42, and click OK. Now, open WiiScrubber and extract the necessary files by right-clicking on the last partition and select "Extract" from the "Unencrypted Partition" submenu. Following me so far? Save it somewhere handy.</p>
-                <p>If you're on a non-Windows system, WiiScrubber will likely not work for you. Regular users can run it in a VM or in wine. Power Users can grab the <a href="http://github.com/jjgod/wiiscrubber-ng"><span class="s1">wiiscrubber command line tool</span></a> or the <a href="http://github.com/icefire/Wii.py/"><span class="s1">Wii.py</span></a> python code and extract the files using those tools. Both the tools run under all 'nix systems and Mac OS X.</p>
+            <h2><b>Extracting Game Files</b></h2>
+                <p>To run Reggie, you'll need the "Stage" folder from NSMB Wii. We use the files in this folder to display the level graphics, and for access to the game's original levels (giving you some starting examples).</p>
+                <p>The recommended method for obtaining this folder is to use <i>Reggie! Dumper</i> (available at <a href="http://rvlution.net/reggie/">the Reggie! homepage</a>). Other methods are available, but left to the user as an exercise.</p>
                 <p><br></p>
             
             <h2><b>Starting Reggie!</b></h2>
-                <p>If you have a precompiled executable, simply double click. Precompiled executables should be available as a Windows exe, a Mac app, or a Linux application via cx_Freeze (built on Ubuntu 9.04).</p>
+                <p>If you have a precompiled executable, simply double-click. Precompiled executables should be available as a Windows exe, a Mac app, or a Linux application via cx_Freeze (built on Ubuntu 9.04).</p>
                 <p>For those who cannot run one of the available executable files, or who simply desire not to do so, there is a source distribution available. The source distribution requires the following packages:</p>
                 <ul>
-                    <li><span class="s2"><a href="http://www.python.org/download/"><span class="s3">Python 2.6</span></a></span> or higher (but lower than Python 3.0)</li>
-                    <li><a href="http://qt.nokia.com/downloads"><span class="s3">Qt 4.5.3</span></a><span class="s4"> or higher</span></li>
-                    <li><span class="s2"><a href="http://www.riverbankcomputing.co.uk/software/sip/download"><span class="s3">SIP 4.9</span></a></span> or higher</li>
-                    <li><a href="http://www.riverbankcomputing.co.uk/software/pyqt/download"><span class="s3">PyQt 4.6</span></a><span class="s4"> or higher</span></li>
+                    <li><span class="s2"><a href="https://www.python.org/downloads/"><span class="s3">Python 2.7</span></a></span> or higher (3.5 or higher recommended)</li>
+                    <li><a href="https://www.lfd.uci.edu/~gohlke/pythonlibs/#pyqt4"><span class="s3">PyQt 4.8</span></a><span class="s4"> or higher if using Python 2.x, or </span><span class="s3">PyQt 5.11</span><span class="s4"> or higher if using Python 3.x (<i>pip install PyQt5</i>)</span></li>
                 </ul>
-                <p><b>Windows users</b> can get away with downloading the Windows binary installer for Python and the binary Installer for PyQt (first and last links), which will hold your hand and install Qt and SIP for you.</p>
+                <p><b>Windows users</b> can get away with downloading and running the latest Windows binary installer for Python. Then run <i>py -3 -m pip install PyQt5</i>, which will hold your hand and install PyQt, Qt and SIP for you.</p>
                 <p><b>Mac OS X Snow Leopard users</b> will need to build SIP and PyQt for both architectures (i386 and x86_64). PyQt will also require a change to the configure.py file - the i386 line should specify x86_64 as well. If you have an older version of Qt, you will need to upgrade to the newest one, and it is strongly recommended you build with the development versions of SIP and PyQt.</p>
-                <p><b>Linux users</b> should note that at this time, some distributions may not have up-to-date packages for PyQt - Reggie! requires version 4.6 (it may run with 4.5 but has been untested). We have tested the editor on Ubuntu - but note that the packages for Ubuntu 9.04 (Jaunty) and lower will not be up to date. Try using 9.10 (Karmic) instead.</p>
+                <p><b>Linux users</b> should note that at this time, some distributions may not have up-to-date packages for PyQt - Reggie! requires version 4.8 for Python 2.x and 5.11 for Python 3.x (it may run with older versions but has not been tested). We have tested the editor on Ubuntu - but note that the packages for Ubuntu 9.04 (Jaunty) and lower will not be up to date. Try using 9.10 (Karmic) or higher instead.</p>
                 <p>If you're on an older version of Ubuntu (or a distribution which doesn't provide the required PyQt) and you have the patience, you can build Qt, SIP and PyQt yourself. It's fairly straightforward - the normal configure/make/make install process will work for all three.</p>
                 <p>On all three systems, you can install the optional included NSMBLib package to speed up level loading. Extract the package, go into the directory and run <i>python setup.py install</i> - you will need an appropriate build setup (Visual Studio 2008 on Windows) in order for it to work.</p>
                 

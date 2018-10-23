@@ -45,8 +45,10 @@ Release 1: (March 19th, 2010)
 === Requirements: ===
 
 If you are using the source release:
-- Python 2.5 (or newer) - http://www.python.org
-- PyQt 4.6 (or newer) - http://www.riverbankcomputing.co.uk/software/pyqt/intro
+- Python 2.7 (or newer) (3.5 or newer recommended) - https://www.python.org
+- PyQt; the required version depends on the version of Python you're using:
+  If using Python 2.x: PyQt 4.8 (or newer) - https://www.lfd.uci.edu/~gohlke/pythonlibs/#pyqt4
+  If using Python 3.x: PyQt 5.11 (or newer) - pip install PyQt5
 - NSMBLib 0.4.1 - included with the source package (optional)
 
 If you have a prebuilt/frozen release (for Windows or Mac OS)
@@ -78,10 +80,10 @@ Other Testers and Contributors:
 
 === Libraries/Resources: ===
 
-Qt - Nokia (http://qt.nokia.com)
-PyQt - Riverbank Computing (http://www.riverbankcomputing.co.uk/software/pyqt/intro)
-Wii.py - megazig, Xuzz, The Lemon Man, Matt_P, SquidMan, Omega (http://github.com/icefire/Wii.py)
-Interface Icons - Yusuke Kamiyamane (http://www.pinvoke.com)
+Qt - The Qt Company (https://www.qt.io)
+PyQt - Riverbank Computing (https://riverbankcomputing.com/software/pyqt/intro)
+Wii.py - megazig, Xuzz, The Lemon Man, Matt_P, SquidMan, Omega (https://github.com/grp/Wii.py)
+Interface Icons - Yusuke Kamiyamane (http://p.yusukekamiyamane.com/)
 
 
 === Licensing: ===
