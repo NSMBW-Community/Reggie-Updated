@@ -24,7 +24,7 @@ plist = dict(
 
 
 APP = ['reggie.py']
-DATA_FILES = ['reggiedata', 'archive.py', 'common.py', 'license.txt', 'lz77.py', 'nsmblib-0.4.zip', 'readme.txt', 'sprites.py']
+DATA_FILES = ['reggiedata', 'archive.py', 'common.py', 'license.txt', 'lz77.py', 'nsmblib-0.4.1.zip', 'readme.txt', 'sprites.py']
 OPTIONS = {
  'argv_emulation': True,
 # 'graph': True,

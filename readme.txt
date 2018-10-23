@@ -47,7 +47,7 @@ Release 1: (March 19th, 2010)
 If you are using the source release:
 - Python 2.5 (or newer) - http://www.python.org
 - PyQt 4.6 (or newer) - http://www.riverbankcomputing.co.uk/software/pyqt/intro
-- NSMBLib 0.4 - included with the source package (optional)
+- NSMBLib 0.4.1 - included with the source package (optional)
 
 If you have a prebuilt/frozen release (for Windows or Mac OS)
 you don't need to install anything - all the required libraries are included.
