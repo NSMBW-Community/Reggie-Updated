@@ -31,9 +31,9 @@ OPTIONS = {
  'iconfile': 'reggiedata/reggie.icns',
  'plist': plist,
 # 'xref': True,
- 'includes': ['sip', 'encodings', 'encodings.hex_codec', 'PyQt4', 'PyQt4.QtCore', 'PyQt4.QtGui'],
- 'excludes': ['PyQt4.QtWebKit', 'PyQt4.QtDesigner', 'PyQt4.QtNetwork', 'PyQt4.QtOpenGL',
-            'PyQt4.QtScript', 'PyQt4.QtSql', 'PyQt4.QtTest', 'PyQt4.QtXml', 'PyQt4.phonon', 'nsmblibmodule'],
+ 'includes': ['sip', 'encodings', 'encodings.hex_codec', 'PyQt5', 'PyQt5.QtCore', 'PyQt5.QtGui', 'PyQt5.QtWidgets'],
+ 'excludes': ['PyQt5.QtWebKit', 'PyQt5.QtDesigner', 'PyQt5.QtNetwork', 'PyQt5.QtOpenGL',
+            'PyQt5.QtScript', 'PyQt5.QtSql', 'PyQt5.QtTest', 'PyQt5.QtXml', 'PyQt5.phonon', 'nsmblibmodule'],
  'compressed': 0,
  'optimize': 0
 }

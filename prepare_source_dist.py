@@ -2,8 +2,8 @@ import os.path, os, shutil
 
 dir = 'distrib/source'
 
-print '[[ Preparing Source Distribution for Reggie! ]]'
-print '>> Destination directory: %s' % dir
+print('[[ Preparing Source Distribution for Reggie! ]]')
+print('>> Destination directory: %s' % dir)
 
 if os.path.isdir(dir): shutil.rmtree(dir)
 os.makedirs(dir)

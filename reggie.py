@@ -20,6 +20,9 @@
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 from ctypes import create_string_buffer
+import encodings # fixes "LookupError: no codec search functions
+                 # registered: can't find encoding" on
+                 # Py2+cx_Freeze+Linux
 import os.path
 import pickle
 import struct
@@ -1513,7 +1516,7 @@ class LevelUnit():
 
         endTime = time.clock()
         total = endTime - startTime
-        #print 'Level loaded in %f seconds' % total
+        #print('Level loaded in %f seconds' % total)
 
         return True
 
@@ -2204,7 +2207,7 @@ class LevelObjectEditorItem(LevelEditorItem):
             if clickedx < 0: clickedx = 0
             if clickedy < 0: clickedy = 0
 
-            #print '%d %d' % (clickedx - dsx, clickedy - dsy)
+            #print('%d %d' % (clickedx - dsx, clickedy - dsy))
 
             if clickedx != dsx or clickedy != dsy:
                 self.dragstartx = clickedx
@@ -2578,7 +2581,7 @@ class LocationEditorItem(LevelEditorItem):
             if clickedx < 0: clickedx = 0
             if clickedy < 0: clickedy = 0
 
-            #print '%d %d' % (clickedx - dsx, clickedy - dsy)
+            #print('%d %d' % (clickedx - dsx, clickedy - dsy))
 
             if clickedx != dsx or clickedy != dsy:
                 self.dragstartx = clickedx
@@ -4524,7 +4527,7 @@ class LevelScene(QtWidgets.QGraphicsScene):
         if not hasattr(Level, 'layers'): return
 
         drawrect = QtCore.QRectF(rect.x() / 24, rect.y() / 24, rect.width() / 24 + 1, rect.height() / 24 + 1)
-        #print 'painting ' + repr(drawrect)
+        #print('painting ' + repr(drawrect))
         isect = drawrect.intersects
 
         layer0 = []; l0add = layer0.append
@@ -4696,7 +4699,7 @@ class LevelViewWidget(QtWidgets.QGraphicsView):
                     # paint a sprite
                     #clickedx = int((clicked.x()) / 1.5)
                     #clickedy = int((clicked.y()) / 1.5)
-                    #print 'clicked on %d,%d divided to %d,%d' % (clicked.x(),clicked.y(),clickedx,clickedy)
+                    #print('clicked on %d,%d divided to %d,%d' % (clicked.x(),clicked.y(),clickedx,clickedy))
 
                     clickedx = int((clicked.x() - 12) / 12) * 8
                     clickedy = int((clicked.y() - 12) / 12) * 8
@@ -4706,13 +4709,13 @@ class LevelViewWidget(QtWidgets.QGraphicsView):
 
                     #clickedx -= int(spr.xsize / 2)
                     #clickedy -= int(spr.ysize / 2)
-                    #print 'subtracted %d,%d for %d,%d' % (int(spr.xsize/2),int(spr.ysize/2),clickedx,clickedy)
+                    #print('subtracted %d,%d for %d,%d' % (int(spr.xsize/2),int(spr.ysize/2),clickedx,clickedy))
                     #newX = int((int(clickedx / 8) * 12) + (spr.xoffset * 1.5))
                     #newY = int((int(clickedy / 8) * 12) + (spr.yoffset * 1.5))
-                    #print 'offset is %d,%d' % (spr.xoffset,spr.yoffset)
-                    #print 'moving to %d,%d' % (newX,newY)
+                    #print('offset is %d,%d' % (spr.xoffset,spr.yoffset))
+                    #print('moving to %d,%d' % (newX,newY))
                     #spr.setPos(newX, newY)
-                    #print 'ended up at %d,%d' % (spr.x(),spr.y())
+                    #print('ended up at %d,%d' % (spr.x(),spr.y()))
 
                     mw = mainWindow
                     spr.positionChanged = mw.HandleSprPosChange
@@ -4734,7 +4737,7 @@ class LevelViewWidget(QtWidgets.QGraphicsView):
                 if clicked.y() < 0: clicked.setY(0)
                 clickedx = int((clicked.x() - 12) / 1.5)
                 clickedy = int((clicked.y() - 12) / 1.5)
-                #print '%d,%d %d,%d' % (clicked.x(), clicked.y(), clickedx, clickedy)
+                #print('%d,%d %d,%d' % (clicked.x(), clicked.y(), clickedx, clickedy))
 
                 getids = [False for x in range(256)]
                 for ent in Level.entrances: getids[ent.entid] = True
@@ -4768,14 +4771,13 @@ class LevelViewWidget(QtWidgets.QGraphicsView):
                 if clicked.y() < 0: clicked.setY(0)
                 clickedx = int((clicked.x() - 12) / 1.5)
                 clickedy = int((clicked.y() - 12) / 1.5)
-                #print '%d,%d %d,%d' % (clicked.x(), clicked.y(), clickedx, clickedy)
+                #print('%d,%d %d,%d' % (clicked.x(), clicked.y(), clickedx, clickedy))
                 mw = mainWindow
                 plist = mw.pathList
                 selectedpn = None if len(plist.selectedItems()) < 1 else plist.selectedItems()[0]
                 #if selectedpn is None:
                 #    QtWidgets.QMessageBox.warning(None, 'Error', 'No pathnode selected. Select a pathnode of the path you want to create a new node in.')
                 if selectedpn is None:
-                    """"""
                     getids = [False for x in range(256)]
                     getids[0] = True
                     for pathdatax in Level.pathdata:
@@ -6961,7 +6963,7 @@ class ReggieWindow(QtWidgets.QMainWindow):
     @QtCore.pyqtSlot()
     def Autosave(self):
         """Auto saves the level"""
-        #print 'Saving!'
+        #print('Saving!')
         global AutoSaveDirty
         if not AutoSaveDirty: return
 
@@ -6969,7 +6971,7 @@ class ReggieWindow(QtWidgets.QMainWindow):
         settings.setValue('AutoSaveFilePath', Level.arcname)
         settings.setValue('AutoSaveFileData', QtCore.QByteArray(data))
         AutoSaveDirty = False
-        #print 'Level autosaved'
+        #print('Level autosaved')
 
 
     @QtCore.pyqtSlot()
@@ -7619,7 +7621,7 @@ class ReggieWindow(QtWidgets.QMainWindow):
             #start = time.clock()
             self.LoadLevel(dlg.currentlevel, False, 1)
             #end = time.clock()
-            #print 'Loaded in ' + str(end - start)
+            #print('Loaded in ' + str(end - start))
 
 
     @QtCore.pyqtSlot()
