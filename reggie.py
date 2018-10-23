@@ -932,40 +932,39 @@ def _LoadTileset(idx, name):
 def LoadTextureUsingOldMethod(tiledata):
     tx = 0; ty = 0
     iter = tiledata.__iter__()
-    dest = QtGui.QImage(1024,256,QtGui.QImage.Format_ARGB32)
-    dest.fill(QtCore.Qt.transparent)
+    dest = [0] * 262144
 
     # this is for optimisation
     if EnableAlpha:
         for i in range(16384):
-            for y in range(ty,ty+4):
-                for x in range(tx,tx+4):
+            for y in range(ty, ty+4):
+                for x in range(tx, tx+4):
                     d = next(iter) << 8
                     d |= next(iter)
                     if (d & 0x8000) == 0:
                         argb = ((d & 0x7000) << 17) | ((d & 0xf00) << 12) | ((d & 0xf0) << 8) | ((d & 0xf) << 4)
                     else:
                         argb = 0xFF000000 | ((d & 0x7c00) << 9) | ((d & 0x3e0) << 6) | ((d & 0x1f) << 3)
-                    dest.setPixel(x,y,argb)
+                    dest[x + y * 1024] = argb
 
             tx += 4
             if tx >= 1024: tx = 0; ty += 4
     else:
         for i in range(16384):
-            for y in range(ty,ty+4):
-                for x in range(tx,tx+4):
+            for y in range(ty, ty+4):
+                for x in range(tx, tx+4):
                     d = next(iter) << 8
                     d |= next(iter)
                     if (d & 0x8000) == 0:
                         argb = 0xFF000000 | ((d & 0xf00) << 12) | ((d & 0xf0) << 8) | ((d & 0xf) << 4)
                     else:
                         argb = 0xFF000000 | ((d & 0x7c00) << 9) | ((d & 0x3e0) << 6) | ((d & 0x1f) << 3)
-                    dest.setPixel(x,y,argb)
+                    dest[x + y * 1024] = argb
 
             tx += 4
             if tx >= 1024: tx = 0; ty += 4
 
-    return dest
+    return QtGui.QImage(struct.pack('<262144I', *dest), 1024, 256, QtGui.QImage.Format_ARGB32)
 
 
 def UnloadTileset(idx):
