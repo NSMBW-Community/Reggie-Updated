@@ -933,37 +933,65 @@ def LoadTextureUsingOldMethod(tiledata):
     tx = 0; ty = 0
     iter = tiledata.__iter__()
     dest = [0] * 262144
+    colorCache = {}
 
-    # this is for optimisation
-    if EnableAlpha:
-        for i in range(16384):
-            for y in range(ty, ty+4):
-                for x in range(tx, tx+4):
-                    d = next(iter) << 8
-                    d |= next(iter)
-                    if (d & 0x8000) == 0:
-                        argb = ((d & 0x7000) << 17) | ((d & 0xf00) << 12) | ((d & 0xf0) << 8) | ((d & 0xf) << 4)
-                    else:
-                        argb = 0xFF000000 | ((d & 0x7c00) << 9) | ((d & 0x3e0) << 6) | ((d & 0x1f) << 3)
-                    dest[x + y * 1024] = argb
+    # Loop over all texels (of which there are 16384)
+    # lastD = None
+    for i in range(16384):
+        temp1 = (i // 256) % 8
+        if temp1 == 0 or temp1 == 7:
+            # Skip every row of texels that is a multiple of 8 or (a
+            # multiple of 8) - 1
+            # Unrolled loop for performance.
+            next(iter); next(iter); next(iter); next(iter)
+            next(iter); next(iter); next(iter); next(iter)
+            next(iter); next(iter); next(iter); next(iter)
+            next(iter); next(iter); next(iter); next(iter)
+            next(iter); next(iter); next(iter); next(iter)
+            next(iter); next(iter); next(iter); next(iter)
+            next(iter); next(iter); next(iter); next(iter)
+            next(iter); next(iter); next(iter); next(iter)
+        else:
+            temp2 = i % 8
+            if temp2 == 0 or temp2 == 7:
+                # Skip every column of texels that is a multiple of 8
+                # or (a multiple of 8) - 1
+                # Unrolled loop for performance.
+                next(iter); next(iter); next(iter); next(iter)
+                next(iter); next(iter); next(iter); next(iter)
+                next(iter); next(iter); next(iter); next(iter)
+                next(iter); next(iter); next(iter); next(iter)
+                next(iter); next(iter); next(iter); next(iter)
+                next(iter); next(iter); next(iter); next(iter)
+                next(iter); next(iter); next(iter); next(iter)
+                next(iter); next(iter); next(iter); next(iter)
+            else:
+                # Actually render this texel
+                for y in range(ty, ty+4):
+                    for x in range(tx, tx+4):
+                        d = next(iter) << 8
+                        d |= next(iter)
 
-            tx += 4
-            if tx >= 1024: tx = 0; ty += 4
-    else:
-        for i in range(16384):
-            for y in range(ty, ty+4):
-                for x in range(tx, tx+4):
-                    d = next(iter) << 8
-                    d |= next(iter)
-                    if (d & 0x8000) == 0:
-                        argb = 0xFF000000 | ((d & 0xf00) << 12) | ((d & 0xf0) << 8) | ((d & 0xf) << 4)
-                    else:
-                        argb = 0xFF000000 | ((d & 0x7c00) << 9) | ((d & 0x3e0) << 6) | ((d & 0x1f) << 3)
-                    dest[x + y * 1024] = argb
+                        # Cache decoded colors for performance
+                        if d in colorCache:
+                            dest[x + y * 1024] = colorCache[d]
+                        else:
+                            if (d & 0x8000) == 0:
+                                if EnableAlpha:
+                                    argb = ((d & 0x7000) << 17) | ((d & 0xf00) << 12) | ((d & 0xf0) << 8) | ((d & 0xf) << 4)
+                                else:
+                                    argb = 0xFF000000 | ((d & 0xf00) << 12) | ((d & 0xf0) << 8) | ((d & 0xf) << 4)
+                            else:
+                                argb = 0xFF000000 | ((d & 0x7c00) << 9) | ((d & 0x3e0) << 6) | ((d & 0x1f) << 3)
 
-            tx += 4
-            if tx >= 1024: tx = 0; ty += 4
+                            dest[x + y * 1024] = colorCache[d] = argb
 
+        # Move on to the next texel
+        tx += 4
+        if tx >= 1024: tx = 0; ty += 4
+
+    # Convert the list of ARGB color values into a bytes object, and
+    # then convert that into a QImage
     return QtGui.QImage(struct.pack('<262144I', *dest), 1024, 256, QtGui.QImage.Format_ARGB32)
 
 
