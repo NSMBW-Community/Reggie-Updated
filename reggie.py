@@ -5786,157 +5786,157 @@ class ZoneTab(QtWidgets.QWidget):
 
 
     def createDimensions(self, z):
-            self.Dimensions = QtWidgets.QGroupBox('Dimensions')
+        self.Dimensions = QtWidgets.QGroupBox('Dimensions')
 
-            self.Zone_xpos = QtWidgets.QSpinBox()
-            self.Zone_xpos.setRange(16, 65535)
-            self.Zone_xpos.setToolTip('Sets the X Position of the upper left corner')
-            self.Zone_xpos.setValue(z.objx)
+        self.Zone_xpos = QtWidgets.QSpinBox()
+        self.Zone_xpos.setRange(16, 65535)
+        self.Zone_xpos.setToolTip('Sets the X Position of the upper left corner')
+        self.Zone_xpos.setValue(z.objx)
 
-            self.Zone_ypos = QtWidgets.QSpinBox()
-            self.Zone_ypos.setRange(16, 65535)
-            self.Zone_ypos.setToolTip('Sets the Y Position of the upper left corner')
-            self.Zone_ypos.setValue(z.objy)
+        self.Zone_ypos = QtWidgets.QSpinBox()
+        self.Zone_ypos.setRange(16, 65535)
+        self.Zone_ypos.setToolTip('Sets the Y Position of the upper left corner')
+        self.Zone_ypos.setValue(z.objy)
 
-            self.Zone_width = QtWidgets.QSpinBox()
-            self.Zone_width.setRange(300, 65535)
-            self.Zone_width.setToolTip('Sets the width of the zone')
-            self.Zone_width.setValue(z.width)
+        self.Zone_width = QtWidgets.QSpinBox()
+        self.Zone_width.setRange(300, 65535)
+        self.Zone_width.setToolTip('Sets the width of the zone')
+        self.Zone_width.setValue(z.width)
 
-            self.Zone_height = QtWidgets.QSpinBox()
-            self.Zone_height.setRange(200, 65535)
-            self.Zone_height.setToolTip('Sets the height of the zone')
-            self.Zone_height.setValue(z.height)
-
-
-            ZonePositionLayout = QtWidgets.QFormLayout()
-            ZonePositionLayout.addRow('X position:', self.Zone_xpos)
-            ZonePositionLayout.addRow('Y position:', self.Zone_ypos)
-
-            ZoneSizeLayout = QtWidgets.QFormLayout()
-            ZoneSizeLayout.addRow('X size:', self.Zone_width)
-            ZoneSizeLayout.addRow('Y size:', self.Zone_height)
+        self.Zone_height = QtWidgets.QSpinBox()
+        self.Zone_height.setRange(200, 65535)
+        self.Zone_height.setToolTip('Sets the height of the zone')
+        self.Zone_height.setValue(z.height)
 
 
-            innerLayout = QtWidgets.QHBoxLayout()
+        ZonePositionLayout = QtWidgets.QFormLayout()
+        ZonePositionLayout.addRow('X position:', self.Zone_xpos)
+        ZonePositionLayout.addRow('Y position:', self.Zone_ypos)
 
-            innerLayout.addLayout(ZonePositionLayout)
-            innerLayout.addLayout(ZoneSizeLayout)
-            self.Dimensions.setLayout(innerLayout)
+        ZoneSizeLayout = QtWidgets.QFormLayout()
+        ZoneSizeLayout.addRow('X size:', self.Zone_width)
+        ZoneSizeLayout.addRow('Y size:', self.Zone_height)
+
+
+        innerLayout = QtWidgets.QHBoxLayout()
+
+        innerLayout.addLayout(ZonePositionLayout)
+        innerLayout.addLayout(ZoneSizeLayout)
+        self.Dimensions.setLayout(innerLayout)
 
 
 
     def createVisibility(self, z):
-            self.Visibility = QtWidgets.QGroupBox('Rendering and Camera')
+        self.Visibility = QtWidgets.QGroupBox('Rendering and Camera')
 
-            self.Zone_modeldark = QtWidgets.QComboBox()
-            self.Zone_modeldark.addItems(ZoneThemeValues)
-            self.Zone_modeldark.setToolTip('<b>Zone Theme:</b> Changes the way models and parts of the background are rendered (for blurring, darkness, lava effects, and so on). Themes with * next to them are used in the game, but look the same as the overworld theme.')
-            if z.modeldark < 0: z.modeldark = 0
-            if z.modeldark >= len(ZoneThemeValues): z.modeldark = len(ZoneThemeValues)
-            self.Zone_modeldark.setCurrentIndex(z.modeldark)
+        self.Zone_modeldark = QtWidgets.QComboBox()
+        self.Zone_modeldark.addItems(ZoneThemeValues)
+        self.Zone_modeldark.setToolTip('<b>Zone Theme:</b> Changes the way models and parts of the background are rendered (for blurring, darkness, lava effects, and so on). Themes with * next to them are used in the game, but look the same as the overworld theme.')
+        if z.modeldark < 0: z.modeldark = 0
+        if z.modeldark >= len(ZoneThemeValues): z.modeldark = len(ZoneThemeValues)
+        self.Zone_modeldark.setCurrentIndex(z.modeldark)
 
-            self.Zone_terraindark = QtWidgets.QComboBox()
-            self.Zone_terraindark.addItems(ZoneTerrainThemeValues)
-            self.Zone_terraindark.setToolTip("<b>Terrain Theme:</b> Changes the way the terrain is rendered. It also affects the parts of the background which the normal theme doesn't change.")
-            if z.terraindark < 0: z.terraindark = 0
-            if z.terraindark >= len(ZoneTerrainThemeValues): z.terraindark = len(ZoneTerrainThemeValues)
-            self.Zone_terraindark.setCurrentIndex(z.terraindark)
-
-
-            self.Zone_vnormal = QtWidgets.QRadioButton('Normal')
-            self.Zone_vnormal.setToolTip('Sets the visibility mode to normal.')
-
-            self.Zone_vspotlight = QtWidgets.QRadioButton('Layer 0 Spotlight')
-            self.Zone_vspotlight.setToolTip('Sets the visibility mode to spotlight. In Spotlight mode,\nmoving behind layer 0 objects enables a spotlight that\nfollows Mario around.')
-
-            self.Zone_vfulldark = QtWidgets.QRadioButton('Full Darkness')
-            self.Zone_vfulldark.setToolTip('Sets the visibility mode to full darkness. In full dark mode,\nthe screen is completely black and visibility is only provided\nby the available spotlight effect. Stars and some sprites\ncan enhance the default visibility.')
-
-            self.Zone_visibility = QtWidgets.QComboBox()
-
-            self.zv = z.visibility
-            VRadioDiv = self.zv / 16
-
-            if VRadioDiv == 0:
-                self.Zone_vnormal.setChecked(True)
-            elif VRadioDiv == 1:
-                self.Zone_vspotlight.setChecked(True)
-            elif VRadioDiv == 2:
-                self.Zone_vfulldark.setChecked(True)
-            elif VRadioDiv == 3:
-                self.Zone_vfulldark.setChecked(True)
+        self.Zone_terraindark = QtWidgets.QComboBox()
+        self.Zone_terraindark.addItems(ZoneTerrainThemeValues)
+        self.Zone_terraindark.setToolTip("<b>Terrain Theme:</b> Changes the way the terrain is rendered. It also affects the parts of the background which the normal theme doesn't change.")
+        if z.terraindark < 0: z.terraindark = 0
+        if z.terraindark >= len(ZoneTerrainThemeValues): z.terraindark = len(ZoneTerrainThemeValues)
+        self.Zone_terraindark.setCurrentIndex(z.terraindark)
 
 
-            self.ChangeList()
-            self.Zone_vnormal.clicked.connect(self.ChangeList)
-            self.Zone_vspotlight.clicked.connect(self.ChangeList)
-            self.Zone_vfulldark.clicked.connect(self.ChangeList)
+        self.Zone_vnormal = QtWidgets.QRadioButton('Normal')
+        self.Zone_vnormal.setToolTip('Sets the visibility mode to normal.')
+
+        self.Zone_vspotlight = QtWidgets.QRadioButton('Layer 0 Spotlight')
+        self.Zone_vspotlight.setToolTip('Sets the visibility mode to spotlight. In Spotlight mode,\nmoving behind layer 0 objects enables a spotlight that\nfollows Mario around.')
+
+        self.Zone_vfulldark = QtWidgets.QRadioButton('Full Darkness')
+        self.Zone_vfulldark.setToolTip('Sets the visibility mode to full darkness. In full dark mode,\nthe screen is completely black and visibility is only provided\nby the available spotlight effect. Stars and some sprites\ncan enhance the default visibility.')
+
+        self.Zone_visibility = QtWidgets.QComboBox()
+
+        self.zv = z.visibility
+        VRadioDiv = self.zv / 16
+
+        if VRadioDiv == 0:
+            self.Zone_vnormal.setChecked(True)
+        elif VRadioDiv == 1:
+            self.Zone_vspotlight.setChecked(True)
+        elif VRadioDiv == 2:
+            self.Zone_vfulldark.setChecked(True)
+        elif VRadioDiv == 3:
+            self.Zone_vfulldark.setChecked(True)
 
 
-            self.Zone_xtrack = QtWidgets.QCheckBox()
-            self.Zone_xtrack.setToolTip('Allows the camera to track Mario across the X dimension.\nTurning off this option centers the screen horizontally in\nthe view, producing a stationary camera mode.')
-            if z.cammode in [0, 3, 6]:
-                self.Zone_xtrack.setChecked(True)
-            self.Zone_ytrack = QtWidgets.QCheckBox()
-            self.Zone_ytrack.setToolTip('Allows the camera to track Mario across the Y dimension.\nTurning off this option centers the screen vertically in\nthe view, producing very vertically limited stages.')
-            if z.cammode in [0, 1, 3, 4]:
-                self.Zone_ytrack.setChecked(True)
+        self.ChangeList()
+        self.Zone_vnormal.clicked.connect(self.ChangeList)
+        self.Zone_vspotlight.clicked.connect(self.ChangeList)
+        self.Zone_vfulldark.clicked.connect(self.ChangeList)
 
 
-            self.Zone_camerazoom = QtWidgets.QComboBox()
-            self.Zone_camerazoom.setToolTip('Changes the camera zoom functionality\n   Negative values: Zoom In\n   Positive values: Zoom Out\n\nZoom Level 4 is rather glitchy')
-            newItems1 = ['-2', '-1', '0', '1', '2', '3', '4']
-            self.Zone_camerazoom.addItems(newItems1)
-            if z.camzoom == 8:
-                self.Zone_camerazoom.setCurrentIndex(0)
-            elif (z.camzoom == 9 and z.cammode in [3, 4]) or (z.camzoom in [19, 20] and z.cammode == 9):
-                self.Zone_camerazoom.setCurrentIndex(1)
-            elif (z.camzoom in [0, 1, 2] and z.cammode in [0, 1, 6]) or (z.camzoom in [10, 11] and z.cammode in [3, 4]) or (z.camzoom == 13 and z.cammode == 9):
-                self.Zone_camerazoom.setCurrentIndex(2)
-            elif z.camzoom in [5, 6, 7, 9, 10] and z.cammode in [0, 1, 6] or (z.camzoom == 12 and z.cammode == 9):
-                self.Zone_camerazoom.setCurrentIndex(3)
-            elif (z.camzoom in [4, 11] and z.cammode in [0, 1, 6]) or (z.camzoom in [1, 5] and z.cammode in [3, 4])  or (z.camzoom == 14 and z.cammode == 9):
-                self.Zone_camerazoom.setCurrentIndex(4)
-            elif (z.camzoom == 3 and z.cammode in [0, 1, 6]) or (z.camzoom == 2 and z.cammode in [3, 4]) or (z.camzoom == 15 and z.cammode == 9):
-                self.Zone_camerazoom.setCurrentIndex(5)
-            elif (z.camzoom == 16 and z.cammode in [0, 1, 6]) or (z.camzoom in [3, 7] and z.cammode in [3, 4]) or (z.camzoom == 16 and z.cammode == 9):
-                self.Zone_camerazoom.setCurrentIndex(6)
-            else:
-                self.Zone_camerazoom.setCurrentIndex(2)
-
-            self.Zone_camerabias = QtWidgets.QCheckBox()
-            self.Zone_camerabias.setToolTip('Sets the screen bias to the left edge on load, preventing initial scrollback.\nUseful for pathed levels\n    Note: Not all zoom/mode combinations support bias')
-            if z.camzoom in [1, 2, 3, 4, 5, 6, 9, 10]:
-                self.Zone_camerabias.setChecked(True)
+        self.Zone_xtrack = QtWidgets.QCheckBox()
+        self.Zone_xtrack.setToolTip('Allows the camera to track Mario across the X dimension.\nTurning off this option centers the screen horizontally in\nthe view, producing a stationary camera mode.')
+        if z.cammode in [0, 3, 6]:
+            self.Zone_xtrack.setChecked(True)
+        self.Zone_ytrack = QtWidgets.QCheckBox()
+        self.Zone_ytrack.setToolTip('Allows the camera to track Mario across the Y dimension.\nTurning off this option centers the screen vertically in\nthe view, producing very vertically limited stages.')
+        if z.cammode in [0, 1, 3, 4]:
+            self.Zone_ytrack.setChecked(True)
 
 
-            ZoneZoomLayout = QtWidgets.QFormLayout()
-            ZoneZoomLayout.addRow('Zoom Level:', self.Zone_camerazoom)
-            ZoneZoomLayout.addRow('Zone Theme:', self.Zone_modeldark)
-            ZoneZoomLayout.addRow('Terrain Lighting:', self.Zone_terraindark)
+        self.Zone_camerazoom = QtWidgets.QComboBox()
+        self.Zone_camerazoom.setToolTip('Changes the camera zoom functionality\n   Negative values: Zoom In\n   Positive values: Zoom Out\n\nZoom Level 4 is rather glitchy')
+        newItems1 = ['-2', '-1', '0', '1', '2', '3', '4']
+        self.Zone_camerazoom.addItems(newItems1)
+        if z.camzoom == 8:
+            self.Zone_camerazoom.setCurrentIndex(0)
+        elif (z.camzoom == 9 and z.cammode in [3, 4]) or (z.camzoom in [19, 20] and z.cammode == 9):
+            self.Zone_camerazoom.setCurrentIndex(1)
+        elif (z.camzoom in [0, 1, 2] and z.cammode in [0, 1, 6]) or (z.camzoom in [10, 11] and z.cammode in [3, 4]) or (z.camzoom == 13 and z.cammode == 9):
+            self.Zone_camerazoom.setCurrentIndex(2)
+        elif z.camzoom in [5, 6, 7, 9, 10] and z.cammode in [0, 1, 6] or (z.camzoom == 12 and z.cammode == 9):
+            self.Zone_camerazoom.setCurrentIndex(3)
+        elif (z.camzoom in [4, 11] and z.cammode in [0, 1, 6]) or (z.camzoom in [1, 5] and z.cammode in [3, 4])  or (z.camzoom == 14 and z.cammode == 9):
+            self.Zone_camerazoom.setCurrentIndex(4)
+        elif (z.camzoom == 3 and z.cammode in [0, 1, 6]) or (z.camzoom == 2 and z.cammode in [3, 4]) or (z.camzoom == 15 and z.cammode == 9):
+            self.Zone_camerazoom.setCurrentIndex(5)
+        elif (z.camzoom == 16 and z.cammode in [0, 1, 6]) or (z.camzoom in [3, 7] and z.cammode in [3, 4]) or (z.camzoom == 16 and z.cammode == 9):
+            self.Zone_camerazoom.setCurrentIndex(6)
+        else:
+            self.Zone_camerazoom.setCurrentIndex(2)
 
-            ZoneCameraLayout = QtWidgets.QFormLayout()
-            ZoneCameraLayout.addRow('X Tracking:', self.Zone_xtrack)
-            ZoneCameraLayout.addRow('Y Tracking:', self.Zone_ytrack)
-            ZoneCameraLayout.addRow('Bias:', self.Zone_camerabias)
-
-            ZoneVisibilityLayout = QtWidgets.QHBoxLayout()
-            ZoneVisibilityLayout.addWidget(self.Zone_vnormal)
-            ZoneVisibilityLayout.addWidget(self.Zone_vspotlight)
-            ZoneVisibilityLayout.addWidget(self.Zone_vfulldark)
+        self.Zone_camerabias = QtWidgets.QCheckBox()
+        self.Zone_camerabias.setToolTip('Sets the screen bias to the left edge on load, preventing initial scrollback.\nUseful for pathed levels\n    Note: Not all zoom/mode combinations support bias')
+        if z.camzoom in [1, 2, 3, 4, 5, 6, 9, 10]:
+            self.Zone_camerabias.setChecked(True)
 
 
+        ZoneZoomLayout = QtWidgets.QFormLayout()
+        ZoneZoomLayout.addRow('Zoom Level:', self.Zone_camerazoom)
+        ZoneZoomLayout.addRow('Zone Theme:', self.Zone_modeldark)
+        ZoneZoomLayout.addRow('Terrain Lighting:', self.Zone_terraindark)
 
-            TopLayout = QtWidgets.QHBoxLayout()
-            TopLayout.addLayout(ZoneCameraLayout)
-            TopLayout.addLayout(ZoneZoomLayout)
+        ZoneCameraLayout = QtWidgets.QFormLayout()
+        ZoneCameraLayout.addRow('X Tracking:', self.Zone_xtrack)
+        ZoneCameraLayout.addRow('Y Tracking:', self.Zone_ytrack)
+        ZoneCameraLayout.addRow('Bias:', self.Zone_camerabias)
 
-            InnerLayout = QtWidgets.QVBoxLayout()
-            InnerLayout.addLayout(TopLayout)
-            InnerLayout.addLayout(ZoneVisibilityLayout)
-            InnerLayout.addWidget(self.Zone_visibility)
-            self.Visibility.setLayout(InnerLayout)
+        ZoneVisibilityLayout = QtWidgets.QHBoxLayout()
+        ZoneVisibilityLayout.addWidget(self.Zone_vnormal)
+        ZoneVisibilityLayout.addWidget(self.Zone_vspotlight)
+        ZoneVisibilityLayout.addWidget(self.Zone_vfulldark)
+
+
+
+        TopLayout = QtWidgets.QHBoxLayout()
+        TopLayout.addLayout(ZoneCameraLayout)
+        TopLayout.addLayout(ZoneZoomLayout)
+
+        InnerLayout = QtWidgets.QVBoxLayout()
+        InnerLayout.addLayout(TopLayout)
+        InnerLayout.addLayout(ZoneVisibilityLayout)
+        InnerLayout.addWidget(self.Zone_visibility)
+        self.Visibility.setLayout(InnerLayout)
 
     @QtCore.pyqtSlot(bool)
     def ChangeList(self):
@@ -5963,56 +5963,56 @@ class ZoneTab(QtWidgets.QWidget):
 
 
     def createBounds(self, z):
-            self.Bounds = QtWidgets.QGroupBox('Bounds')
+        self.Bounds = QtWidgets.QGroupBox('Bounds')
 
-            #Block3 = Level.bounding[z.block3id]
+        #Block3 = Level.bounding[z.block3id]
 
-            self.Zone_yboundup = QtWidgets.QSpinBox()
-            self.Zone_yboundup.setRange(-32766, 32767)
-            self.Zone_yboundup.setToolTip('Positive Values: Easier to scroll upwards (110 is centered)\nNegative Values: Harder to scroll upwards (30 is the top edge of the screen)\n\nValues higher than 240 can cause instant death upon screen scrolling')
-            self.Zone_yboundup.setSpecialValueText('32')
-            self.Zone_yboundup.setValue(z.yupperbound)
+        self.Zone_yboundup = QtWidgets.QSpinBox()
+        self.Zone_yboundup.setRange(-32766, 32767)
+        self.Zone_yboundup.setToolTip('Positive Values: Easier to scroll upwards (110 is centered)\nNegative Values: Harder to scroll upwards (30 is the top edge of the screen)\n\nValues higher than 240 can cause instant death upon screen scrolling')
+        self.Zone_yboundup.setSpecialValueText('32')
+        self.Zone_yboundup.setValue(z.yupperbound)
 
-            self.Zone_ybounddown = QtWidgets.QSpinBox()
-            self.Zone_ybounddown.setRange(-32766, 32767)
-            self.Zone_ybounddown.setToolTip('Positive Values: Harder to scroll downwards (65 is the bottom edge of the screen)\nNegative Values: Easier to scroll downwards (95 is centered)\n\nValues higher than 100 will prevent the sceen from scrolling while Mario until Mario is offscreen')
-            self.Zone_ybounddown.setValue(z.ylowerbound)
+        self.Zone_ybounddown = QtWidgets.QSpinBox()
+        self.Zone_ybounddown.setRange(-32766, 32767)
+        self.Zone_ybounddown.setToolTip('Positive Values: Harder to scroll downwards (65 is the bottom edge of the screen)\nNegative Values: Easier to scroll downwards (95 is centered)\n\nValues higher than 100 will prevent the sceen from scrolling while Mario until Mario is offscreen')
+        self.Zone_ybounddown.setValue(z.ylowerbound)
 
 
-            ZoneBoundsLayout = QtWidgets.QFormLayout()
+        ZoneBoundsLayout = QtWidgets.QFormLayout()
 
-            ZoneBoundsLayout.addRow('Upper Bounds:', self.Zone_yboundup)
-            ZoneBoundsLayout.addRow('Lower Bounds:', self.Zone_ybounddown)
+        ZoneBoundsLayout.addRow('Upper Bounds:', self.Zone_yboundup)
+        ZoneBoundsLayout.addRow('Lower Bounds:', self.Zone_ybounddown)
 
-            self.Bounds.setLayout(ZoneBoundsLayout)
+        self.Bounds.setLayout(ZoneBoundsLayout)
 
 
     def createAudio(self, z):
-            self.Audio = QtWidgets.QGroupBox('Audio')
+        self.Audio = QtWidgets.QGroupBox('Audio')
 
-            self.Zone_music = QtWidgets.QComboBox()
-            self.Zone_music.setToolTip('Changes the background music')
-            newItems2 = ['None', 'Overworld', 'Underground', 'Underwater', 'Mushrooms/Athletic', 'Ghost House', 'Pyramids', 'Snow', 'Lava', 'Tower', 'Castle', 'Airship', 'Bonus Area', 'Drum Rolls', 'Tower Boss', 'Castle Boss', 'Toad House', 'Airship Boss', 'Forest', 'Enemy Ambush', 'Beach', 'Volcano', 'Peach's Castle', 'Credits Jazz', 'Airship Drums', 'Bowser', 'Mega Bowser', 'Epilogue']
-            self.Zone_music.addItems(newItems2)
-            self.Zone_music.setCurrentIndex(z.music)
+        self.Zone_music = QtWidgets.QComboBox()
+        self.Zone_music.setToolTip('Changes the background music')
+        newItems2 = ['None', 'Overworld', 'Underground', 'Underwater', 'Mushrooms/Athletic', 'Ghost House', 'Pyramids', 'Snow', 'Lava', 'Tower', 'Castle', 'Airship', 'Bonus Area', 'Drum Rolls', 'Tower Boss', 'Castle Boss', 'Toad House', 'Airship Boss', 'Forest', 'Enemy Ambush', 'Beach', 'Volcano', "Peach's Castle", 'Credits Jazz', 'Airship Drums', 'Bowser', 'Mega Bowser', 'Epilogue']
+        self.Zone_music.addItems(newItems2)
+        self.Zone_music.setCurrentIndex(z.music)
 
-            self.Zone_sfx = QtWidgets.QComboBox()
-            self.Zone_sfx.setToolTip('Changes the sound effect modulation')
-            newItems3 = ['Normal', 'Wall Echo', 'Room Echo', 'Double Echo', 'Cave Echo', 'Underwater Echo', 'Triple Echo', 'High Pitch Echo', 'Tinny Echo', 'Flat', 'Dull', 'Hollow Echo', 'Rich', 'Triple Underwater', 'Ring Echo']
-            self.Zone_sfx.addItems(newItems3)
-            self.Zone_sfx.setCurrentIndex(z.sfxmod / 16)
+        self.Zone_sfx = QtWidgets.QComboBox()
+        self.Zone_sfx.setToolTip('Changes the sound effect modulation')
+        newItems3 = ['Normal', 'Wall Echo', 'Room Echo', 'Double Echo', 'Cave Echo', 'Underwater Echo', 'Triple Echo', 'High Pitch Echo', 'Tinny Echo', 'Flat', 'Dull', 'Hollow Echo', 'Rich', 'Triple Underwater', 'Ring Echo']
+        self.Zone_sfx.addItems(newItems3)
+        self.Zone_sfx.setCurrentIndex(z.sfxmod / 16)
 
-            self.Zone_boss = QtWidgets.QCheckBox()
-            self.Zone_boss.setToolTip('Set for bosses to allow proper music switching by sprites')
-            self.Zone_boss.setChecked(z.sfxmod % 16)
+        self.Zone_boss = QtWidgets.QCheckBox()
+        self.Zone_boss.setToolTip('Set for bosses to allow proper music switching by sprites')
+        self.Zone_boss.setChecked(z.sfxmod % 16)
 
 
-            ZoneAudioLayout = QtWidgets.QFormLayout()
-            ZoneAudioLayout.addRow('Background Music:', self.Zone_music)
-            ZoneAudioLayout.addRow('Sound Modulation:', self.Zone_sfx)
-            ZoneAudioLayout.addRow('Boss Flag:', self.Zone_boss)
+        ZoneAudioLayout = QtWidgets.QFormLayout()
+        ZoneAudioLayout.addRow('Background Music:', self.Zone_music)
+        ZoneAudioLayout.addRow('Sound Modulation:', self.Zone_sfx)
+        ZoneAudioLayout.addRow('Boss Flag:', self.Zone_boss)
 
-            self.Audio.setLayout(ZoneAudioLayout)
+        self.Audio.setLayout(ZoneAudioLayout)
 
 
 
@@ -6070,210 +6070,210 @@ class BGTab(QtWidgets.QWidget):
 
 
     def createBGa(self, z):
-            self.BGa = QtWidgets.QGroupBox('Scenery')
+        self.BGa = QtWidgets.QGroupBox('Scenery')
 
 
 
-            self.xposA = QtWidgets.QSpinBox()
-            self.xposA.setToolTip('Sets the horizontal offset of your background')
-            self.xposA.setRange(-256, 255)
-            self.xposA.setValue(z.XpositionA)
+        self.xposA = QtWidgets.QSpinBox()
+        self.xposA.setToolTip('Sets the horizontal offset of your background')
+        self.xposA.setRange(-256, 255)
+        self.xposA.setValue(z.XpositionA)
 
-            self.yposA = QtWidgets.QSpinBox()
-            self.yposA.setToolTip('Sets the vertical offset of your background')
-            self.yposA.setRange(-255, 256)
-            self.yposA.setValue(-z.YpositionA)
+        self.yposA = QtWidgets.QSpinBox()
+        self.yposA.setToolTip('Sets the vertical offset of your background')
+        self.yposA.setRange(-255, 256)
+        self.yposA.setValue(-z.YpositionA)
 
-            self.scrollrate = QtWidgets.QLabel('Scroll Rate:')
-            self.positionlabel = QtWidgets.QLabel('Position:')
+        self.scrollrate = QtWidgets.QLabel('Scroll Rate:')
+        self.positionlabel = QtWidgets.QLabel('Position:')
 
-            self.xscrollA = QtWidgets.QComboBox()
-            self.xscrollA.addItems(BgScrollRateStrings)
-            self.xscrollA.setToolTip('Changes the rate that the background moves in\nrelation to Mario when he moves horizontally.\nValues higher than 1x may be glitchy!')
-            if z.XscrollA < 0: z.XscrollA = 0
-            if z.XscrollA >= len(BgScrollRates): z.XscrollA = len(BgScrollRates)
-            self.xscrollA.setCurrentIndex(z.XscrollA)
+        self.xscrollA = QtWidgets.QComboBox()
+        self.xscrollA.addItems(BgScrollRateStrings)
+        self.xscrollA.setToolTip('Changes the rate that the background moves in\nrelation to Mario when he moves horizontally.\nValues higher than 1x may be glitchy!')
+        if z.XscrollA < 0: z.XscrollA = 0
+        if z.XscrollA >= len(BgScrollRates): z.XscrollA = len(BgScrollRates)
+        self.xscrollA.setCurrentIndex(z.XscrollA)
 
-            self.yscrollA = QtWidgets.QComboBox()
-            self.yscrollA.addItems(BgScrollRateStrings)
-            self.yscrollA.setToolTip('Changes the rate that the background moves in\nrelation to Mario when he moves vertically.\nValues higher than 1x may be glitchy!')
-            if z.YscrollA < 0: z.YscrollA = 0
-            if z.YscrollA >= len(BgScrollRates): z.YscrollA = len(BgScrollRates)
-            self.yscrollA.setCurrentIndex(z.YscrollA)
-
-
-            self.zoomA = QtWidgets.QComboBox()
-            addstr = ['100%', '125%', '150%', '200%']
-            self.zoomA.addItems(addstr)
-            self.zoomA.setToolTip('Sets the zoom level of the background image')
-            self.zoomA.setCurrentIndex(z.ZoomA)
-
-            self.toscreenA = QtWidgets.QRadioButton()
-            self.toscreenA.setToolTip('Aligns the background baseline to the bottom of the screen')
-            self.toscreenLabel = QtWidgets.QLabel('Screen')
-            self.tozoneA = QtWidgets.QRadioButton()
-            self.tozoneA.setToolTip('Aligns the background baseline to the bottom of the zone')
-            self.tozoneLabel = QtWidgets.QLabel('Zone')
-            if z.bg2A == 0x000A:
-                self.tozoneA.setChecked(1)
-            else:
-                self.toscreenA.setChecked(1)
-
-            self.alignLabel = QtWidgets.QLabel('Align to: ')
-
-            Lone = QtWidgets.QFormLayout()
-            Lone.addRow('Zoom: ', self.zoomA)
-
-            Ltwo = QtWidgets.QHBoxLayout()
-            Ltwo.addWidget(self.toscreenLabel)
-            Ltwo.addWidget(self.toscreenA)
-            Ltwo.addWidget(self.tozoneLabel)
-            Ltwo.addWidget(self.tozoneA)
-
-            Lthree = QtWidgets.QFormLayout()
-            Lthree.addRow('X:', self.xposA)
-            Lthree.addRow('Y:', self.yposA)
-
-            Lfour = QtWidgets.QFormLayout()
-            Lfour.addRow('X: ', self.xscrollA)
-            Lfour.addRow('Y: ', self.yscrollA)
+        self.yscrollA = QtWidgets.QComboBox()
+        self.yscrollA.addItems(BgScrollRateStrings)
+        self.yscrollA.setToolTip('Changes the rate that the background moves in\nrelation to Mario when he moves vertically.\nValues higher than 1x may be glitchy!')
+        if z.YscrollA < 0: z.YscrollA = 0
+        if z.YscrollA >= len(BgScrollRates): z.YscrollA = len(BgScrollRates)
+        self.yscrollA.setCurrentIndex(z.YscrollA)
 
 
-            mainLayout = QtWidgets.QGridLayout()
-            mainLayout.addWidget(self.positionlabel, 0, 0)
-            mainLayout.addLayout(Lthree, 1, 0)
-            mainLayout.addWidget(self.scrollrate, 0, 1)
-            mainLayout.addLayout(Lfour, 1, 1)
-            mainLayout.addLayout(Lone, 2, 0, 1, 2)
-            mainLayout.addWidget(self.alignLabel, 3, 0, 1, 2)
-            mainLayout.addLayout(Ltwo, 4, 0, 1, 2)
-            mainLayout.setRowStretch(5, 1)
-            self.BGa.setLayout(mainLayout)
+        self.zoomA = QtWidgets.QComboBox()
+        addstr = ['100%', '125%', '150%', '200%']
+        self.zoomA.addItems(addstr)
+        self.zoomA.setToolTip('Sets the zoom level of the background image')
+        self.zoomA.setCurrentIndex(z.ZoomA)
+
+        self.toscreenA = QtWidgets.QRadioButton()
+        self.toscreenA.setToolTip('Aligns the background baseline to the bottom of the screen')
+        self.toscreenLabel = QtWidgets.QLabel('Screen')
+        self.tozoneA = QtWidgets.QRadioButton()
+        self.tozoneA.setToolTip('Aligns the background baseline to the bottom of the zone')
+        self.tozoneLabel = QtWidgets.QLabel('Zone')
+        if z.bg2A == 0x000A:
+            self.tozoneA.setChecked(1)
+        else:
+            self.toscreenA.setChecked(1)
+
+        self.alignLabel = QtWidgets.QLabel('Align to: ')
+
+        Lone = QtWidgets.QFormLayout()
+        Lone.addRow('Zoom: ', self.zoomA)
+
+        Ltwo = QtWidgets.QHBoxLayout()
+        Ltwo.addWidget(self.toscreenLabel)
+        Ltwo.addWidget(self.toscreenA)
+        Ltwo.addWidget(self.tozoneLabel)
+        Ltwo.addWidget(self.tozoneA)
+
+        Lthree = QtWidgets.QFormLayout()
+        Lthree.addRow('X:', self.xposA)
+        Lthree.addRow('Y:', self.yposA)
+
+        Lfour = QtWidgets.QFormLayout()
+        Lfour.addRow('X: ', self.xscrollA)
+        Lfour.addRow('Y: ', self.yscrollA)
+
+
+        mainLayout = QtWidgets.QGridLayout()
+        mainLayout.addWidget(self.positionlabel, 0, 0)
+        mainLayout.addLayout(Lthree, 1, 0)
+        mainLayout.addWidget(self.scrollrate, 0, 1)
+        mainLayout.addLayout(Lfour, 1, 1)
+        mainLayout.addLayout(Lone, 2, 0, 1, 2)
+        mainLayout.addWidget(self.alignLabel, 3, 0, 1, 2)
+        mainLayout.addLayout(Ltwo, 4, 0, 1, 2)
+        mainLayout.setRowStretch(5, 1)
+        self.BGa.setLayout(mainLayout)
 
 
     def createBGb(self, z):
-            self.BGb = QtWidgets.QGroupBox('Backdrop')
+        self.BGb = QtWidgets.QGroupBox('Backdrop')
 
 
-            self.xposB = QtWidgets.QSpinBox()
-            self.xposB.setToolTip('Sets the horizontal offset of your background')
-            self.xposB.setRange(-256, 255)
-            self.xposB.setValue(z.XpositionB)
+        self.xposB = QtWidgets.QSpinBox()
+        self.xposB.setToolTip('Sets the horizontal offset of your background')
+        self.xposB.setRange(-256, 255)
+        self.xposB.setValue(z.XpositionB)
 
-            self.yposB = QtWidgets.QSpinBox()
-            self.yposB.setToolTip('Sets the vertical offset of your background')
-            self.yposB.setRange(-255, 256)
-            self.yposB.setValue(-z.YpositionB)
+        self.yposB = QtWidgets.QSpinBox()
+        self.yposB.setToolTip('Sets the vertical offset of your background')
+        self.yposB.setRange(-255, 256)
+        self.yposB.setValue(-z.YpositionB)
 
-            self.scrollrate = QtWidgets.QLabel('Scroll Rate:')
-            self.positionlabel = QtWidgets.QLabel('Position:')
+        self.scrollrate = QtWidgets.QLabel('Scroll Rate:')
+        self.positionlabel = QtWidgets.QLabel('Position:')
 
-            self.xscrollB = QtWidgets.QComboBox()
-            self.xscrollB.addItems(BgScrollRateStrings)
-            self.xscrollB.setToolTip('Changes the rate that the background moves in\nrelation to Mario when he moves horizontally.\nValues higher than 1x may be glitchy!')
-            if z.XscrollB < 0: z.XscrollB = 0
-            if z.XscrollB >= len(BgScrollRates): z.XscrollB = len(BgScrollRates)
-            self.xscrollB.setCurrentIndex(z.XscrollB)
+        self.xscrollB = QtWidgets.QComboBox()
+        self.xscrollB.addItems(BgScrollRateStrings)
+        self.xscrollB.setToolTip('Changes the rate that the background moves in\nrelation to Mario when he moves horizontally.\nValues higher than 1x may be glitchy!')
+        if z.XscrollB < 0: z.XscrollB = 0
+        if z.XscrollB >= len(BgScrollRates): z.XscrollB = len(BgScrollRates)
+        self.xscrollB.setCurrentIndex(z.XscrollB)
 
-            self.yscrollB = QtWidgets.QComboBox()
-            self.yscrollB.addItems(BgScrollRateStrings)
-            self.yscrollB.setToolTip('Changes the rate that the background moves in\nrelation to Mario when he moves vertically.\nValues higher than 1x may be glitchy!')
-            if z.YscrollB < 0: z.YscrollB = 0
-            if z.YscrollB >= len(BgScrollRates): z.YscrollB = len(BgScrollRates)
-            self.yscrollB.setCurrentIndex(z.YscrollB)
-
-
-            self.zoomB = QtWidgets.QComboBox()
-            addstr = ['100%', '125%', '150%', '200%']
-            self.zoomB.addItems(addstr)
-            self.zoomB.setToolTip('Sets the zoom level of the background image')
-            self.zoomB.setCurrentIndex(z.ZoomB)
-
-            self.toscreenB = QtWidgets.QRadioButton()
-            self.toscreenB.setToolTip('Aligns the background baseline to the bottom of the screen')
-            self.toscreenLabel = QtWidgets.QLabel('Screen')
-            self.tozoneB = QtWidgets.QRadioButton()
-            self.tozoneB.setToolTip('Aligns the background baseline to the bottom of the zone')
-            self.tozoneLabel = QtWidgets.QLabel('Zone')
-            if z.bg2B == 0x000A:
-                self.tozoneB.setChecked(1)
-            else:
-                self.toscreenB.setChecked(1)
-
-            self.alignLabel = QtWidgets.QLabel('Align to: ')
-
-            Lone = QtWidgets.QFormLayout()
-            Lone.addRow('Zoom: ', self.zoomB)
-
-            Ltwo = QtWidgets.QHBoxLayout()
-            Ltwo.addWidget(self.toscreenLabel)
-            Ltwo.addWidget(self.toscreenB)
-            Ltwo.addWidget(self.tozoneLabel)
-            Ltwo.addWidget(self.tozoneB)
-
-            Lthree = QtWidgets.QFormLayout()
-            Lthree.addRow('X:', self.xposB)
-            Lthree.addRow('Y:', self.yposB)
-
-            Lfour = QtWidgets.QFormLayout()
-            Lfour.addRow('X: ', self.xscrollB)
-            Lfour.addRow('Y: ', self.yscrollB)
+        self.yscrollB = QtWidgets.QComboBox()
+        self.yscrollB.addItems(BgScrollRateStrings)
+        self.yscrollB.setToolTip('Changes the rate that the background moves in\nrelation to Mario when he moves vertically.\nValues higher than 1x may be glitchy!')
+        if z.YscrollB < 0: z.YscrollB = 0
+        if z.YscrollB >= len(BgScrollRates): z.YscrollB = len(BgScrollRates)
+        self.yscrollB.setCurrentIndex(z.YscrollB)
 
 
-            mainLayout = QtWidgets.QGridLayout()
-            mainLayout.addWidget(self.positionlabel, 0, 0)
-            mainLayout.addLayout(Lthree, 1, 0)
-            mainLayout.addWidget(self.scrollrate, 0, 1)
-            mainLayout.addLayout(Lfour, 1, 1)
-            mainLayout.addLayout(Lone, 2, 0, 1, 2)
-            mainLayout.addWidget(self.alignLabel, 3, 0, 1, 2)
-            mainLayout.addLayout(Ltwo, 4, 0, 1, 2)
-            mainLayout.setRowStretch(5, 1)
-            self.BGb.setLayout(mainLayout)
+        self.zoomB = QtWidgets.QComboBox()
+        addstr = ['100%', '125%', '150%', '200%']
+        self.zoomB.addItems(addstr)
+        self.zoomB.setToolTip('Sets the zoom level of the background image')
+        self.zoomB.setCurrentIndex(z.ZoomB)
+
+        self.toscreenB = QtWidgets.QRadioButton()
+        self.toscreenB.setToolTip('Aligns the background baseline to the bottom of the screen')
+        self.toscreenLabel = QtWidgets.QLabel('Screen')
+        self.tozoneB = QtWidgets.QRadioButton()
+        self.tozoneB.setToolTip('Aligns the background baseline to the bottom of the zone')
+        self.tozoneLabel = QtWidgets.QLabel('Zone')
+        if z.bg2B == 0x000A:
+            self.tozoneB.setChecked(1)
+        else:
+            self.toscreenB.setChecked(1)
+
+        self.alignLabel = QtWidgets.QLabel('Align to: ')
+
+        Lone = QtWidgets.QFormLayout()
+        Lone.addRow('Zoom: ', self.zoomB)
+
+        Ltwo = QtWidgets.QHBoxLayout()
+        Ltwo.addWidget(self.toscreenLabel)
+        Ltwo.addWidget(self.toscreenB)
+        Ltwo.addWidget(self.tozoneLabel)
+        Ltwo.addWidget(self.tozoneB)
+
+        Lthree = QtWidgets.QFormLayout()
+        Lthree.addRow('X:', self.xposB)
+        Lthree.addRow('Y:', self.yposB)
+
+        Lfour = QtWidgets.QFormLayout()
+        Lfour.addRow('X: ', self.xscrollB)
+        Lfour.addRow('Y: ', self.yscrollB)
+
+
+        mainLayout = QtWidgets.QGridLayout()
+        mainLayout.addWidget(self.positionlabel, 0, 0)
+        mainLayout.addLayout(Lthree, 1, 0)
+        mainLayout.addWidget(self.scrollrate, 0, 1)
+        mainLayout.addLayout(Lfour, 1, 1)
+        mainLayout.addLayout(Lone, 2, 0, 1, 2)
+        mainLayout.addWidget(self.alignLabel, 3, 0, 1, 2)
+        mainLayout.addLayout(Ltwo, 4, 0, 1, 2)
+        mainLayout.setRowStretch(5, 1)
+        self.BGb.setLayout(mainLayout)
 
 
     def createBGaViewer(self, z):
-            self.BGaViewer = QtWidgets.QGroupBox('Preview')
+        self.BGaViewer = QtWidgets.QGroupBox('Preview')
 
-            self.background_nameA = QtWidgets.QComboBox()
-            self.previewA = QtWidgets.QLabel()
+        self.background_nameA = QtWidgets.QComboBox()
+        self.previewA = QtWidgets.QLabel()
 
-            #image = QtGui.QImage('reggiedata/bga/000A.png')
-            #self.previewA.setPixmap(QtGui.QPixmap.fromImage(image))
+        #image = QtGui.QImage('reggiedata/bga/000A.png')
+        #self.previewA.setPixmap(QtGui.QPixmap.fromImage(image))
 
-            if z.bg1A == 0x000A:
-                currentBG = z.bg2A
-            else:
-                currentBG = z.bg1A
+        if z.bg1A == 0x000A:
+            currentBG = z.bg2A
+        else:
+            currentBG = z.bg1A
 
-            found_it = False
+        found_it = False
 
-            for bfile_raw, bname in BgANames:
-                bfile = int(bfile_raw, 16)
-                self.background_nameA.addItem('%s (%04X)' % (bname,bfile), bfile)
+        for bfile_raw, bname in BgANames:
+            bfile = int(bfile_raw, 16)
+            self.background_nameA.addItem('%s (%04X)' % (bname,bfile), bfile)
 
-                if currentBG == bfile:
-                    self.background_nameA.setCurrentIndex(self.background_nameA.count() - 1)
-                    found_it = True
-
-            if found_it:
-                custom = ''
-            else:
-                custom = ' (%04X)' % currentBG
-
-            self.background_nameA.addItem('Custom background ID...%s' % custom, currentBG)
-            if not found_it:
+            if currentBG == bfile:
                 self.background_nameA.setCurrentIndex(self.background_nameA.count() - 1)
+                found_it = True
 
-            self.currentIndexA = self.background_nameA.currentIndex()
+        if found_it:
+            custom = ''
+        else:
+            custom = ' (%04X)' % currentBG
 
-            self.background_nameA.activated.connect(self.viewboxA)
-            self.viewboxA(self.background_nameA.currentIndex(), True)
+        self.background_nameA.addItem('Custom background ID...%s' % custom, currentBG)
+        if not found_it:
+            self.background_nameA.setCurrentIndex(self.background_nameA.count() - 1)
 
-            mainLayout = QtWidgets.QVBoxLayout()
-            mainLayout.addWidget(self.background_nameA)
-            mainLayout.addWidget(self.previewA)
-            self.BGaViewer.setLayout(mainLayout)
+        self.currentIndexA = self.background_nameA.currentIndex()
+
+        self.background_nameA.activated.connect(self.viewboxA)
+        self.viewboxA(self.background_nameA.currentIndex(), True)
+
+        mainLayout = QtWidgets.QVBoxLayout()
+        mainLayout.addWidget(self.background_nameA)
+        mainLayout.addWidget(self.previewA)
+        self.BGaViewer.setLayout(mainLayout)
 
 
     @QtCore.pyqtSlot(int)
@@ -6312,47 +6312,47 @@ class BGTab(QtWidgets.QWidget):
 
 
     def createBGbViewer(self, z):
-            self.BGbViewer = QtWidgets.QGroupBox('Preview')
+        self.BGbViewer = QtWidgets.QGroupBox('Preview')
 
-            self.background_nameB = QtWidgets.QComboBox()
-            self.previewB = QtWidgets.QLabel()
+        self.background_nameB = QtWidgets.QComboBox()
+        self.previewB = QtWidgets.QLabel()
 
-            #image = QtGui.QImage('reggiedata/bgb/000A.png')
-            #self.previewB.setPixmap(QtGui.QPixmap.fromImage(image))
+        #image = QtGui.QImage('reggiedata/bgb/000A.png')
+        #self.previewB.setPixmap(QtGui.QPixmap.fromImage(image))
 
-            if z.bg1B == 0x000A:
-                currentBG = z.bg2B
-            else:
-                currentBG = z.bg1B
+        if z.bg1B == 0x000A:
+            currentBG = z.bg2B
+        else:
+            currentBG = z.bg1B
 
-            found_it = False
+        found_it = False
 
-            for bfile_raw, bname in BgBNames:
-                bfile = int(bfile_raw, 16)
-                self.background_nameB.addItem('%s (%04X)' % (bname,bfile), bfile)
+        for bfile_raw, bname in BgBNames:
+            bfile = int(bfile_raw, 16)
+            self.background_nameB.addItem('%s (%04X)' % (bname,bfile), bfile)
 
-                if currentBG == bfile:
-                    self.background_nameB.setCurrentIndex(self.background_nameB.count() - 1)
-                    found_it = True
-
-            if found_it:
-                custom = ''
-            else:
-                custom = ' (%04X)' % currentBG
-
-            self.background_nameB.addItem('Custom background ID...%s' % custom, currentBG)
-            if not found_it:
+            if currentBG == bfile:
                 self.background_nameB.setCurrentIndex(self.background_nameB.count() - 1)
+                found_it = True
 
-            self.currentIndexB = self.background_nameB.currentIndex()
+        if found_it:
+            custom = ''
+        else:
+            custom = ' (%04X)' % currentBG
 
-            self.background_nameB.activated.connect(self.viewboxB)
-            self.viewboxB(self.background_nameB.currentIndex())
+        self.background_nameB.addItem('Custom background ID...%s' % custom, currentBG)
+        if not found_it:
+            self.background_nameB.setCurrentIndex(self.background_nameB.count() - 1)
 
-            mainLayout = QtWidgets.QVBoxLayout()
-            mainLayout.addWidget(self.background_nameB)
-            mainLayout.addWidget(self.previewB)
-            self.BGbViewer.setLayout(mainLayout)
+        self.currentIndexB = self.background_nameB.currentIndex()
+
+        self.background_nameB.activated.connect(self.viewboxB)
+        self.viewboxB(self.background_nameB.currentIndex())
+
+        mainLayout = QtWidgets.QVBoxLayout()
+        mainLayout.addWidget(self.background_nameB)
+        mainLayout.addWidget(self.previewB)
+        self.BGbViewer.setLayout(mainLayout)
 
 
     @QtCore.pyqtSlot(int)
