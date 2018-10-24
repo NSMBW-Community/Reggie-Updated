@@ -4018,7 +4018,7 @@ class EntranceEditorWidget(QtWidgets.QWidget):
         self.unknownFlagCheckbox.clicked.connect(self.HandleUnknownFlagClicked)
 
         self.connectedPipeCheckbox = QtWidgets.QCheckBox('Connected Pipe')
-        self.connectedPipeCheckbox.setToolTip("<b>Connected Pipe:</b> This box allows you to enable an unused/broken feature in the game. It allows the pipe to function like the pipes in SMB3 where Mario simply goes through the pipe. However, it doesn't work correctly and the paths involved can't be edited by Reggie yet.")
+        self.connectedPipeCheckbox.setToolTip("<b>Connected Pipe:</b> This box allows you to enable an unused/broken feature in the game. It allows the pipe to function like the pipes in SMB3 where Mario simply goes through the pipe. However, it doesn't work correctly.")
         self.connectedPipeCheckbox.clicked.connect(self.HandleConnectedPipeClicked)
 
         self.connectedPipeReverseCheckbox = QtWidgets.QCheckBox('Connected Pipe Reverse')
