@@ -4131,8 +4131,8 @@ class EntranceEditorWidget(QtWidgets.QWidget):
         """Handler for the entrance type changing"""
         self.connectedPipeCheckbox.setVisible(i in self.CanUseFlag8)
         self.connectedPipeReverseCheckbox.setVisible(i in self.CanUseFlag8 and ((self.ent.entsettings & 8) != 0))
-        self.pathIDLabel.setVisible(i and ((self.ent.entsettings & 8) != 0))
-        self.pathID.setVisible(i and ((self.ent.entsettings & 8) != 0))
+        self.pathIDLabel.setVisible(i in self.CanUseFlag8 and ((self.ent.entsettings & 8) != 0))
+        self.pathID.setVisible(i in self.CanUseFlag8 and ((self.ent.entsettings & 8) != 0))
         self.forwardPipeCheckbox.setVisible(i in self.CanUseFlag4)
         if self.UpdateFlag: return
         SetDirty()
