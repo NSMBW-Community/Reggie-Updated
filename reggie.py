@@ -1490,7 +1490,7 @@ class LevelUnit():
         for i in range(14):
             data = getblock.unpack_from(course, i*8)
             if data[1] == 0:
-                self.blocks[i] = ''
+                self.blocks[i] = b''
             else:
                 self.blocks[i] = course[data[0]:data[0]+data[1]]
 
