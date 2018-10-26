@@ -27,7 +27,7 @@ except ImportError:
 
 # exclude PyQt4 if we're on Python 3, or PyQt5 if we're on Python 2
 excludePyQtVer = 5 if sys.version_info.major < 3 else 4
-pyqtModules = ['Core', 'Gui', 'Widgets']
+pyqtModules = ['Core', 'Gui', 'Widgets', 'Designer', 'OpenGL', 'Script', 'Sql', 'Test', 'Xml']
 excludes.append('PyQt%d' % excludePyQtVer)
 for m in pyqtModules:
     excludes.append('PyQt%d.Qt%s' % (excludePyQtVer, m))
@@ -44,7 +44,7 @@ setup(
         },
     },
     executables=[
-        Executable("reggie.py")
+        Executable('reggie.py')
     ]
 )
 

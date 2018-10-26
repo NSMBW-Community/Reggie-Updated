@@ -22,6 +22,25 @@ plist = dict(
 )
 
 
+excludes = ['doctest', 'pdb', 'unittest', 'difflib', 'inspect',
+    'os2emxpath', 'posixpath', 'optpath', 'locale', 'calendar',
+    'threading', 'select', 'socket', 'hashlib', 'multiprocessing', 'ssl',
+    'PyQt4.QtWebKit', 'PyQt4.QtNetwork', 'PyQt5.QtWebKit', 'PyQt5.QtNetwork']
+
+# exclude PyQt4 if we're on Python 3, or PyQt5 if we're on Python 2
+excludePyQtVer = 5 if sys.version_info.major < 3 else 4
+pyqtModules = ['Core', 'Gui', 'Widgets', 'Designer', 'OpenGL', 'Script', 'Sql', 'Test', 'Xml']
+excludes.append('PyQt%d' % excludePyQtVer)
+excludes.append('PyQt%d.phonon' % excludePyQtVer)
+for m in pyqtModules:
+    excludes.append('PyQt%d.Qt%s' % (excludePyQtVer, m))
+
+includes = ['sip', 'encodings', 'encodings.hex_codec']
+includePyQtVer = 4 if sys.version_info.major < 3 else 5
+includes.append('PyQt%d' % includePyQtVer)
+for m in pyqtModules:
+    includes.append('PyQt%d.Qt%s' % (includePyQtVer, m))
+
 
 APP = ['reggie.py']
 DATA_FILES = ['reggiedata', 'archive.py', 'common.py', 'license.txt', 'lz77.py', 'nsmblib-0.4.1.zip', 'readme.txt', 'sprites.py']
@@ -31,9 +50,8 @@ OPTIONS = {
  'iconfile': 'reggiedata/reggie.icns',
  'plist': plist,
 # 'xref': True,
- 'includes': ['sip', 'encodings', 'encodings.hex_codec', 'PyQt5', 'PyQt5.QtCore', 'PyQt5.QtGui', 'PyQt5.QtWidgets'],
- 'excludes': ['PyQt5.QtWebKit', 'PyQt5.QtDesigner', 'PyQt5.QtNetwork', 'PyQt5.QtOpenGL',
-            'PyQt5.QtScript', 'PyQt5.QtSql', 'PyQt5.QtTest', 'PyQt5.QtXml', 'PyQt5.phonon', 'nsmblibmodule'],
+ 'includes': includes,
+ 'excludes': excludes,
  'compressed': 0,
  'optimize': 0
 }
