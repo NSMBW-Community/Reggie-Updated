@@ -363,7 +363,7 @@ class SpriteDefinition():
             attribs = field.attributes
 
             if keyInAttribs('comment', field):
-                comment = '<b>%s</b>: %s' % (attribs['title'].nodeValue, attribs['comment'].nodeValue)
+                comment = '<b>%s</b>:<br>%s' % (attribs['title'].nodeValue, attribs['comment'].nodeValue)
             else:
                 comment = None
 
@@ -1702,7 +1702,7 @@ class LevelUnit():
         self.zones = zones
 
     def LoadLocations(self):
-        """Loads block 11, the sprite locations"""
+        """Loads block 11, the locations"""
         locdata = self.blocks[10]
         locstruct = struct.Struct('>HHHHBxxx')
         count = len(locdata) // 12
@@ -2515,7 +2515,7 @@ class ZoneItem(LevelEditorItem):
         return QtWidgets.QGraphicsItem.itemChange(self, change, value)
 
 class LocationEditorItem(LevelEditorItem):
-    """Level editor item that represents a sprite location"""
+    """Level editor item that represents a location"""
     sizeChanged = None # Callback: sizeChanged(SpriteEditorItem obj, int width, int height)
 
     def __init__(self, x, y, width, height, id):
@@ -3993,53 +3993,53 @@ class EntranceEditorWidget(QtWidgets.QWidget):
         # create widgets
         self.entranceID = QtWidgets.QSpinBox()
         self.entranceID.setRange(0, 255)
-        self.entranceID.setToolTip('Must be different from all other IDs')
+        self.entranceID.setToolTip('<b>ID:</b><br>Must be different from all other IDs')
         self.entranceID.valueChanged.connect(self.HandleEntranceIDChanged)
 
         self.entranceType = QtWidgets.QComboBox()
         LoadEntranceNames()
         self.entranceType.addItems(EntranceTypeNames)
-        self.entranceType.setToolTip('Sets how the entrance behaves')
+        self.entranceType.setToolTip('<b>Type:</b><br>Sets how the entrance behaves')
         self.entranceType.activated.connect(self.HandleEntranceTypeChanged)
 
         self.destArea = QtWidgets.QSpinBox()
         self.destArea.setRange(0, 4)
-        self.destArea.setToolTip('If this entrance leads nowhere or the destination is in this area, set this to 0.')
+        self.destArea.setToolTip('<b>Dest. Area:</b><br>If this entrance leads nowhere or the destination is in this area, set this to 0.')
         self.destArea.valueChanged.connect(self.HandleDestAreaChanged)
 
         self.destEntrance = QtWidgets.QSpinBox()
         self.destEntrance.setRange(0, 255)
-        self.destEntrance.setToolTip('If this entrance leads nowhere, set this to 0.')
+        self.destEntrance.setToolTip('<b>Dest. ID:</b><br>If this entrance leads nowhere, set this to 0.')
         self.destEntrance.valueChanged.connect(self.HandleDestEntranceChanged)
 
         self.enterableCheckbox = QtWidgets.QCheckBox('Enterable')
-        self.enterableCheckbox.setToolTip("<b>Enterable:</b> If this box is checked on a pipe or door entrance, Mario will be able to enter the pipe/door. If it's not checked, he won't be able to enter it. Behaviour on other types of entrances is unknown/undefined.")
+        self.enterableCheckbox.setToolTip("<b>Enterable:</b><br>If this box is checked on a pipe or door entrance, Mario will be able to enter the pipe/door. If it's not checked, he won't be able to enter it. Behaviour on other types of entrances is unknown/undefined.")
         self.enterableCheckbox.clicked.connect(self.HandleEnterableClicked)
 
         self.unknownFlagCheckbox = QtWidgets.QCheckBox('Unknown Flag')
-        self.unknownFlagCheckbox.setToolTip("<b>Unknown Flag:</b> This box is checked on a few entrances in the game, but we haven't managed to figure out what it does (or if it does anything).")
+        self.unknownFlagCheckbox.setToolTip("<b>Unknown Flag:</b><br>This box is checked on a few entrances in the game, but we haven't managed to figure out what it does (or if it does anything).")
         self.unknownFlagCheckbox.clicked.connect(self.HandleUnknownFlagClicked)
 
         self.connectedPipeCheckbox = QtWidgets.QCheckBox('Connected Pipe')
-        self.connectedPipeCheckbox.setToolTip("<b>Connected Pipe:</b> This box allows you to enable an unused/broken feature in the game. It allows the pipe to function like the pipes in SMB3 where Mario simply goes through the pipe. However, it doesn't work correctly.")
+        self.connectedPipeCheckbox.setToolTip("<b>Connected Pipe:</b><br>This box allows you to enable an unused/broken feature in the game. It allows the pipe to function like the pipes in SMB3 where Mario simply goes through the pipe. However, it doesn't work correctly.")
         self.connectedPipeCheckbox.clicked.connect(self.HandleConnectedPipeClicked)
 
         self.connectedPipeReverseCheckbox = QtWidgets.QCheckBox('Connected Pipe Reverse')
-        self.connectedPipeReverseCheckbox.setToolTip("<b>Connected Pipe Reverse:</b> If you're using connected pipes, this flag must be set on the opposite end (the one located at the end of the path).")
+        self.connectedPipeReverseCheckbox.setToolTip("<b>Connected Pipe Reverse:</b><br>If you're using connected pipes, this flag must be set on the opposite end (the one located at the end of the path).")
         self.connectedPipeReverseCheckbox.clicked.connect(self.HandleConnectedPipeReverseClicked)
 
         self.pathID = QtWidgets.QSpinBox()
         self.pathID.setRange(0, 255)
-        self.pathID.setToolTip('<b>Path ID:</b> Use this option to set the path number that the connected pipe will follow.')
+        self.pathID.setToolTip('<b>Path ID:</b><br>Use this option to set the path number that the connected pipe will follow.')
         self.pathID.valueChanged.connect(self.HandlePathIDChanged)
 
         self.forwardPipeCheckbox = QtWidgets.QCheckBox('Links to Forward Pipe')
-        self.forwardPipeCheckbox.setToolTip('<b>Links to Forward Pipe:</b> If this option is set on a pipe, the destination entrance/area values will be ignored - Mario will pass through the pipe and then reappear several tiles ahead, coming out of a forward-facing pipe.')
+        self.forwardPipeCheckbox.setToolTip('<b>Links to Forward Pipe:</b><br>If this option is set on a pipe, the destination entrance/area values will be ignored - Mario will pass through the pipe and then reappear several tiles ahead, coming out of a pipe that faces the screen.')
         self.forwardPipeCheckbox.clicked.connect(self.HandleForwardPipeClicked)
 
         self.activeLayer = QtWidgets.QComboBox()
         self.activeLayer.addItems(['Layer 1', 'Layer 2', 'Layer 0'])
-        self.activeLayer.setToolTip('<b>Active Layer:</b> Allows you to change the collision layer which this entrance is active on. This option is very glitchy and not used in the default levels - for almost all normal cases, you will want to use layer 1.')
+        self.activeLayer.setToolTip('<b>Active on:</b><br>Allows you to change the collision layer which this entrance is active on. This option is very glitchy and not used in the default levels - for almost all normal cases, you will want to use layer 1.')
         self.activeLayer.activated.connect(self.HandleActiveLayerChanged)
 
         # create a layout
@@ -4250,23 +4250,23 @@ class PathNodeEditorWidget(QtWidgets.QWidget):
         #not doing [20:52:58]  [Angel-SL] and 2 buttons - 7. "Move Up" 8. "Move Down"
         self.speed = QtWidgets.QDoubleSpinBox()
         self.speed.setRange(min(sys.float_info), max(sys.float_info))
-        self.speed.setToolTip('Speed (unknown unit). Mess around and report your findings!')
+        self.speed.setToolTip('<b>Speed:</b><br>Unknown units. Mess around and report your findings!')
         self.speed.setDecimals(int(sys.float_info.__getattribute__('dig')))
         self.speed.valueChanged.connect(self.HandleSpeedChanged)
 
         self.accel = QtWidgets.QDoubleSpinBox()
         self.accel.setRange(min(sys.float_info), max(sys.float_info))
-        self.accel.setToolTip('Accel (unknown unit). Mess around and report your findings!')
+        self.accel.setToolTip('<b>Accel:</b><br>Unknown units. Mess around and report your findings!')
         self.accel.setDecimals(int(sys.float_info.__getattribute__('dig')))
         self.accel.valueChanged.connect(self.HandleAccelChanged)
 
         self.delay = QtWidgets.QSpinBox()
         self.delay.setRange(0, 65535)
-        self.delay.setToolTip('<b>Delay</b><br>Amount of time to stop here (at this node) before continuing to next node. Unit is 1/60 of a second (60 for 1 second)')
+        self.delay.setToolTip('<b>Delay:</b><br>Amount of time to stop here (at this node) before continuing to next node. Unit is 1/60 of a second (60 for 1 second)')
         self.delay.valueChanged.connect(self.HandleDelayChanged)
 
         self.loops = QtWidgets.QCheckBox()
-        self.loops.setToolTip('<b>Loops</b><br>Anything following this path will wait for any delay set at the last node and then proceed back in a straight line to the first node, and continue.')
+        self.loops.setToolTip('<b>Loops:</b><br>Anything following this path will wait for any delay set at the last node and then proceed back in a straight line to the first node, and continue.')
         self.loops.stateChanged.connect(self.HandleLoopsChanged)
 
         # create a layout
@@ -4355,27 +4355,27 @@ class LocationEditorWidget(QtWidgets.QWidget):
 
         # create widgets
         self.locationID = QtWidgets.QSpinBox()
-        self.locationID.setToolTip('Must be different from all other IDs')
+        self.locationID.setToolTip('<b>ID:</b><br>Must be different from all other IDs')
         self.locationID.setRange(0, 255)
         self.locationID.valueChanged.connect(self.HandleLocationIDChanged)
 
         self.locationX = QtWidgets.QSpinBox()
-        self.locationX.setToolTip('Specifies the X position of the Sprite location')
+        self.locationX.setToolTip('<b>X pos:</b><br>Specifies the X position of the location')
         self.locationX.setRange(16, 65535)
         self.locationX.valueChanged.connect(self.HandleLocationXChanged)
 
         self.locationY = QtWidgets.QSpinBox()
-        self.locationY.setToolTip('Specifies the Y position of the Sprite location')
+        self.locationY.setToolTip('<b>Y pos:</b><br>Specifies the Y position of the location')
         self.locationY.setRange(16, 65535)
         self.locationY.valueChanged.connect(self.HandleLocationYChanged)
 
         self.locationWidth = QtWidgets.QSpinBox()
-        self.locationWidth.setToolTip('Specifies the width of the Sprite location')
+        self.locationWidth.setToolTip('<b>Width:</b><br>Specifies the width of the location')
         self.locationWidth.setRange(0, 65535)
         self.locationWidth.valueChanged.connect(self.HandleLocationWidthChanged)
 
         self.locationHeight = QtWidgets.QSpinBox()
-        self.locationHeight.setToolTip('Specifies the height of the Sprite location')
+        self.locationHeight.setToolTip('<b>Height:</b><br>Specifies the height of the location')
         self.locationHeight.setRange(0, 65535)
         self.locationHeight.valueChanged.connect(self.HandleLocationHeightChanged)
 
@@ -5518,18 +5518,18 @@ class LoadingTab(QtWidgets.QWidget):
 
         self.timer = QtWidgets.QSpinBox()
         self.timer.setRange(0, 999)
-        self.timer.setToolTip('Sets the countdown timer on load from the world map.')
+        self.timer.setToolTip('<b>Timer:</b><br>Sets the countdown timer on load from the world map.')
         timerLabel = QtWidgets.QLabel('Timer:')
         self.timer.setValue(Level.timeLimit + 200)
 
         self.entrance = QtWidgets.QSpinBox()
         self.entrance.setRange(0, 255)
-        self.entrance.setToolTip('Sets the entrance ID to load into when loading from the World Map')
+        self.entrance.setToolTip('<b>Entrance ID:</b><br>Sets the entrance ID to load into when loading from the World Map')
         entranceLabel = QtWidgets.QLabel('Entrance ID:')
         self.entrance.setValue(Level.startEntrance)
 
         self.wrap = QtWidgets.QCheckBox('Wrap across Edges')
-        self.wrap.setToolTip('Makes the stage edges wrap<br>Warning: This option may cause the game to crash or behave weirdly. Wrapping only works correctly where the area is set up in the right way; see Coin Battle 1 for an example.')
+        self.wrap.setToolTip('<b>Wrap across Edges:</b><br>Makes the stage edges wrap<br>Warning: This option may cause the game to crash or behave weirdly. Wrapping only works correctly where the area is set up in the right way; see Coin Battle 1 for an example.')
         self.wrap.setChecked((Level.wrapFlag & 1) != 0)
 
         settingsLayout = QtWidgets.QFormLayout()
@@ -5555,7 +5555,7 @@ class LoadingTab(QtWidgets.QWidget):
         eventLayout.addWidget(self.eventChooser)
 
         eventBox = QtWidgets.QGroupBox('Default Events')
-        eventBox.setToolTip('Check the following Event IDs to make them start already activated.')
+        eventBox.setToolTip('<b>Default Events:</b><br>Check the following Event IDs to make them start already activated.')
         eventBox.setLayout(eventLayout)
 
         Layout = QtWidgets.QVBoxLayout()
@@ -5793,22 +5793,22 @@ class ZoneTab(QtWidgets.QWidget):
 
         self.Zone_xpos = QtWidgets.QSpinBox()
         self.Zone_xpos.setRange(16, 65535)
-        self.Zone_xpos.setToolTip('Sets the X Position of the upper left corner')
+        self.Zone_xpos.setToolTip('<b>X position:</b><br>Sets the X position of the upper left corner')
         self.Zone_xpos.setValue(z.objx)
 
         self.Zone_ypos = QtWidgets.QSpinBox()
         self.Zone_ypos.setRange(16, 65535)
-        self.Zone_ypos.setToolTip('Sets the Y Position of the upper left corner')
+        self.Zone_ypos.setToolTip('<b>Y position:</b><br>Sets the Y position of the upper left corner')
         self.Zone_ypos.setValue(z.objy)
 
         self.Zone_width = QtWidgets.QSpinBox()
         self.Zone_width.setRange(300, 65535)
-        self.Zone_width.setToolTip('Sets the width of the zone')
+        self.Zone_width.setToolTip('<b>X size:</b><br>Sets the width of the zone')
         self.Zone_width.setValue(z.width)
 
         self.Zone_height = QtWidgets.QSpinBox()
         self.Zone_height.setRange(200, 65535)
-        self.Zone_height.setToolTip('Sets the height of the zone')
+        self.Zone_height.setToolTip('<b>Y size:</b><br>Sets the height of the zone')
         self.Zone_height.setValue(z.height)
 
 
@@ -5834,27 +5834,27 @@ class ZoneTab(QtWidgets.QWidget):
 
         self.Zone_modeldark = QtWidgets.QComboBox()
         self.Zone_modeldark.addItems(ZoneThemeValues)
-        self.Zone_modeldark.setToolTip('<b>Zone Theme:</b> Changes the way models and parts of the background are rendered (for blurring, darkness, lava effects, and so on). Themes with * next to them are used in the game, but look the same as the overworld theme.')
+        self.Zone_modeldark.setToolTip('<b>Zone Theme:</b><br>Changes the way models and parts of the background are rendered (for blurring, darkness, lava effects, and so on). Themes with * next to them are used in the game, but look the same as the overworld theme.')
         if z.modeldark < 0: z.modeldark = 0
         if z.modeldark >= len(ZoneThemeValues): z.modeldark = len(ZoneThemeValues)
         self.Zone_modeldark.setCurrentIndex(z.modeldark)
 
         self.Zone_terraindark = QtWidgets.QComboBox()
         self.Zone_terraindark.addItems(ZoneTerrainThemeValues)
-        self.Zone_terraindark.setToolTip("<b>Terrain Theme:</b> Changes the way the terrain is rendered. It also affects the parts of the background which the normal theme doesn't change.")
+        self.Zone_terraindark.setToolTip("<b>Terrain Theme:</b><br>Changes the way the terrain is rendered. It also affects the parts of the background which the normal theme doesn't change.")
         if z.terraindark < 0: z.terraindark = 0
         if z.terraindark >= len(ZoneTerrainThemeValues): z.terraindark = len(ZoneTerrainThemeValues)
         self.Zone_terraindark.setCurrentIndex(z.terraindark)
 
 
         self.Zone_vnormal = QtWidgets.QRadioButton('Normal')
-        self.Zone_vnormal.setToolTip('Sets the visibility mode to normal.')
+        self.Zone_vnormal.setToolTip('<b>Normal:</b><br>Sets the visibility mode to normal.')
 
         self.Zone_vspotlight = QtWidgets.QRadioButton('Layer 0 Spotlight')
-        self.Zone_vspotlight.setToolTip('Sets the visibility mode to spotlight. In Spotlight mode,\nmoving behind layer 0 objects enables a spotlight that\nfollows Mario around.')
+        self.Zone_vspotlight.setToolTip('<b>Layer 0 Spotlight:</b><br>Sets the visibility mode to spotlight. In spotlight mode, moving behind layer 0 objects enables a spotlight that follows Mario around.')
 
         self.Zone_vfulldark = QtWidgets.QRadioButton('Full Darkness')
-        self.Zone_vfulldark.setToolTip('Sets the visibility mode to full darkness. In full dark mode,\nthe screen is completely black and visibility is only provided\nby the available spotlight effect. Stars and some sprites\ncan enhance the default visibility.')
+        self.Zone_vfulldark.setToolTip('<b>Full Darkness:</b><br>Sets the visibility mode to full darkness. In full darkness mode, the screen is completely black and visibility is only provided by the available spotlight effect. Stars and some sprites can enhance the default visibility.')
 
         self.Zone_visibility = QtWidgets.QComboBox()
 
@@ -5878,17 +5878,17 @@ class ZoneTab(QtWidgets.QWidget):
 
 
         self.Zone_xtrack = QtWidgets.QCheckBox()
-        self.Zone_xtrack.setToolTip('Allows the camera to track Mario across the X dimension.\nTurning off this option centers the screen horizontally in\nthe view, producing a stationary camera mode.')
+        self.Zone_xtrack.setToolTip('<b>X Tracking:</b><br>Allows the camera to track Mario across the X dimension. Turning off this option centers the screen horizontally in the view, producing a stationary camera mode.')
         if z.cammode in [0, 3, 6]:
             self.Zone_xtrack.setChecked(True)
         self.Zone_ytrack = QtWidgets.QCheckBox()
-        self.Zone_ytrack.setToolTip('Allows the camera to track Mario across the Y dimension.\nTurning off this option centers the screen vertically in\nthe view, producing very vertically limited stages.')
+        self.Zone_ytrack.setToolTip('<b>Y Tracking:</b><br>Allows the camera to track Mario across the Y dimension. Turning off this option centers the screen vertically in the view, producing very vertically limited stages.')
         if z.cammode in [0, 1, 3, 4]:
             self.Zone_ytrack.setChecked(True)
 
 
         self.Zone_camerazoom = QtWidgets.QComboBox()
-        self.Zone_camerazoom.setToolTip('Changes the camera zoom functionality\n   Negative values: Zoom In\n   Positive values: Zoom Out\n\nZoom Level 4 is rather glitchy')
+        self.Zone_camerazoom.setToolTip('<b>Zoom Level:</b><br>Changes the camera zoom functionality<br>&nbsp;&nbsp;&nbsp;Negative values: Zoom in<br>&nbsp;&nbsp;&nbsp;Positive values: Zoom out<br><br>Zoom level 4 is rather glitchy')
         newItems1 = ['-2', '-1', '0', '1', '2', '3', '4']
         self.Zone_camerazoom.addItems(newItems1)
         if z.camzoom == 8:
@@ -5909,7 +5909,7 @@ class ZoneTab(QtWidgets.QWidget):
             self.Zone_camerazoom.setCurrentIndex(2)
 
         self.Zone_camerabias = QtWidgets.QCheckBox()
-        self.Zone_camerabias.setToolTip('Sets the screen bias to the left edge on load, preventing initial scrollback.\nUseful for pathed levels\n    Note: Not all zoom/mode combinations support bias')
+        self.Zone_camerabias.setToolTip('<b>Bias:</b><br>Sets the screen bias to the left edge on load, preventing initial scrollback.<br>Useful for pathed levels<br>&nbsp;&nbsp;&nbsp;Note: Not all zoom/mode combinations support bias')
         if z.camzoom in [1, 2, 3, 4, 5, 6, 9, 10]:
             self.Zone_camerabias.setChecked(True)
 
@@ -5949,19 +5949,19 @@ class ZoneTab(QtWidgets.QWidget):
             self.Zone_visibility.clear()
             addList = ['Hidden', 'On Top']
             self.Zone_visibility.addItems(addList)
-            self.Zone_visibility.setToolTip('Hidden - Mario is hidden when moving behind objects on Layer 0\nOn Top - Mario is displayed above Layer 0 at all times.\n\nNote: Entities behind layer 0 other than Mario are never visible')
+            self.Zone_visibility.setToolTip('<b>Hidden</b> - Mario is hidden when moving behind objects on Layer 0<br><b>On Top</b> - Mario is displayed above Layer 0 at all times.<br><br>Note: Entities behind layer 0 other than Mario are never visible')
             self.Zone_visibility.setCurrentIndex(VRadioMod)
         elif self.Zone_vspotlight.isChecked():
             self.Zone_visibility.clear()
             addList = ['Small', 'Large', 'Full Screen']
             self.Zone_visibility.addItems(addList)
-            self.Zone_visibility.setToolTip('Small - A small, centered spotlight affords visibility through layer 0.\nLarge - A large, centered spotlight affords visibility through layer 0\nFull Screen - the entire screen is revealed whenever Mario walks behind layer 0')
+            self.Zone_visibility.setToolTip('<b>Small</b> - A small, centered spotlight affords visibility through layer 0.<br><b>Large</b> - A large, centered spotlight affords visibility through layer 0<br><b>Full Screen</b> - the entire screen is revealed whenever Mario walks behind layer 0')
             self.Zone_visibility.setCurrentIndex(VRadioMod)
         elif self.Zone_vfulldark.isChecked():
             self.Zone_visibility.clear()
             addList = ['Large Foglight', 'Lightbeam', 'Large Focus Light', 'Small Foglight', 'Small Focus Light', 'Absolute Black']
             self.Zone_visibility.addItems(addList)
-            self.Zone_visibility.setToolTip('Large Foglight - A large, organic lightsource surrounds Mario\nLightbeam - Mario is able to aim a conical lightbeam through use of the Wiimote\nLarge Focus Light - A large spotlight which changes size based upon player movement\nSmall Foglight - A small, organic lightsource surrounds Mario\nSmall Focuslight - A small spotlight which changes size based on player movement\nAbsolute Black - Visibility is provided only by fireballs, stars, and certain sprites')
+            self.Zone_visibility.setToolTip('<b>Large Foglight</b> - A large, organic light source surrounds Mario<br><b>Lightbeam</b> - Mario is able to aim a conical lightbeam through use of the Wiimote<br><b>Large Focus Light</b> - A large spotlight which changes size based upon player movement<br><b>Small Foglight</b> - A small, organic light source surrounds Mario<br><b>Small Focuslight</b> - A small spotlight which changes size based on player movement<br><b>Absolute Black</b> - Visibility is provided only by fireballs, stars, and certain sprites')
             self.Zone_visibility.setCurrentIndex(VRadioMod)
 
 
@@ -5972,13 +5972,13 @@ class ZoneTab(QtWidgets.QWidget):
 
         self.Zone_yboundup = QtWidgets.QSpinBox()
         self.Zone_yboundup.setRange(-32766, 32767)
-        self.Zone_yboundup.setToolTip('Positive Values: Easier to scroll upwards (110 is centered)\nNegative Values: Harder to scroll upwards (30 is the top edge of the screen)\n\nValues higher than 240 can cause instant death upon screen scrolling')
+        self.Zone_yboundup.setToolTip('<b>Upper Bounds:</b><br>Positive values: Easier to scroll upwards (110 is centered)<br>Negative values: Harder to scroll upwards (30 is the top edge of the screen)<br><br>Values higher than 240 can cause instant death upon screen scrolling')
         self.Zone_yboundup.setSpecialValueText('32')
         self.Zone_yboundup.setValue(z.yupperbound)
 
         self.Zone_ybounddown = QtWidgets.QSpinBox()
         self.Zone_ybounddown.setRange(-32766, 32767)
-        self.Zone_ybounddown.setToolTip('Positive Values: Harder to scroll downwards (65 is the bottom edge of the screen)\nNegative Values: Easier to scroll downwards (95 is centered)\n\nValues higher than 100 will prevent the sceen from scrolling while Mario until Mario is offscreen')
+        self.Zone_ybounddown.setToolTip('<b>Lower Bounds:</b><br>Positive values: Harder to scroll downwards (65 is the bottom edge of the screen)<br>Negative values: Easier to scroll downwards (95 is centered)<br><br>Values higher than 100 will prevent the sceen from scrolling while Mario until Mario is offscreen')
         self.Zone_ybounddown.setValue(z.ylowerbound)
 
 
@@ -5994,19 +5994,19 @@ class ZoneTab(QtWidgets.QWidget):
         self.Audio = QtWidgets.QGroupBox('Audio')
 
         self.Zone_music = QtWidgets.QComboBox()
-        self.Zone_music.setToolTip('Changes the background music')
+        self.Zone_music.setToolTip('<b>Background Music:</b><br>Changes the background music')
         newItems2 = ['None', 'Overworld', 'Underground', 'Underwater', 'Mushrooms/Athletic', 'Ghost House', 'Pyramids', 'Snow', 'Lava', 'Tower', 'Castle', 'Airship', 'Bonus Area', 'Drum Rolls', 'Tower Boss', 'Castle Boss', 'Toad House', 'Airship Boss', 'Forest', 'Enemy Ambush', 'Beach', 'Volcano', "Peach's Castle", 'Credits Jazz', 'Airship Drums', 'Bowser', 'Mega Bowser', 'Epilogue']
         self.Zone_music.addItems(newItems2)
         self.Zone_music.setCurrentIndex(z.music)
 
         self.Zone_sfx = QtWidgets.QComboBox()
-        self.Zone_sfx.setToolTip('Changes the sound effect modulation')
+        self.Zone_sfx.setToolTip('<b>Sound Modulation:</b><br>Changes the sound effect modulation')
         newItems3 = ['Normal', 'Wall Echo', 'Room Echo', 'Double Echo', 'Cave Echo', 'Underwater Echo', 'Triple Echo', 'High Pitch Echo', 'Tinny Echo', 'Flat', 'Dull', 'Hollow Echo', 'Rich', 'Triple Underwater', 'Ring Echo']
         self.Zone_sfx.addItems(newItems3)
         self.Zone_sfx.setCurrentIndex(z.sfxmod / 16)
 
         self.Zone_boss = QtWidgets.QCheckBox()
-        self.Zone_boss.setToolTip('Set for bosses to allow proper music switching by sprites')
+        self.Zone_boss.setToolTip('<b>Boss Flag:</b><br>Set for bosses to allow proper music switching by sprites')
         self.Zone_boss.setChecked(z.sfxmod % 16)
 
 
@@ -6078,12 +6078,12 @@ class BGTab(QtWidgets.QWidget):
 
 
         self.xposA = QtWidgets.QSpinBox()
-        self.xposA.setToolTip('Sets the horizontal offset of your background')
+        self.xposA.setToolTip('<b>X:</b><br>Sets the horizontal offset of your background')
         self.xposA.setRange(-256, 255)
         self.xposA.setValue(z.XpositionA)
 
         self.yposA = QtWidgets.QSpinBox()
-        self.yposA.setToolTip('Sets the vertical offset of your background')
+        self.yposA.setToolTip('<b>Y:</b><br>Sets the vertical offset of your background')
         self.yposA.setRange(-255, 256)
         self.yposA.setValue(-z.YpositionA)
 
@@ -6092,14 +6092,14 @@ class BGTab(QtWidgets.QWidget):
 
         self.xscrollA = QtWidgets.QComboBox()
         self.xscrollA.addItems(BgScrollRateStrings)
-        self.xscrollA.setToolTip('Changes the rate that the background moves in\nrelation to Mario when he moves horizontally.\nValues higher than 1x may be glitchy!')
+        self.xscrollA.setToolTip('<b>X:</b><br>Changes the rate that the background moves in relation to Mario when he moves horizontally.<br>Values higher than 1x may be glitchy!')
         if z.XscrollA < 0: z.XscrollA = 0
         if z.XscrollA >= len(BgScrollRates): z.XscrollA = len(BgScrollRates)
         self.xscrollA.setCurrentIndex(z.XscrollA)
 
         self.yscrollA = QtWidgets.QComboBox()
         self.yscrollA.addItems(BgScrollRateStrings)
-        self.yscrollA.setToolTip('Changes the rate that the background moves in\nrelation to Mario when he moves vertically.\nValues higher than 1x may be glitchy!')
+        self.yscrollA.setToolTip('<b>Y:</b><br>Changes the rate that the background moves in relation to Mario when he moves vertically.<br>Values higher than 1x may be glitchy!')
         if z.YscrollA < 0: z.YscrollA = 0
         if z.YscrollA >= len(BgScrollRates): z.YscrollA = len(BgScrollRates)
         self.yscrollA.setCurrentIndex(z.YscrollA)
@@ -6108,14 +6108,14 @@ class BGTab(QtWidgets.QWidget):
         self.zoomA = QtWidgets.QComboBox()
         addstr = ['100%', '125%', '150%', '200%']
         self.zoomA.addItems(addstr)
-        self.zoomA.setToolTip('Sets the zoom level of the background image')
+        self.zoomA.setToolTip('<b>Zoom:</b><br>Sets the zoom level of the background image')
         self.zoomA.setCurrentIndex(z.ZoomA)
 
         self.toscreenA = QtWidgets.QRadioButton()
-        self.toscreenA.setToolTip('Aligns the background baseline to the bottom of the screen')
+        self.toscreenA.setToolTip('<b>Screen:</b><br>Aligns the background baseline to the bottom of the screen')
         self.toscreenLabel = QtWidgets.QLabel('Screen')
         self.tozoneA = QtWidgets.QRadioButton()
-        self.tozoneA.setToolTip('Aligns the background baseline to the bottom of the zone')
+        self.tozoneA.setToolTip('<b>Zone:</b><br>Aligns the background baseline to the bottom of the zone')
         self.tozoneLabel = QtWidgets.QLabel('Zone')
         if z.bg2A == 0x000A:
             self.tozoneA.setChecked(1)
@@ -6159,12 +6159,12 @@ class BGTab(QtWidgets.QWidget):
 
 
         self.xposB = QtWidgets.QSpinBox()
-        self.xposB.setToolTip('Sets the horizontal offset of your background')
+        self.xposB.setToolTip('<b>X:</b><br>Sets the horizontal offset of your background')
         self.xposB.setRange(-256, 255)
         self.xposB.setValue(z.XpositionB)
 
         self.yposB = QtWidgets.QSpinBox()
-        self.yposB.setToolTip('Sets the vertical offset of your background')
+        self.yposB.setToolTip('<b>Y:</b><br>Sets the vertical offset of your background')
         self.yposB.setRange(-255, 256)
         self.yposB.setValue(-z.YpositionB)
 
@@ -6173,14 +6173,14 @@ class BGTab(QtWidgets.QWidget):
 
         self.xscrollB = QtWidgets.QComboBox()
         self.xscrollB.addItems(BgScrollRateStrings)
-        self.xscrollB.setToolTip('Changes the rate that the background moves in\nrelation to Mario when he moves horizontally.\nValues higher than 1x may be glitchy!')
+        self.xscrollB.setToolTip('<b>X:</b><br>Changes the rate that the background moves in relation to Mario when he moves horizontally.<br>Values higher than 1x may be glitchy!')
         if z.XscrollB < 0: z.XscrollB = 0
         if z.XscrollB >= len(BgScrollRates): z.XscrollB = len(BgScrollRates)
         self.xscrollB.setCurrentIndex(z.XscrollB)
 
         self.yscrollB = QtWidgets.QComboBox()
         self.yscrollB.addItems(BgScrollRateStrings)
-        self.yscrollB.setToolTip('Changes the rate that the background moves in\nrelation to Mario when he moves vertically.\nValues higher than 1x may be glitchy!')
+        self.yscrollB.setToolTip('<b>Y:</b><br>Changes the rate that the background moves in relation to Mario when he moves vertically.<br>Values higher than 1x may be glitchy!')
         if z.YscrollB < 0: z.YscrollB = 0
         if z.YscrollB >= len(BgScrollRates): z.YscrollB = len(BgScrollRates)
         self.yscrollB.setCurrentIndex(z.YscrollB)
@@ -6189,14 +6189,14 @@ class BGTab(QtWidgets.QWidget):
         self.zoomB = QtWidgets.QComboBox()
         addstr = ['100%', '125%', '150%', '200%']
         self.zoomB.addItems(addstr)
-        self.zoomB.setToolTip('Sets the zoom level of the background image')
+        self.zoomB.setToolTip('<b>Zoom:</b><br>Sets the zoom level of the background image')
         self.zoomB.setCurrentIndex(z.ZoomB)
 
         self.toscreenB = QtWidgets.QRadioButton()
-        self.toscreenB.setToolTip('Aligns the background baseline to the bottom of the screen')
+        self.toscreenB.setToolTip('<b>Screen:</b><br>Aligns the background baseline to the bottom of the screen')
         self.toscreenLabel = QtWidgets.QLabel('Screen')
         self.tozoneB = QtWidgets.QRadioButton()
-        self.tozoneB.setToolTip('Aligns the background baseline to the bottom of the zone')
+        self.tozoneB.setToolTip('<b>Zone:</b><br>Aligns the background baseline to the bottom of the zone')
         self.tozoneLabel = QtWidgets.QLabel('Zone')
         if z.bg2B == 0x000A:
             self.tozoneB.setChecked(1)
@@ -7435,7 +7435,7 @@ class ReggieWindow(QtWidgets.QMainWindow):
 
     @QtCore.pyqtSlot()
     def MergeLocations(self):
-        """Merges selected sprite locations"""
+        """Merges selected locations"""
         items = self.scene.selectedItems()
         if len(items) == 0: return
 
