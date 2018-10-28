@@ -2916,13 +2916,13 @@ class EntranceEditorItem(LevelEditorItem):
             destination = '(cannot be entered)'
         else:
             if self.destarea == 0:
-                destination = '(arrives at entry point %d in this area)' % self.destentrance
+                destination = '(arrives at entrance %d in this area)' % self.destentrance
             else:
-                destination = '(arrives at entry point %d in area %d)' % (self.destentrance,self.destarea)
+                destination = '(arrives at entrance %d in area %d)' % (self.destentrance,self.destarea)
 
         self.name = name
         self.destination = destination
-        self.setToolTip('<b>Entry Point %d:</b><br>Type: %s<br><i>%s</i>' % (self.entid,name,destination))
+        self.setToolTip('<b>Entrance %d:</b><br>Type: %s<br><i>%s</i>' % (self.entid,name,destination))
 
     def ListString(self):
         """Returns a string that can be used to describe the entrance in a list"""
@@ -3999,7 +3999,7 @@ class EntranceEditorWidget(QtWidgets.QWidget):
         self.entranceType = QtWidgets.QComboBox()
         LoadEntranceNames()
         self.entranceType.addItems(EntranceTypeNames)
-        self.entranceType.setToolTip('Sets how the entrance/exit behaves')
+        self.entranceType.setToolTip('Sets how the entrance behaves')
         self.entranceType.activated.connect(self.HandleEntranceTypeChanged)
 
         self.destArea = QtWidgets.QSpinBox()
@@ -4012,12 +4012,12 @@ class EntranceEditorWidget(QtWidgets.QWidget):
         self.destEntrance.setToolTip('If this entrance leads nowhere, set this to 0.')
         self.destEntrance.valueChanged.connect(self.HandleDestEntranceChanged)
 
-        self.allowEntryCheckbox = QtWidgets.QCheckBox('Enterable')
-        self.allowEntryCheckbox.setToolTip("<b>Enterable:</b> If this box is checked on a pipe or door entry point, Mario will be able to enter the pipe/door. If it's not checked, he won't be able to enter it. Behaviour on other types of entrances is unknown/undefined.")
-        self.allowEntryCheckbox.clicked.connect(self.HandleAllowEntryClicked)
+        self.enterableCheckbox = QtWidgets.QCheckBox('Enterable')
+        self.enterableCheckbox.setToolTip("<b>Enterable:</b> If this box is checked on a pipe or door entrance, Mario will be able to enter the pipe/door. If it's not checked, he won't be able to enter it. Behaviour on other types of entrances is unknown/undefined.")
+        self.enterableCheckbox.clicked.connect(self.HandleEnterableClicked)
 
         self.unknownFlagCheckbox = QtWidgets.QCheckBox('Unknown Flag')
-        self.unknownFlagCheckbox.setToolTip("<b>Unknown Flag:</b> This box is checked on a few entry/exit points in the game, but we haven't managed to figure out what it does (or if it does anything).")
+        self.unknownFlagCheckbox.setToolTip("<b>Unknown Flag:</b> This box is checked on a few entrances in the game, but we haven't managed to figure out what it does (or if it does anything).")
         self.unknownFlagCheckbox.clicked.connect(self.HandleUnknownFlagClicked)
 
         self.connectedPipeCheckbox = QtWidgets.QCheckBox('Connected Pipe')
@@ -4070,7 +4070,7 @@ class EntranceEditorWidget(QtWidgets.QWidget):
         layout.addWidget(self.destEntrance, 3, 3, 1, 1)
         layout.addWidget(self.destArea, 4, 3, 1, 1)
 
-        layout.addWidget(self.allowEntryCheckbox, 5, 0, 1, 2, QtCore.Qt.AlignRight)
+        layout.addWidget(self.enterableCheckbox, 5, 0, 1, 2, QtCore.Qt.AlignRight)
         layout.addWidget(self.unknownFlagCheckbox, 5, 2, 1, 2, QtCore.Qt.AlignRight)
         layout.addWidget(self.forwardPipeCheckbox, 6, 0, 1, 2, QtCore.Qt.AlignRight)
         layout.addWidget(self.connectedPipeCheckbox, 6, 2, 1, 2, QtCore.Qt.AlignRight)
@@ -4088,7 +4088,7 @@ class EntranceEditorWidget(QtWidgets.QWidget):
         """Change the entrance being edited by the editor, update all fields"""
         if self.ent == ent: return
 
-        self.editingLabel.setText('<b>Editing Entry/Exit Point %d:</b>' % (ent.entid))
+        self.editingLabel.setText('<b>Editing Entrance %d:</b>' % (ent.entid))
         self.ent = ent
         self.UpdateFlag = True
 
@@ -4097,7 +4097,7 @@ class EntranceEditorWidget(QtWidgets.QWidget):
         self.destArea.setValue(ent.destarea)
         self.destEntrance.setValue(ent.destentrance)
 
-        self.allowEntryCheckbox.setChecked(((ent.entsettings & 0x80) == 0))
+        self.enterableCheckbox.setChecked(((ent.entsettings & 0x80) == 0))
         self.unknownFlagCheckbox.setChecked(((ent.entsettings & 2) != 0))
 
         self.connectedPipeCheckbox.setVisible(ent.enttype in self.CanUseFlag8)
@@ -4166,8 +4166,8 @@ class EntranceEditorWidget(QtWidgets.QWidget):
 
 
     @QtCore.pyqtSlot(bool)
-    def HandleAllowEntryClicked(self, checked):
-        """Handle for the Allow Entry checkbox being clicked"""
+    def HandleEnterableClicked(self, checked):
+        """Handle for the Enterable checkbox being clicked"""
         if self.UpdateFlag: return
         SetDirty()
         if not checked:
@@ -6785,7 +6785,7 @@ class ReggieWindow(QtWidgets.QMainWindow):
         dock.setFloating(True)
 
         # create the entrance editor panel
-        dock = QtWidgets.QDockWidget('Modify Selected Entry Point Properties', self)
+        dock = QtWidgets.QDockWidget('Modify Selected Entrance Properties', self)
         dock.setVisible(False)
         dock.setFeatures(QtWidgets.QDockWidget.DockWidgetMovable | QtWidgets.QDockWidget.DockWidgetFloatable)
         dock.setAllowedAreas(QtCore.Qt.LeftDockWidgetArea | QtCore.Qt.RightDockWidgetArea)
