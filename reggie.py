@@ -3536,10 +3536,10 @@ class SpritePickerWidget(QtWidgets.QTreeWidget):
         LoadSpriteData()
         LoadSpriteCategories()
 
-        sprarea = QtWidgets.QTreeWidgetItem()
-        sprarea.setText(0, 'Paint New Sprite Area/Location')
-        sprarea.setData(0, QtCore.Qt.UserRole, 1000)
-        self.addTopLevelItem(sprarea)
+        loc = QtWidgets.QTreeWidgetItem()
+        loc.setText(0, 'Paint New Location')
+        loc.setData(0, QtCore.Qt.UserRole, 1000)
+        self.addTopLevelItem(loc)
 
         for viewname, view, nodelist in SpriteCategories:
             for catname, category in view:
@@ -4346,7 +4346,7 @@ class PathNodeEditorWidget(QtWidgets.QWidget):
 
 
 class LocationEditorWidget(QtWidgets.QWidget):
-    """Widget for editing sprite area properties"""
+    """Widget for editing location properties"""
 
     def __init__(self):
         """Constructor"""
@@ -4433,7 +4433,7 @@ class LocationEditorWidget(QtWidgets.QWidget):
 
 
     def FixTitle(self):
-        self.editingLabel.setText('<b>Editing Sprite Area/Location %d:</b>' % (self.loc.id))
+        self.editingLabel.setText('<b>Editing Location %d:</b>' % (self.loc.id))
 
 
     @QtCore.pyqtSlot(int)
@@ -4689,7 +4689,7 @@ class LevelViewWidget(QtWidgets.QGraphicsView):
                 if clicked.y() < 0: clicked.setY(0)
 
                 if CurrentSprite == 1000:
-                    # paint a sprite area
+                    # paint a location
                     clickedx = int(clicked.x() / 1.5)
                     clickedy = int(clicked.y() / 1.5)
 
@@ -6630,7 +6630,7 @@ class ReggieWindow(QtWidgets.QMainWindow):
         self.CreateAction('copy', self.Copy, GetIcon('copy'), 'Copy', 'Copies the current selection to the clipboard', QtGui.QKeySequence.Copy)
         self.CreateAction('paste', self.Paste, GetIcon('paste'), 'Paste', 'Pastes the current selection from the clipboard', QtGui.QKeySequence.Paste)
         self.CreateAction('shiftobjects', self.ShiftObjects, None, 'Shift Objects...', 'Moves all the selected objects by an offset', QtGui.QKeySequence('Ctrl+Shift+S'))
-        self.CreateAction('mergelocations', self.MergeLocations, None, 'Merge Sprite Areas', 'Merges selected Sprite Areas into a single large box', QtGui.QKeySequence('Ctrl+Shift+E'))
+        self.CreateAction('mergelocations', self.MergeLocations, None, 'Merge Locations', 'Merges selected locations into a single large box', QtGui.QKeySequence('Ctrl+Shift+E'))
 
         self.actions['cut'].setEnabled(False)
         self.actions['copy'].setEnabled(False)
@@ -8555,7 +8555,7 @@ class ReggieWindow(QtWidgets.QMainWindow):
             elif isinstance(hovered, EntranceEditorItem):
                 info = ' - Entrance under mouse: %s at %d,%d %s' % (hovered.name, hovered.objx, hovered.objy, hovered.destination)
             elif isinstance(hovered, EntranceEditorItem):
-                info = ' - Sprite Area under mouse: %s at %d,%d - width %d / height %d,  %s' % (hovered.name, hovered.objx, hovered.objy, hovered.width, hovered.height, hovered.destination)
+                info = ' - Location under mouse: %s at %d,%d - width %d / height %d,  %s' % (hovered.name, hovered.objx, hovered.objy, hovered.width, hovered.height, hovered.destination)
 
         self.posLabel.setText('(%d,%d) - (%d,%d)%s' % (int(x/24),int(y/24),int(x/1.5),int(y/1.5),info))
 
