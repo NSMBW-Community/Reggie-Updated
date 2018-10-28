@@ -2777,8 +2777,8 @@ class SpriteEditorItem(LevelEditorItem):
                     #newpos.setX((int((newpos.x() + 6 - xCompensation) / 12) * 12) + xCompensation)
                     #newpos.setY((int((newpos.y() + 6 - yCompensation) / 12) * 12) + yCompensation)
 
-                    newpos.setX((int((int(newpos.x() / 1.5) - xOffset) / 8) * 8 + xOffset) * 1.5)
-                    newpos.setY((int((int(newpos.y() / 1.5) - yOffset) / 8) * 8 + yOffset) * 1.5)
+                    newpos.setX((int((int((newpos.x() + 6) / 1.5) - xOffset) / 8) * 8 + xOffset) * 1.5)
+                    newpos.setY((int((int((newpos.y() + 6) / 1.5) - yOffset) / 8) * 8 + yOffset) * 1.5)
 
             x = newpos.x()
             y = newpos.y()
