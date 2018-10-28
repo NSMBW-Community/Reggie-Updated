@@ -3955,9 +3955,12 @@ class SpriteEditorWidget(QtWidgets.QWidget):
         raw = text.replace(' ', '')
         valid = False
 
-        if len(text) == 16:
+        if len(raw) == 16:
             try:
-                data = str(raw).decode('hex')
+                if sys.version_info.major >= 3:
+                    data = bytes.fromhex(str(raw))
+                else:
+                    data = str(raw).decode('hex')
                 valid = True
             except:
                 pass
