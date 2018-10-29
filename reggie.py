@@ -929,14 +929,48 @@ def _LoadTileset(idx, name):
     ProcessOverrides(idx, name)
 
 
+RGB4A3LUT = []
+RGB4A3LUT_NoAlpha = []
+def PrepareRGB4A3LUTs():
+    global RGB4A3LUT, RGB4A3LUT_NoAlpha
+
+    RGB4A3LUT = [None] * 0x10000
+    RGB4A3LUT_NoAlpha = [None] * 0x10000
+    for LUT, hasA in [(RGB4A3LUT, True), (RGB4A3LUT_NoAlpha, False)]:
+
+        # RGB4A3
+        for d in range(0x8000):
+            if hasA:
+                alpha = d >> 12
+                alpha = alpha << 5 | alpha << 2 | alpha >> 1
+            else:
+                alpha = 0xFF
+            red = ((d >> 8) & 0xF) * 17
+            green = ((d >> 4) & 0xF) * 17
+            blue = (d & 0xF) * 17
+            LUT[d] = blue | (green << 8) | (red << 16) | (alpha << 24)
+
+        # RGB555
+        for d in range(0x8000):
+            red = d >> 10
+            red = red << 3 | red >> 2
+            green = (d >> 5) & 0x1F
+            green = green << 3 | green >> 2
+            blue = d & 0x1F
+            blue = blue << 3 | blue >> 2
+            LUT[d + 0x8000] = blue | (green << 8) | (red << 16) | 0xFF000000
+
+PrepareRGB4A3LUTs()
+
+
 def LoadTextureUsingOldMethod(tiledata):
     tx = 0; ty = 0
     iter = tiledata.__iter__()
     dest = [0] * 262144
-    colorCache = {}
+
+    LUT = RGB4A3LUT if EnableAlpha else RGB4A3LUT_NoAlpha
 
     # Loop over all texels (of which there are 16384)
-    # lastD = None
     for i in range(16384):
         temp1 = (i // 256) % 8
         if temp1 == 0 or temp1 == 7:
@@ -969,22 +1003,7 @@ def LoadTextureUsingOldMethod(tiledata):
                 # Actually render this texel
                 for y in range(ty, ty+4):
                     for x in range(tx, tx+4):
-                        d = next(iter) << 8
-                        d |= next(iter)
-
-                        # Cache decoded colors for performance
-                        if d in colorCache:
-                            dest[x + y * 1024] = colorCache[d]
-                        else:
-                            if (d & 0x8000) == 0:
-                                if EnableAlpha:
-                                    argb = ((d & 0x7000) << 17) | ((d & 0xf00) << 12) | ((d & 0xf0) << 8) | ((d & 0xf) << 4)
-                                else:
-                                    argb = 0xFF000000 | ((d & 0xf00) << 12) | ((d & 0xf0) << 8) | ((d & 0xf) << 4)
-                            else:
-                                argb = 0xFF000000 | ((d & 0x7c00) << 9) | ((d & 0x3e0) << 6) | ((d & 0x1f) << 3)
-
-                            dest[x + y * 1024] = colorCache[d] = argb
+                        dest[x + y * 1024] = LUT[next(iter) << 8 | next(iter)]
 
         # Move on to the next texel
         tx += 4
@@ -992,7 +1011,7 @@ def LoadTextureUsingOldMethod(tiledata):
 
     # Convert the list of ARGB color values into a bytes object, and
     # then convert that into a QImage
-    return QtGui.QImage(struct.pack('<262144I', *dest), 1024, 256, QtGui.QImage.Format_ARGB32_Premultiplied)
+    return QtGui.QImage(struct.pack('<262144I', *dest), 1024, 256, QtGui.QImage.Format_ARGB32)
 
 
 def UnloadTileset(idx):
