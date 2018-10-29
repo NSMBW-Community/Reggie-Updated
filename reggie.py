@@ -992,7 +992,7 @@ def LoadTextureUsingOldMethod(tiledata):
 
     # Convert the list of ARGB color values into a bytes object, and
     # then convert that into a QImage
-    return QtGui.QImage(struct.pack('<262144I', *dest), 1024, 256, QtGui.QImage.Format_ARGB32)
+    return QtGui.QImage(struct.pack('<262144I', *dest), 1024, 256, QtGui.QImage.Format_ARGB32_Premultiplied)
 
 
 def UnloadTileset(idx):
