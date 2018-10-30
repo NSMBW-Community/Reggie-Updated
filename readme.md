@@ -4,7 +4,10 @@ Reggie! Level Editor ("Reggie-Updated" fork)
 Advanced level editor for New Super Mario Bros. Wii, created by Treeki and
 Tempus using Python, PyQt and Wii.py.
 
-The "Reggie-Updated" fork aims to keep Reggie! compatible with the latest versions of its dependencies, and to fix bugs and make minor improvements. Pull requests that make large changes to how the editor works or add major features will be declined — please make your own fork for that.
+The "Reggie-Updated" fork aims to keep Reggie! compatible with the latest versions of its
+dependencies, and to fix bugs and make minor improvements. Pull requests that make large
+changes to how the editor works or add major features will be declined — please make your
+own fork for that.
 
 Homepage: http://www.rvlution.net/reggie/
 
@@ -77,14 +80,14 @@ If you are using the source release:
 
 - Python 2.7 (or newer) (3.5 or newer recommended) - https://www.python.org
 - PyQt; the required version depends on the version of Python you're using:
-  - If using Python 2.x: PyQt 4.8 (or newer) — https://www.lfd.uci.edu/~gohlke/pythonlibs/#pyqt4
+  - If using Python 2.x: PyQt 4.8 (or newer, but less than 5) — https://www.lfd.uci.edu/~gohlke/pythonlibs/#pyqt4
   - If using Python 3.x: PyQt 5.11 (or newer) — `pip install PyQt5`
 - NSMBLib 0.4.1 - https://github.com/RoadrunnerWMC/NSMBLib-Updated (optional)
 
 If you have a prebuilt/frozen release (for Windows or Mac OS)
 you don't need to install anything - all the required libraries are included.
 
-For more information on running Reggie from source and getting the required
+For more information on running Reggie! from source and getting the required
 libraries, check the Getting Started page inside the help file
 (located at reggiedata/help/start.html within the archive)
 
@@ -101,13 +104,13 @@ Developers
 - Omega — int(), Python, Testing
 - Pop006 — Sprite Images
 - Tobias Amaranth — Sprite Info (a lot of it), Event Example Stage
+- RoadrunnerWMC — "Reggie-Updated" Fork
 
 Other Testers and Contributors
 ------------------------------
 - BulletBillTime, Dirbaio, EdgarAllen, FirePhoenix, GrandMasterJimmy,
   Mooseknuckle2000, MotherBrainsBrain, RainbowIE, Skawo, Sonicandtails,
   Tanks, Vibestar
-
 - Tobias Amaranth and Valeth — Text Tileset Addon
 
 
