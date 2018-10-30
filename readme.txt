@@ -1,16 +1,31 @@
-=== Reggie! Level Editor (Release 3) ===
+=== Reggie! Level Editor ("Reggie-Updated" fork) ===
 
 Advanced level editor for New Super Mario Bros. Wii, created by Treeki and
 Tempus using Python, PyQt and Wii.py.
 
-Homepage: http://www.rvlution.net/reggie/
-Support:  http://www.rvlution.net/forums/
+The "Reggie-Updated" fork aims to keep Reggie! compatible with the latest versions of its dependencies, and to fix bugs and make minor improvements. Pull requests that make large changes to how the editor works or add major features will be declined -- please make your own fork for that.
 
-Source code package for this release:
+Homepage: http://www.rvlution.net/reggie/
+
+Source code package for Release 3:
 - http://www.rvlution.net/reggie/downloads/Reggie_r3_source.zip
 
 
 === Changelog: ===
+
+"Reggie-Updated" fork:
+- Reggie! is now compatible with Python 3 and PyQt5. Python 2 and PyQt4 are also still supported.
+- nsmblib has been removed from this repository -- you can find it at https://github.com/RoadrunnerWMC/NSMBLib-Updated
+- Made loading times much faster on environments where NSMBLib is not available.
+- Made tileset texture rendering perfectly accurate instead of just "close enough."
+- Made certain terminology consistent across the editor.
+- All changes that were merged into the main repository (https://github.com/Treeki/Reggie) between Release 3 and October 22, 2018 are included:
+    - Added "Minimum Zoom" and "Maximum Zoom" actions, and increased the number of available zoom levels
+    - Made certain fonts bold.
+    - Made the raw sprite data textbox turn red when containing invalid data.
+    - Sprites 151, 175, 176, 180, 185, 187, 193, 195, 196, 197, 198, 199, 200, 224, 227, 233, 262, 271, 318, 333, 376, 395, 416 and 425 now render using images.
+- Other various bug fixes.
+
 
 Release 3: (April 2nd, 2011)
 - Unicode is now supported in sprite names within spritedata.xml
@@ -49,7 +64,7 @@ If you are using the source release:
 - PyQt; the required version depends on the version of Python you're using:
   If using Python 2.x: PyQt 4.8 (or newer) - https://www.lfd.uci.edu/~gohlke/pythonlibs/#pyqt4
   If using Python 3.x: PyQt 5.11 (or newer) - pip install PyQt5
-- NSMBLib 0.4.1 - included with the source package (optional)
+- NSMBLib 0.4.1 - https://github.com/RoadrunnerWMC/NSMBLib-Updated (optional)
 
 If you have a prebuilt/frozen release (for Windows or Mac OS)
 you don't need to install anything - all the required libraries are included.
