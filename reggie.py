@@ -6622,7 +6622,7 @@ class ReggieWindow(QtWidgets.QMainWindow):
         self.actions['freezeentrances'].setChecked(not EntrancesNonFrozen)
         self.CreateAction('freezelocations', self.HandleLocationsFreeze, None, 'Freeze Locations', 'Make locations non-selectable', QtGui.QKeySequence('Ctrl+Shift+4'), True)
         self.actions['freezelocations'].setChecked(not LocationsNonFrozen)
-        self.CreateAction('freezepaths', self.HandlePathsFreeze, None, 'Freeze Paths', 'Make Paths non-selectable', QtGui.QKeySequence('Ctrl+Shift+5'), True)
+        self.CreateAction('freezepaths', self.HandlePathsFreeze, None, 'Freeze Paths', 'Make paths non-selectable', QtGui.QKeySequence('Ctrl+Shift+5'), True)
         self.actions['freezepaths'].setChecked(not PathsNonFrozen)
 
         self.CreateAction('zoommax', self.HandleZoomMax, GetIcon('zoommax'), 'Maximum Zoom', 'Zoom in all the way', QtGui.QKeySequence('Ctrl+PgDown'), False)
@@ -7845,7 +7845,7 @@ class ReggieWindow(QtWidgets.QMainWindow):
 
     @QtCore.pyqtSlot(bool)
     def HandlePathsFreeze(self, checked):
-        """Handle toggling of entrances being frozen"""
+        """Handle toggling of paths being frozen"""
         settings.setValue('FreezePaths', checked)
 
         checked = not checked
