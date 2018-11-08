@@ -7007,7 +7007,7 @@ class ReggieWindow(QtWidgets.QMainWindow):
     def DeselectPathSelection(self, checked):
         """meh"""
         for selecteditem in self.pathList.selectedItems():
-            self.pathList.setItemSelected(selecteditem, False)
+            selecteditem.setSelected(False)
 
     @QtCore.pyqtSlot()
     def Autosave(self):
