@@ -3036,7 +3036,7 @@ class PathEditorItem(LevelEditorItem):
         self.LevelRect = (QtCore.QRectF(self.objx/16, self.objy/16, 24/16, 24/16))
         self.setFlag(self.ItemIsMovable, PathsNonFrozen)
         self.setFlag(self.ItemIsSelectable, PathsNonFrozen)
-        ## handle path freezing later
+        # handle path freezing later
 
         global DirtyOverride
         DirtyOverride += 1
@@ -3046,7 +3046,7 @@ class PathEditorItem(LevelEditorItem):
         self.setZValue(25002)
         self.UpdateTooltip()
 
-        #now that we're inited, set
+        # now that we're inited, set
         self.nodeinfo['graphicsitem'] = self
 
     def UpdateTooltip(self):
@@ -3100,7 +3100,7 @@ class PathEditorItem(LevelEditorItem):
             pass
 
     def delete(self):
-        """Delete the entrance from the level"""
+        """Delete the path node from the level"""
         global mainWindow
         plist = mainWindow.pathList
         mainWindow.UpdateFlag = True
@@ -3114,7 +3114,7 @@ class PathEditorItem(LevelEditorItem):
             Level.pathdata.remove(self.pathinfo)
             self.scene().removeItem(self.pathinfo['peline'])
 
-        #update other node's IDs
+        # update other nodes' IDs
         for pathnode in self.pathinfo['nodes']:
             pathnode['graphicsitem'].updateId()
 
