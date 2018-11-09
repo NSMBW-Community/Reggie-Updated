@@ -3619,7 +3619,7 @@ class SpritePickerWidget(QtWidgets.QTreeWidget):
         check = self.SearchResultsCategory
 
         rawresults = self.findItems(searchfor, QtCore.Qt.MatchContains | QtCore.Qt.MatchRecursive)
-        results = filter((lambda x: x.parent() == check), rawresults)
+        results = list(filter((lambda x: x.parent() == check), rawresults))
 
         for x in self.ShownSearchResults: x.setHidden(True)
         for x in results: x.setHidden(False)
