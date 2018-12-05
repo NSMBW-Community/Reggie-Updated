@@ -5855,14 +5855,14 @@ class ZoneTab(QtWidgets.QWidget):
         self.Zone_modeldark.addItems(ZoneThemeValues)
         self.Zone_modeldark.setToolTip('<b>Zone Theme:</b><br>Changes the way models and parts of the background are rendered (for blurring, darkness, lava effects, and so on). Themes with * next to them are used in the game, but look the same as the overworld theme.')
         if z.modeldark < 0: z.modeldark = 0
-        if z.modeldark >= len(ZoneThemeValues): z.modeldark = len(ZoneThemeValues)
+        if z.modeldark >= len(ZoneThemeValues): z.modeldark = len(ZoneThemeValues) - 1
         self.Zone_modeldark.setCurrentIndex(z.modeldark)
 
         self.Zone_terraindark = QtWidgets.QComboBox()
         self.Zone_terraindark.addItems(ZoneTerrainThemeValues)
         self.Zone_terraindark.setToolTip("<b>Terrain Theme:</b><br>Changes the way the terrain is rendered. It also affects the parts of the background which the normal theme doesn't change.")
         if z.terraindark < 0: z.terraindark = 0
-        if z.terraindark >= len(ZoneTerrainThemeValues): z.terraindark = len(ZoneTerrainThemeValues)
+        if z.terraindark >= len(ZoneTerrainThemeValues): z.terraindark = len(ZoneTerrainThemeValues) - 1
         self.Zone_terraindark.setCurrentIndex(z.terraindark)
 
 
@@ -6113,14 +6113,14 @@ class BGTab(QtWidgets.QWidget):
         self.xscrollA.addItems(BgScrollRateStrings)
         self.xscrollA.setToolTip('<b>X:</b><br>Changes the rate that the background moves in relation to Mario when he moves horizontally.<br>Values higher than 1x may be glitchy!')
         if z.XscrollA < 0: z.XscrollA = 0
-        if z.XscrollA >= len(BgScrollRates): z.XscrollA = len(BgScrollRates)
+        if z.XscrollA >= len(BgScrollRates): z.XscrollA = len(BgScrollRates) - 1
         self.xscrollA.setCurrentIndex(z.XscrollA)
 
         self.yscrollA = QtWidgets.QComboBox()
         self.yscrollA.addItems(BgScrollRateStrings)
         self.yscrollA.setToolTip('<b>Y:</b><br>Changes the rate that the background moves in relation to Mario when he moves vertically.<br>Values higher than 1x may be glitchy!')
         if z.YscrollA < 0: z.YscrollA = 0
-        if z.YscrollA >= len(BgScrollRates): z.YscrollA = len(BgScrollRates)
+        if z.YscrollA >= len(BgScrollRates): z.YscrollA = len(BgScrollRates) - 1
         self.yscrollA.setCurrentIndex(z.YscrollA)
 
 
@@ -6194,14 +6194,14 @@ class BGTab(QtWidgets.QWidget):
         self.xscrollB.addItems(BgScrollRateStrings)
         self.xscrollB.setToolTip('<b>X:</b><br>Changes the rate that the background moves in relation to Mario when he moves horizontally.<br>Values higher than 1x may be glitchy!')
         if z.XscrollB < 0: z.XscrollB = 0
-        if z.XscrollB >= len(BgScrollRates): z.XscrollB = len(BgScrollRates)
+        if z.XscrollB >= len(BgScrollRates): z.XscrollB = len(BgScrollRates) - 1
         self.xscrollB.setCurrentIndex(z.XscrollB)
 
         self.yscrollB = QtWidgets.QComboBox()
         self.yscrollB.addItems(BgScrollRateStrings)
         self.yscrollB.setToolTip('<b>Y:</b><br>Changes the rate that the background moves in relation to Mario when he moves vertically.<br>Values higher than 1x may be glitchy!')
         if z.YscrollB < 0: z.YscrollB = 0
-        if z.YscrollB >= len(BgScrollRates): z.YscrollB = len(BgScrollRates)
+        if z.YscrollB >= len(BgScrollRates): z.YscrollB = len(BgScrollRates) - 1
         self.yscrollB.setCurrentIndex(z.YscrollB)
 
 
