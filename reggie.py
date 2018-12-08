@@ -5269,6 +5269,7 @@ class AboutDialog(QtWidgets.QDialog):
         self.setFixedWidth(550)
         self.setFixedHeight(350)
         self.setWindowTitle('About Reggie!')
+        self.setWindowIcon(GetIcon('about'))
 
         with open('reggiedata/about.html', 'r') as f:
             data = f.read()
@@ -5498,7 +5499,8 @@ class AreaOptionsDialog(QtWidgets.QDialog):
     def __init__(self):
         """Creates and initialises the tab dialog"""
         super(AreaOptionsDialog, self).__init__()
-        self.setWindowTitle('Area Options')
+        self.setWindowTitle('Area Settings')
+        self.setWindowIcon(GetIcon('area'))
 
         self.tabWidget = QtWidgets.QTabWidget()
         self.LoadingTab = LoadingTab()
@@ -5690,6 +5692,7 @@ class ZonesDialog(QtWidgets.QDialog):
         """Creates and initialises the tab dialog"""
         super(ZonesDialog, self).__init__()
         self.setWindowTitle('Zones')
+        self.setWindowIcon(GetIcon('zones'))
 
         self.tabWidget = QtWidgets.QTabWidget()
 
@@ -6031,6 +6034,7 @@ class BGDialog(QtWidgets.QDialog):
         """Creates and initialises the tab dialog"""
         super(BGDialog, self).__init__()
         self.setWindowTitle('Backgrounds')
+        self.setWindowIcon(GetIcon('background'))
 
         self.tabWidget = QtWidgets.QTabWidget()
 
@@ -6405,6 +6409,7 @@ class ScreenCapChoiceDialog(QtWidgets.QDialog):
         """Creates and initialises the dialog"""
         super(ScreenCapChoiceDialog, self).__init__()
         self.setWindowTitle('Choose a Screenshot source')
+        self.setWindowIcon(GetIcon('screenshot'))
 
         i=0
         self.zoneCombo = QtWidgets.QComboBox()
