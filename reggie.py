@@ -5373,7 +5373,8 @@ class MetaInfoDialog(QtWidgets.QDialog):
         self.changepw.clicked.connect(self.ChangeButton)
         self.changepw.setDisabled(True)
 
-        self.lockedLabel = QtWidgets.QLabel("This level's information is locked.<br>Please enter the password below in order to modify it.")
+        self.lockedLabel = QtWidgets.QLabel("This level's information is locked.\nPlease enter the password below in order to modify it.")
+        self.lockedLabel.setWordWrap(True)
 
         infoLayout = QtWidgets.QFormLayout()
         infoLayout.addWidget(self.lockedLabel)
