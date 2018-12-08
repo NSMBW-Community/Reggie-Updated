@@ -4242,7 +4242,7 @@ class EntranceEditorWidget(QtWidgets.QWidget):
         self.ent.entlayer = i
 
 class PathNodeEditorWidget(QtWidgets.QWidget):
-    """Widget for editing entrance properties"""
+    """Widget for editing path node properties"""
 
     def __init__(self):
         """Constructor"""
@@ -4303,7 +4303,7 @@ class PathNodeEditorWidget(QtWidgets.QWidget):
 
 
     def setPath(self, path):
-        """Change the entrance being edited by the editor, update all fields"""
+        """Change the path node being edited by the editor, update all fields"""
         if self.path == path: return
         self.editingPathLabel.setText('<b>Editing Path %d</b>' % (path.pathid))
         self.editingLabel.setText('<b>Editing Node %d</b>' % (path.nodeid))
@@ -4453,7 +4453,7 @@ class LocationEditorWidget(QtWidgets.QWidget):
 
     @QtCore.pyqtSlot(int)
     def HandleLocationXChanged(self, i):
-        """Handler for the location Xpos changing"""
+        """Handler for the location X-pos changing"""
         global OverrideSnapping
         if self.UpdateFlag: return
 
@@ -4471,7 +4471,7 @@ class LocationEditorWidget(QtWidgets.QWidget):
 
     @QtCore.pyqtSlot(int)
     def HandleLocationYChanged(self, i):
-        """Handler for the location Y pos changing"""
+        """Handler for the location Y-pos changing"""
         global OverrideSnapping
         if self.UpdateFlag: return
 
@@ -4551,7 +4551,7 @@ class LocationEditorWidget(QtWidgets.QWidget):
 
 
 class LevelScene(QtWidgets.QGraphicsScene):
-    """GraphicsView subclass for the level scene"""
+    """GraphicsScene subclass for the level scene"""
     def __init__(self, *args):
         self.bgbrush = QtGui.QBrush(QtGui.QColor.fromRgb(119,136,153))
         super(LevelScene, self).__init__(*args)
@@ -5262,7 +5262,7 @@ class InputBox(QtWidgets.QDialog):
 
 
 class AboutDialog(QtWidgets.QDialog):
-    """Shows the About info for Reggie"""
+    """The About info for Reggie"""
     def __init__(self):
         """Creates and initialises the dialog"""
         super(AboutDialog, self).__init__()

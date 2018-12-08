@@ -1,6 +1,6 @@
 """
 Usage:
-    cd to it's directory
+    cd to its directory
     python mac_setup.py py2app
 """
 
