@@ -2274,6 +2274,7 @@ class LevelObjectEditorItem(LevelEditorItem):
                 self.UpdateRects()
                 self.scene().update(updaterect)
                 SetDirty()
+                mainWindow.levelOverview.update()
 
             event.accept()
         else:
