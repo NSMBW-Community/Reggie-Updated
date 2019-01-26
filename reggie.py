@@ -115,8 +115,8 @@ def QFileDialog_getSaveFileName(*args, **kwargs):
     return retVal[0]
 
 if hasattr(QtCore, 'pyqtSlot'): # PyQt
-    QtCoreSlot = QtCoreSlot
-    QtCoreSignal = QtCoreSignal
+    QtCoreSlot = QtCore.pyqtSlot
+    QtCoreSignal = QtCore.pyqtSignal
 else: # PySide2
     QtCoreSlot = QtCore.Slot
     QtCoreSignal = QtCore.Signal
