@@ -19,7 +19,7 @@ Changelog
 
 "Reggie-Updated" fork
 ---------------------
-- Reggie! is now compatible with Python 3 and PyQt5
+- Reggie! is now compatible with Python 3, PyQt5, and Qt for Python (PySide2).
     Python 2 and PyQt4 are also still supported.
 - nsmblib has been removed from this repository -- you can find it at
     https://github.com/RoadrunnerWMC/NSMBLib-Updated
@@ -79,9 +79,11 @@ Requirements
 If you are using the source release:
 
 - Python 2.7 (or newer) (3.5 or newer recommended) - https://www.python.org
-- PyQt; the required version depends on the version of Python you're using:
+- Qt for Python or PyQt; your options depend on the version of Python you're using:
   - If using Python 2.x: PyQt 4.8 (or newer, but less than 5) — https://www.lfd.uci.edu/~gohlke/pythonlibs/#pyqt4
-  - If using Python 3.x: PyQt 5.11 (or newer) — `pip install PyQt5`
+  - If using Python 3.x, either of the following:
+    - Qt for Python 5.12 (or newer) — `pip install PySide2`
+    - PyQt 5.11 (or newer) — `pip install PyQt5`
 - NSMBLib 0.4.1 - https://github.com/RoadrunnerWMC/NSMBLib-Updated (optional)
 
 If you have a prebuilt/frozen release (for Windows or Mac OS)
@@ -118,6 +120,7 @@ Libraries/Resources
 ===================
 
 - Qt — The Qt Company (https://www.qt.io)
+- Qt for Python — The Qt Company (https://www.qt.io)
 - PyQt — Riverbank Computing (https://riverbankcomputing.com/software/pyqt/intro)
 - Wii.py — megazig, Xuzz, The Lemon Man, Matt_P, SquidMan, Omega (https://github.com/grp/Wii.py)
 - Interface Icons — Yusuke Kamiyamane (http://p.yusukekamiyamane.com/)
