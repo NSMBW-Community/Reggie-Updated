@@ -1315,7 +1315,7 @@ NumberFontBold = None
 GridEnabled = False
 RestoredFromAutoSave = False
 AutoSavePath = ''
-AutoSaveData = ''
+AutoSaveData = b''
 
 def createHorzLine():
     f = QtWidgets.QFrame()
@@ -1461,7 +1461,7 @@ class LevelUnit():
             self.arcname = os.path.join(gamePath, name+'.arc')
 
         if name == 'AUTO_FLAG':
-            if AutoSavePath == 'None':
+            if str(AutoSavePath).lower() == 'none':
                 self.arcname = None
                 self.filename = 'untitled'
                 self.hasName = False
@@ -7709,7 +7709,7 @@ class ReggieWindow(QtWidgets.QMainWindow):
         self.UpdateTitle()
 
         settings.setValue('AutoSaveFilePath', Level.arcname)
-        settings.setValue('AutoSaveFileData', 'x')
+        settings.setValue('AutoSaveFileData', b'x')
         return True
 
 
@@ -7733,7 +7733,7 @@ class ReggieWindow(QtWidgets.QMainWindow):
         with open(fn, 'wb') as f:
             f.write(data)
         settings.setValue('AutoSaveFilePath', fn)
-        settings.setValue('AutoSaveFileData', 'x')
+        settings.setValue('AutoSaveFileData', b'x')
 
         self.UpdateTitle()
 
@@ -7981,7 +7981,7 @@ class ReggieWindow(QtWidgets.QMainWindow):
             settings.setValue('LastLevel', unicode(Level.arcname))
 
             settings.setValue('AutoSaveFilePath', 'none')
-            settings.setValue('AutoSaveFileData', 'x')
+            settings.setValue('AutoSaveFileData', b'x')
 
             event.accept()
 
@@ -9123,10 +9123,10 @@ def main():
     autofile = unicode(toPyObject(settings.value('AutoSaveFilePath', 'none')))
     if autofile != 'none':
         try:
-            autofiledata = unicode(toPyObject(settings.value('AutoSaveFileData', 'x')), 'utf-8')
-        except UnicodeDecodeError:
-            autofiledata = 'x'
-        if autofiledata != 'x':
+            autofiledata = toPyObject(settings.value('AutoSaveFileData', b'x')).data()
+        except Exception:
+            autofiledata = b'x'
+        if autofiledata != b'x':
             result = AutoSavedInfoDialog(autofile).exec_()
             if result == QtWidgets.QDialog.Accepted:
                 global RestoredFromAutoSave, AutoSavePath, AutoSaveData
@@ -9135,7 +9135,7 @@ def main():
                 AutoSaveData = autofiledata
             else:
                 settings.setValue('AutoSaveFilePath', 'none')
-                settings.setValue('AutoSaveFileData', 'x')
+                settings.setValue('AutoSaveFileData', b'x')
 
     # create and show the main window
     mainWindow = ReggieWindow()
