@@ -117,9 +117,11 @@ def QFileDialog_getSaveFileName(*args, **kwargs):
 if hasattr(QtCore, 'pyqtSlot'): # PyQt
     QtCoreSlot = QtCore.pyqtSlot
     QtCoreSignal = QtCore.pyqtSignal
+    PyObject = 'PyQt_PyObject'
 else: # PySide2
     QtCoreSlot = QtCore.Slot
     QtCoreSignal = QtCore.Signal
+    PyObject = 'object'
 
 
 app = None
@@ -3642,7 +3644,7 @@ class SpritePickerWidget(QtWidgets.QTreeWidget):
 
 class SpriteEditorWidget(QtWidgets.QWidget):
     """Widget for editing sprite data"""
-    DataUpdate = QtCoreSignal('PyQt_PyObject')
+    DataUpdate = QtCoreSignal(PyObject)
 
     def __init__(self):
         """Constructor"""
@@ -3701,7 +3703,7 @@ class SpriteEditorWidget(QtWidgets.QWidget):
 
     class PropertyDecoder(QtCore.QObject):
         """Base class for all the sprite data decoder/encoders"""
-        updateData = QtCoreSignal('PyQt_PyObject')
+        updateData = QtCoreSignal(PyObject)
 
         def __init__(self):
             """Generic constructor"""
@@ -3949,7 +3951,7 @@ class SpriteEditorWidget(QtWidgets.QWidget):
         QtWidgets.QToolTip.showText(QtGui.QCursor.pos(), self.notes, self)
 
 
-    @QtCoreSlot('PyQt_PyObject')
+    @QtCoreSlot(PyObject)
     def HandleFieldUpdate(self, field):
         """Triggered when a field's data is updated"""
         if self.UpdateFlag: return
@@ -8456,7 +8458,7 @@ class ReggieWindow(QtWidgets.QMainWindow):
             SetDirty()
 
 
-    @QtCoreSlot('PyQt_PyObject')
+    @QtCoreSlot(PyObject)
     def SpriteDataUpdated(self, data):
         """Handle the current sprite's data being updated"""
         if self.spriteEditorDock.isVisible():
