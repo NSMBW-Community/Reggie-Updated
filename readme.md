@@ -82,8 +82,8 @@ If you are using the source release:
 - Qt for Python or PyQt; your options depend on the version of Python you're using:
   - If using Python 2.x: PyQt 4.8 (or newer, but less than 5) — https://www.lfd.uci.edu/~gohlke/pythonlibs/#pyqt4
   - If using Python 3.x, either of the following:
-    - Qt for Python 5.12 (or newer) — `pip install PySide2`
-    - PyQt 5.11 (or newer) — `pip install PyQt5`
+    - PyQt 5.11 (or newer) **(RECOMMENDED)** — `pip install PyQt5`
+    - Qt for Python 5.12 (or newer) (NOT RECOMMENDED) — `pip install PySide2`
 - NSMBLib 0.4.1 - https://github.com/RoadrunnerWMC/NSMBLib-Updated (optional)
 
 If you have a prebuilt/frozen release (for Windows or Mac OS)
