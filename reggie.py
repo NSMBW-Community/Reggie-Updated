@@ -32,10 +32,10 @@ import warnings
 from xml.dom import minidom
 
 try:
-    from PySide2 import QtCore, QtGui, QtWidgets
+    from PyQt5 import QtCore, QtGui, QtWidgets
 except ImportError:
     try:
-        from PyQt5 import QtCore, QtGui, QtWidgets
+        from PySide2 import QtCore, QtGui, QtWidgets
     except ImportError:
         from PyQt4 import QtCore, QtGui
         QtWidgets = QtGui
