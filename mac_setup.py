@@ -1,7 +1,7 @@
 """
 Usage:
     cd to its directory
-    python mac_setup.py py2app
+    python3 mac_setup.py py2app
 """
 
 
@@ -12,19 +12,19 @@ import os, sys, shutil
 NAME = 'Reggie!'
 VERSION = '1.0'
 
-plist = dict(
-    CFBundleIconFile=NAME,
-    CFBundleName=NAME,
-    CFBundleShortVersionString=VERSION,
-    CFBundleGetInfoString=' '.join([NAME, VERSION]),
-    CFBundleExecutable=NAME,
-    CFBundleIdentifier='ca.chronometry.reggie',
-)
+plist = {
+    'CFBundleIconFile': NAME,
+    'CFBundleName': NAME,
+    'CFBundleShortVersionString': VERSION,
+    'CFBundleGetInfoString': NAME + ' ' + VERSION,
+    'CFBundleExecutable': NAME,
+    'CFBundleIdentifier': 'ca.chronometry.reggie',
+}
 
 
 excludes = ['doctest', 'pdb', 'unittest', 'difflib', 'inspect',
-    'os2emxpath', 'posixpath', 'optpath', 'locale', 'calendar',
-    'threading', 'select', 'socket', 'hashlib', 'multiprocessing', 'ssl',
+    'os2emxpath', 'optpath', 'locale', 'calendar', 'threading',
+    'select', 'socket', 'hashlib', 'multiprocessing', 'ssl',
     'PyQt4.QtWebKit', 'PyQt4.QtNetwork', 'PyQt5.QtWebKit', 'PyQt5.QtNetwork']
 
 # exclude PyQt4 if we're on Python 3, or PyQt5 if we're on Python 2
@@ -35,7 +35,7 @@ excludes.append('PyQt%d.phonon' % excludePyQtVer)
 for m in pyqtModules:
     excludes.append('PyQt%d.Qt%s' % (excludePyQtVer, m))
 
-includes = ['sip', 'encodings', 'encodings.hex_codec']
+includes = ['sip', 'encodings', 'encodings.hex_codec', 'posixpath']
 includePyQtVer = 4 if sys.version_info.major < 3 else 5
 includes.append('PyQt%d' % includePyQtVer)
 for m in pyqtModules:
@@ -43,7 +43,7 @@ for m in pyqtModules:
 
 
 APP = ['reggie.py']
-DATA_FILES = ['reggiedata', 'archive.py', 'common.py', 'license.txt', 'lz77.py', 'nsmblib-0.4.1.zip', 'readme.txt', 'sprites.py']
+DATA_FILES = ['reggiedata', 'archive.py', 'common.py', 'license.txt', 'lz77.py', 'readme.md', 'sprites.py']
 OPTIONS = {
  'argv_emulation': True,
 # 'graph': True,
