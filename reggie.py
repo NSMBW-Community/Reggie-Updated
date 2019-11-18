@@ -165,7 +165,7 @@ def FilesAreMissing():
         QtWidgets.QMessageBox.warning(None, 'Error',  'Sorry, you seem to be missing the required data files for Reggie! to work. Please redownload your copy of the editor.')
         return True
 
-    required = ['entrances.png', 'entrancetypes.txt', 'icon.png', 'levelnames.txt', 'overrides.png',
+    required = ['entrances.png', 'entrancetypes.txt', 'icon_reggie.png', 'levelnames.txt', 'overrides.png',
                 'spritedata.xml', 'tilesets.txt', 'bga/000A.png', 'bga.txt', 'bgb/000A.png', 'bgb.txt',
                 'about.html', 'spritecategories.xml']
 
@@ -6568,8 +6568,10 @@ class ReggieWindow(QtWidgets.QMainWindow):
 
         # set up the window
         self.setWindowTitle('Reggie! Level Editor')
-        self.setWindowIcon(QtGui.QIcon('reggiedata/icon.png'))
-        self.setIconSize(QtCore.QSize(16, 16))
+        appIcon = QtGui.QIcon('reggiedata/icon_reggie.png')
+        appIcon.addPixmap(QtGui.QPixmap('reggiedata/icon_reggie_lg.png'))
+        app.setWindowIcon(appIcon)
+        app.setApplicationDisplayName('Reggie')
 
         # create the actions
         self.SetupActionsAndMenus()
