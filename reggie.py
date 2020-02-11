@@ -4603,12 +4603,11 @@ class LevelScene(QtWidgets.QGraphicsScene):
         #print('painting ' + repr(drawrect))
         isect = drawrect.intersects
 
-        layer0 = []; l0add = layer0.append
-        layer1 = []; l1add = layer1.append
-        layer2 = []; l2add = layer2.append
+        layer0 = []
+        layer1 = []
+        layer2 = []
 
-        type_obj = LevelObjectEditorItem
-        ii = isinstance
+        local_Tiles = Tiles
 
         x1 = 1024
         y1 = 512
@@ -4634,43 +4633,39 @@ class LevelScene(QtWidgets.QGraphicsScene):
 
         width = x2 - x1
         height = y2 - y1
-        tiles = Tiles
 
         # create and draw the tilemaps
         for layer in [layer2, layer1, layer0]:
-            if len(layer) > 0:
-                tmap = []
-                i = 0
-                while i < height:
-                    tmap.append([-1] * width)
-                    i += 1
+            if not layer:
+                continue
 
-                for item in layer:
-                    startx = item.objx - x1
-                    desty = item.objy - y1
+            tmap = [([-1] * width) for _ in range(height)]
 
-                    for row in item.objdata:
-                        destrow = tmap[desty]
-                        destx = startx
-                        for tile in row:
-                            if tile > 0:
-                                destrow[destx] = tile
-                            destx += 1
-                        desty += 1
+            for item in layer:
+                startx = item.objx - x1
+                desty = item.objy - y1
 
-                painter.save()
-                painter.translate(x1*24, y1*24)
-                drawPixmap = painter.drawPixmap
-                desty = 0
-                for row in tmap:
-                    destx = 0
+                for row in item.objdata:
+                    destrow = tmap[desty]
+                    destx = startx
                     for tile in row:
                         if tile > 0:
-                            r = tiles[tile]
-                            drawPixmap(destx, desty, r)
-                        destx += 24
-                    desty += 24
-                painter.restore()
+                            destrow[destx] = tile
+                        destx += 1
+                    desty += 1
+
+            painter.save()
+            painter.translate(x1*24, y1*24)
+            drawPixmap = painter.drawPixmap
+            desty = 0
+            for row in tmap:
+                destx = 0
+                for tile in row:
+                    if tile > 0:
+                        drawPixmap(destx, desty, local_Tiles[tile])
+                    destx += 24
+                desty += 24
+            painter.restore()
 
 
 
@@ -7079,17 +7074,31 @@ class ReggieWindow(QtWidgets.QMainWindow):
                 self.actions['paste'].setEnabled(False)
 
 
+    # We limit how often the level overview can be updated in order to
+    # improve efficiency -- in particular, this helps on macOS when
+    # running from a .dmg file
+    lastOverviewUpdateTimeViaScrolling = 0
+    OVERVIEW_SCROLL_UPDATE_INTERVAL = 0.1 # seconds
+
     @QtCoreSlot(int)
     def XScrollChange(self, pos):
         """Moves the Overview current position box based on X scroll bar value"""
         self.levelOverview.Xposlocator = pos
-        self.levelOverview.update()
+
+        currentTime = time.time()
+        if currentTime - self.lastOverviewUpdateTimeViaScrolling > self.OVERVIEW_SCROLL_UPDATE_INTERVAL:
+            self.lastOverviewUpdateTimeViaScrolling = currentTime
+            self.levelOverview.update()
 
     @QtCoreSlot(int)
     def YScrollChange(self, pos):
         """Moves the Overview current position box based on Y scroll bar value"""
         self.levelOverview.Yposlocator = pos
-        self.levelOverview.update()
+
+        currentTime = time.time()
+        if currentTime - self.lastOverviewUpdateTimeViaScrolling > self.OVERVIEW_SCROLL_UPDATE_INTERVAL:
+            self.lastOverviewUpdateTimeViaScrolling = currentTime
+            self.levelOverview.update()
 
     @QtCoreSlot(int, int)
     def HandleWindowSizeChange(self, w, h):
