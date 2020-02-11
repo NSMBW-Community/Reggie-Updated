@@ -21,6 +21,7 @@ class LZS11(object):
         self.outdata = []
     def Decompress11LZS(self, filein):
         offset = 0
+        RANGE8 = list(range(8))
         # check that file is < 2GB
         #print("length of file: 0x%x" % len(filein))
         assert len(filein) < 0x4000 * 0x4000 * 2
@@ -45,7 +46,7 @@ class LZS11(object):
             flags = getByte(filein, offset)
             offset += 1
 
-            for i in range(8):
+            for i in RANGE8:
                 x = 7 - i
                 if curr_size >= decomp_size:
                     break
