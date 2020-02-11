@@ -45,6 +45,7 @@ import lz77
 import sprites
 
 ReggieID = 'Reggie r4 by Treeki, Tempus'
+ApplicationDisplayName = 'Reggie'
 
 
 # pre-Qt4.6 compatibility
@@ -1342,7 +1343,7 @@ class IconsOnlyTabBar(QtWidgets.QTabBar):
     This subclass limits tab widths to fix the problem.
     """
     def tabSizeHint(self, index):
-        res = super().tabSizeHint(index)
+        res = super(IconsOnlyTabBar, self).tabSizeHint(index)
         if app.style().metaObject().className() == 'QMacStyle':
             res.setWidth(res.height() * 2)
         return res
@@ -6566,7 +6567,8 @@ class ReggieWindow(QtWidgets.QMainWindow):
         appIcon = QtGui.QIcon('reggiedata/icon_reggie.png')
         appIcon.addPixmap(QtGui.QPixmap('reggiedata/icon_reggie_lg.png'))
         app.setWindowIcon(appIcon)
-        app.setApplicationDisplayName('Reggie')
+        if QtCompatVersion >= 0x50000:
+            app.setApplicationDisplayName(ApplicationDisplayName)
 
         # create the actions
         self.SetupActionsAndMenus()
@@ -9102,6 +9104,7 @@ def main():
     global app, mainWindow, settings
 
     # create an application
+    sys.argv[0] = ApplicationDisplayName  # only way to set the app display name on Qt 4
     app = QtWidgets.QApplication(sys.argv)
 
     # go to the script path
