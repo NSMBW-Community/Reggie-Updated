@@ -52,8 +52,7 @@ OPTIONS = {
 # 'xref': True,
  'includes': includes,
  'excludes': excludes,
- 'compressed': 0,
- 'optimize': 0
+ 'optimize': 2,
 }
 
 setup(
