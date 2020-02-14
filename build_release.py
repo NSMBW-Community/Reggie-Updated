@@ -59,7 +59,7 @@ if len(sys.argv) >= 2 and sys.argv[1] == '--install-nsmblib':
     # Generate a couple of strings that ought to be in the correct wheel
     # filename
     pyver = 'cp' + str(sys.version_info[0]) + str(sys.version_info[1])
-    platform = {'darwin': 'macosx', 'posix': 'manylinux1', 'nt': 'win'}[os.name]
+    platform = {'win32': 'win', 'darwin': 'macosx', 'linux': 'manylinux1'}[sys.platform]
 
     # Iterate over all available wheel filenames
     for wheel_name, url in name2URL.items():
