@@ -124,8 +124,8 @@ if len(sys.argv) >= 2 and sys.argv[1] == '--install-nsmblib':
 ########################################################################
 
 DIR = 'distrib'
-WORKPATH = 'build_temp_1'
-SPECPATH = 'build_temp_2'
+WORKPATH = 'build_temp'
+SPECFILE = SCRIPT_FILE[:-3] + '.spec'
 
 def print_emphasis(s):
     print('>>')
@@ -140,7 +140,7 @@ print('>> Destination directory: ' + DIR)
 
 if os.path.isdir(DIR): shutil.rmtree(DIR)
 if os.path.isdir(WORKPATH): shutil.rmtree(WORKPATH)
-if os.path.isdir(SPECPATH): shutil.rmtree(SPECPATH)
+if os.path.isdir(SPECFILE): os.remove(SPECFILE)
 
 def run_pyinstaller(args):
     print('>>')
@@ -250,7 +250,6 @@ args = [
     '--onefile',
     '--distpath=' + DIR,
     '--workpath=' + WORKPATH,
-    '--specpath=' + SPECPATH,
 ]
 
 if sys.platform == 'win32':
@@ -268,15 +267,12 @@ run_pyinstaller(args)
 
 shutil.rmtree(DIR)
 shutil.rmtree(WORKPATH)
-# (Leave SPECPATH alone -- we need to adjust the specfile next)
 
 
 ########################################################################
 ########################## Adjusting specfile ##########################
 ########################################################################
 print('>> Adjusting specfile...')
-
-specfile = os.path.join(SPECPATH, SCRIPT_FILE[:-3] + '.spec')
 
 # New plist file data (if on Mac)
 info_plist = {
@@ -287,7 +283,7 @@ info_plist = {
 }
 
 # Open original specfile
-with open(specfile, 'r', encoding='utf-8') as f:
+with open(SPECFILE, 'r', encoding='utf-8') as f:
     lines = f.read().splitlines()
 
 # Iterate over its lines, and potentially add new ones
@@ -299,7 +295,7 @@ for line in lines:
         new_lines.append('info_plist=' + json.dumps(info_plist) + ',')
 
 # Save new specfile
-with open(specfile, 'w', encoding='utf-8') as f:
+with open(SPECFILE, 'w', encoding='utf-8') as f:
     f.write('\n'.join(new_lines))
 
 
@@ -313,13 +309,13 @@ with open(specfile, 'w', encoding='utf-8') as f:
 args = [
     '--distpath=' + DIR,
     '--workpath=' + WORKPATH,
-    specfile,
+    SPECFILE,
 ]
 
 run_pyinstaller(args)
 
 shutil.rmtree(WORKPATH)
-shutil.rmtree(SPECPATH)
+os.remove(SPECFILE)
 
 
 ########################################################################
