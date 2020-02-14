@@ -1478,7 +1478,7 @@ class LevelUnit():
 
     def loadLevel(self, name, fullpath, area, progress=None):
         """Loads a specific level and area"""
-        startTime = time.clock()
+        startTime = time.time()
 
         # read the archive
         if fullpath:
@@ -1598,7 +1598,7 @@ class LevelUnit():
         if l2 is not None:
             self.LoadLayer(2,l2)
 
-        endTime = time.clock()
+        endTime = time.time()
         total = endTime - startTime
         #print('Level loaded in %f seconds' % total)
 
@@ -7711,9 +7711,9 @@ class ReggieWindow(QtWidgets.QMainWindow):
 
         dlg = ChooseLevelNameDialog()
         if dlg.exec_() == QtWidgets.QDialog.Accepted:
-            #start = time.clock()
+            #start = time.time()
             self.LoadLevel(dlg.currentlevel, False, 1)
-            #end = time.clock()
+            #end = time.time()
             #print('Loaded in ' + str(end - start))
 
 
