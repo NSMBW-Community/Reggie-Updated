@@ -44,12 +44,20 @@ if len(sys.argv) >= 2 and sys.argv[1] == '--install-nsmblib':
     import json
     import os
     import subprocess
-    import urllib.request
+    import urllib.request, urllib.error
 
     # Retrieve info about the latest release
     print('>> Retrieving release information...')
-    with urllib.request.urlopen(API_URL) as response:
-        j = json.loads(response.read())
+    try:
+        with urllib.request.urlopen(API_URL) as response:
+            j = json.loads(response.read())
+    except urllib.error.HTTPError as e:
+        print('HTTPError:')
+        print(e)
+        print(e.code)
+        print(e.reason)
+        print(e.headers)
+        print(e.read())
 
     # Simplify it down to a {filename: url} mapping
     name2URL = {}
