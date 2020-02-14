@@ -28,6 +28,71 @@ import PyInstaller.__main__
 
 
 ########################################################################
+################## Secret NSMBLib-installation feature #################
+########################################################################
+
+# This command-line option automatically installs the latest release of
+# nsmblib. It's intended only for use with CI, though it would probably
+# work for end users as well.
+# (This part of the code is not necessarily compatible with Py 2.x.)
+
+API_URL = 'https://api.github.com/repos/RoadrunnerWMC/NSMBLib-Updated/releases/latest'
+
+if sys.argv[1] == '--install-nsmblib':
+    print('[[ Downloading and installing NSMBLib... ]]')
+
+    import json
+    import os
+    import subprocess
+    import urllib.request
+
+    # Retrieve info about the latest release
+    print('>> Retrieving release information...')
+    with urllib.request.urlopen(API_URL) as response:
+        j = json.loads(response.read())
+
+    # Simplify it down to a {filename: url} mapping
+    name2URL = {}
+    for a in j['assets']:
+        name2URL[a['name']] = a['browser_download_url']
+
+    # Generate a couple of strings that ought to be in the correct wheel
+    # filename
+    pyver = 'cp' + str(sys.version_info[0]) + str(sys.version_info[1])
+    platform = {'darwin': 'macosx', 'posix': 'manylinux1', 'nt': 'win'}[os.name]
+
+    # Iterate over all available wheel filenames
+    for wheel_name, url in name2URL.items():
+        if pyver not in wheel_name: continue
+        if platform not in wheel_name: continue
+        print('>> Selected ' + wheel_name)
+
+        # Download the wheel as a local file
+        print('>> Downloading...')
+        with urllib.request.urlopen(url) as response:
+            with open(wheel_name, 'wb') as f:
+                f.write(response.read())
+
+        # Install the file with pip
+        # https://pip.pypa.io/en/stable/user_guide/#using-pip-from-your-program
+        print('>> Installing...')
+        subprocess.check_call([sys.executable, '-m', 'pip', 'install', wheel_name])
+
+        # Clean up
+        # (not necessary for CI, but, can't hurt)
+        os.remove(wheel_name)
+
+        break
+
+    else:
+        print(f'>> ERROR: No suitable wheel for pyver={pyver} platform={platform} found!')
+        sys.exit(1)
+
+    print('>> Done!')
+    sys.exit(0)
+
+
+########################################################################
 ################################# Intro ################################
 ########################################################################
 
