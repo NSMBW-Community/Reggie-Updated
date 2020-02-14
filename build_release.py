@@ -19,12 +19,33 @@
 # with this program; if not, write to the Free Software Foundation, Inc.,
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
-
+import json
 import os, os.path
 import shutil
 import sys
 
 import PyInstaller.__main__
+
+
+########################################################################
+############################### Constants ##############################
+########################################################################
+
+# Everything highly specific to Reggie is in this section, to make it
+# simpler to copypaste this script across all of the NSMBW-related
+# projects that use the same technologies (Reggie, Puzzle, BRFNTify,
+# etc)
+
+PROJECT_NAME = 'Reggie!'
+PROJECT_VERSION = '1.0'
+
+WIN_ICON = os.path.join('reggiedata', 'win_icon.ico')
+MAC_ICON = os.path.join('reggiedata', 'reggie.icns')
+MAC_BUNDLE_IDENTIFIER = 'ca.chronometry.reggie'
+
+SCRIPT_FILE = 'reggie.py'
+DATA_FOLDERS = ['reggiedata', 'reggieextras']
+DATA_FILES = ['readme.md', 'license.txt']
 
 
 ########################################################################
@@ -41,8 +62,6 @@ API_URL = 'https://api.github.com/repos/RoadrunnerWMC/NSMBLib-Updated/releases/l
 if len(sys.argv) >= 2 and sys.argv[1] == '--install-nsmblib':
     print('[[ Downloading and installing NSMBLib... ]]')
 
-    import json
-    import os
     import subprocess
     import urllib.request, urllib.error
 
@@ -105,7 +124,8 @@ if len(sys.argv) >= 2 and sys.argv[1] == '--install-nsmblib':
 ########################################################################
 
 DIR = 'distrib'
-WORKPATH = 'build_temp'
+WORKPATH = 'build_temp_1'
+SPECPATH = 'build_temp_2'
 
 def print_emphasis(s):
     print('>>')
@@ -114,12 +134,27 @@ def print_emphasis(s):
     print('>> ' + '=' * (len(s) - 3))
     print('>>')
 
-print('[[ Building Reggie! ]]')
+print('[[ Building ' + PROJECT_NAME + ' ]]')
 print('>> Please note: extra command-line arguments passed to this script will be passed through to PyInstaller.')
 print('>> Destination directory: ' + DIR)
 
 if os.path.isdir(DIR): shutil.rmtree(DIR)
 if os.path.isdir(WORKPATH): shutil.rmtree(WORKPATH)
+if os.path.isdir(SPECPATH): shutil.rmtree(SPECPATH)
+
+def run_pyinstaller(args):
+    print('>>')
+    printMessage = ['>> Running PyInstaller with the following arguments:']
+    for a in args:
+        if ' ' in a:
+            printMessage.append('"' + a + '"')
+        else:
+            printMessage.append(a)
+    print(' '.join(printMessage))
+    print('>>')
+
+    PyInstaller.__main__.run(args)
+
 
 ########################################################################
 ######################### Environment detection ########################
@@ -162,6 +197,7 @@ if nsmblib is None:
 
 print_emphasis('>> NOTE: If the PyInstaller output below says "INFO: UPX is not available.", you should install UPX!')
 
+
 ########################################################################
 ############################### Excludes ###############################
 ########################################################################
@@ -202,51 +238,105 @@ print('>> Will use the following excludes list: ' + ', '.join(excludes))
 
 
 ########################################################################
-########################## Running PyInstaller #########################
+################### Running PyInstaller (first time) ###################
 ########################################################################
+
+# Our only goal here is to create a specfile we can edit. Unfortunately,
+# there's no good way to do that without doing a full PyInstaller
+# build...
 
 args = [
     '--windowed',
     '--onefile',
     '--distpath=' + DIR,
     '--workpath=' + WORKPATH,
-    '--specpath=' + WORKPATH,
-    '--icon=' + os.path.abspath(os.path.join('reggiedata', 'win_icon.ico')),
+    '--specpath=' + SPECPATH,
 ]
+
+if sys.platform == 'win32':
+    args.append('--icon=' + os.path.abspath(WIN_ICON))
+elif sys.platform == 'darwin':
+    args.append('--icon=' + os.path.abspath(MAC_ICON))
+    args.append('--osx-bundle-identifier=' + MAC_BUNDLE_IDENTIFIER)
 
 for e in excludes:
     args.append('--exclude-module=' + e)
 args.extend(sys.argv[1:])
-args.append('reggie.py')
+args.append(SCRIPT_FILE)
 
-print('>>')
-printMessage = ['>> Running PyInstaller with the following arguments:']
-for a in args:
-    if ' ' in a:
-        printMessage.append('"' + a + '"')
-    else:
-        printMessage.append(a)
-print(' '.join(printMessage))
-print('>>')
+run_pyinstaller(args)
 
-PyInstaller.__main__.run(args)
+shutil.rmtree(DIR)
+shutil.rmtree(WORKPATH)
+# (Leave SPECPATH alone -- we need to adjust the specfile next)
+
+
+########################################################################
+########################## Adjusting specfile ##########################
+########################################################################
+print('>> Adjusting specfile...')
+
+specfile = os.path.join(SPECPATH, SCRIPT_FILE[:-3] + '.spec')
+
+# New plist file data (if on Mac)
+info_plist = {
+    'CFBundleName': PROJECT_NAME,
+    'CFBundleShortVersionString': PROJECT_VERSION,
+    'CFBundleGetInfoString': PROJECT_NAME + ' ' + PROJECT_VERSION,
+    'CFBundleExecutable': PROJECT_NAME,
+}
+
+# Open original specfile
+with open(specfile, 'r', encoding='utf-8') as f:
+    lines = f.read().splitlines()
+
+# Iterate over its lines, and potentially add new ones
+new_lines = []
+for line in lines:
+    new_lines.append(line)
+
+    if sys.platform == 'darwin' and 'BUNDLE(' in line:
+        new_lines.append('info_plist=' + json.dumps(info_plist) + ',')
+
+# Save new specfile
+with open(specfile, 'w', encoding='utf-8') as f:
+    f.write('\n'.join(new_lines))
+
+
+########################################################################
+################### Running PyInstaller (second time) ##################
+########################################################################
+
+# Most of the arguments are now contained in the specfile. Thus, we can
+# run with minimal arguments this time.
+
+args = [
+    '--distpath=' + DIR,
+    '--workpath=' + WORKPATH,
+    specfile,
+]
+
+run_pyinstaller(args)
+
+shutil.rmtree(WORKPATH)
+shutil.rmtree(SPECPATH)
+
 
 ########################################################################
 ######################## Copying required files ########################
 ########################################################################
 print('>> Copying required files...')
 
-if os.path.isdir(DIR + '/reggiedata'): shutil.rmtree(DIR + '/reggiedata')
-if os.path.isdir(DIR + '/reggieextras'): shutil.rmtree(DIR + '/reggieextras')
-shutil.copytree('reggiedata', DIR + '/reggiedata')
-shutil.copytree('reggieextras', DIR + '/reggieextras')
+for f in DATA_FOLDERS:
+    if os.path.isdir(os.path.join(DIR, f)):
+        shutil.rmtree(os.path.join(DIR, f))
+    shutil.copytree(f, os.path.join(DIR, f))
 
-shutil.copy('license.txt', DIR)
-shutil.copy('readme.md', DIR)
+for f in DATA_FILES:
+    shutil.copy(f, DIR)
 
-shutil.rmtree(WORKPATH)
 
 ########################################################################
 ################################## End #################################
 ########################################################################
-print('>> Reggie has been built to the %s folder!' % DIR)
+print('>> %s has been built to the %s folder!' % (PROJECT_NAME, DIR))

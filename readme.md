@@ -21,9 +21,9 @@ Changelog
 ---------------------
 - Reggie! is now compatible with Python 3, PyQt5, and Qt for Python (PySide2).
     Python 2 and PyQt4 are also still supported.
-- nsmblib has been removed from this repository -- you can find it at
+- NSMBLib has been removed from this repository -- you can find it at
     https://github.com/RoadrunnerWMC/NSMBLib-Updated
-- Made loading times much faster on environments where NSMBLib is not available.
+- Made loading times much faster when running without NSMBLib
 - Made tileset texture rendering perfectly accurate instead of just
     "close enough."
 - Made certain terminology consistent across the editor.
