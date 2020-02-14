@@ -38,7 +38,7 @@ import PyInstaller.__main__
 
 API_URL = 'https://api.github.com/repos/RoadrunnerWMC/NSMBLib-Updated/releases/latest'
 
-if sys.argv[1] == '--install-nsmblib':
+if len(sys.argv) >= 2 and sys.argv[1] == '--install-nsmblib':
     print('[[ Downloading and installing NSMBLib... ]]')
 
     import json
