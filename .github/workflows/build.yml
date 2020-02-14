@@ -16,11 +16,12 @@ jobs:
     - name: Set up Python
       uses: actions/setup-python@v1
       with:
-        python-version: 3.8
+        python-version: ${{ matrix.python-version }}
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
         pip install PyQt5 PyInstaller
+        python build_release.py --install-nsmblib
     - name: Build
       run: |
         python -OO build_release.py
