@@ -3322,8 +3322,8 @@ class LevelOverviewWidget(QtWidgets.QWidget):
             y = zone.objy / 16
             width = zone.width / 16
             height = zone.height / 16
-            fr(x, y, width, height, b)
-            dr(x, y, width, height)
+            fr(QtCore.QRectF(x, y, width, height), b)
+            dr(QtCore.QRectF(x, y, width, height))
             if x+width > maxX:
                 maxX = x+width
             if y+height > maxY:
@@ -3368,8 +3368,8 @@ class LevelOverviewWidget(QtWidgets.QWidget):
             y = location.objy / 16
             width = location.width / 16
             height = location.height / 16
-            fr(x, y, width, height, b)
-            dr(x, y, width, height)
+            fr(QtCore.QRectF(x, y, width, height), b)
+            dr(QtCore.QRectF(x, y, width, height))
             if x+width > maxX:
                 maxX = x+width
             if y+height > maxY:
@@ -3380,7 +3380,10 @@ class LevelOverviewWidget(QtWidgets.QWidget):
 
         b = self.locationbrush
         painter.setPen(QtGui.QPen(QtCore.Qt.blue, 1))
-        painter.drawRect(self.Xposlocator/24/self.mainWindowScale, self.Yposlocator/24/self.mainWindowScale, self.Wlocator/24/self.mainWindowScale, self.Hlocator/24/self.mainWindowScale)
+        painter.drawRect(QtCore.QRectF(self.Xposlocator/24/self.mainWindowScale,
+                                       self.Yposlocator/24/self.mainWindowScale,
+                                       self.Wlocator/24/self.mainWindowScale,
+                                       self.Hlocator/24/self.mainWindowScale))
 
 
     def Rescale(self):
@@ -5142,14 +5145,14 @@ class LevelViewWidget(QtWidgets.QGraphicsView):
             y1 = rect.top()
             y2 = rect.bottom()
             while x <= endx:
-                drawLine(x, starty, x, endy)
+                drawLine(QtCore.QLineF(x, starty, x, endy))
                 x += 24
 
             y = starty
             x1 = rect.left()
             x2 = rect.right()
             while y <= endy:
-                drawLine(startx, y, endx, y)
+                drawLine(QtCore.QLineF(startx, y, endx, y))
                 y += 24
 
 
@@ -5168,14 +5171,14 @@ class LevelViewWidget(QtWidgets.QGraphicsView):
             y1 = rect.top()
             y2 = rect.bottom()
             while x <= endx:
-                drawLine(x, starty, x, endy)
+                drawLine(QtCore.QLineF(x, starty, x, endy))
                 x += 96
 
             y = starty
             x1 = rect.left()
             x2 = rect.right()
             while y <= endy:
-                drawLine(startx, y, endx, y)
+                drawLine(QtCore.QLineF(startx, y, endx, y))
                 y += 96
 
 
@@ -5193,14 +5196,14 @@ class LevelViewWidget(QtWidgets.QGraphicsView):
         y1 = rect.top()
         y2 = rect.bottom()
         while x <= endx:
-            drawLine(x, starty, x, endy)
+            drawLine(QtCore.QLineF(x, starty, x, endy))
             x += 192
 
         y = starty
         x1 = rect.left()
         x2 = rect.right()
         while y <= endy:
-            drawLine(startx, y, endx, y)
+            drawLine(QtCore.QLineF(startx, y, endx, y))
             y += 192
 
 
