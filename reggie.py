@@ -1478,7 +1478,7 @@ class LevelUnit():
 
     def loadLevel(self, name, fullpath, area, progress=None):
         """Loads a specific level and area"""
-        startTime = time.clock()
+        startTime = time.process_time()
 
         # read the archive
         if fullpath:
@@ -1598,7 +1598,7 @@ class LevelUnit():
         if l2 is not None:
             self.LoadLayer(2,l2)
 
-        endTime = time.clock()
+        endTime = time.process_time()
         total = endTime - startTime
         #print('Level loaded in %f seconds' % total)
 
