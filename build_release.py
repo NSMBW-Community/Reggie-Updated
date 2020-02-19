@@ -279,7 +279,7 @@ info_plist = {
     'CFBundleName': PROJECT_NAME,
     'CFBundleShortVersionString': PROJECT_VERSION,
     'CFBundleGetInfoString': PROJECT_NAME + ' ' + PROJECT_VERSION,
-    'CFBundleExecutable': PROJECT_NAME,
+    'CFBundleExecutable': SCRIPT_FILE.split('.')[0],
 }
 
 # Open original specfile
