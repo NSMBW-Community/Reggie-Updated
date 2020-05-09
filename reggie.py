@@ -136,13 +136,13 @@ def module_path():
     This will get us the program's directory, even if we are frozen
     using cx_Freeze or py2app
     """
-    if hasattr(sys, 'frozen'):
-        if sys.frozen == 'macosx_app': # py2app
-            return None
-        else: # py2exe
-            return os.path.dirname(sys.executable)
-    if __name__ == '__main__':
-        return os.path.dirname(os.path.abspath(sys.argv[0]))
+    # if hasattr(sys, 'frozen'):
+    #     if sys.frozen == 'macosx_app': # py2app
+    #         return None
+    #     else: # py2exe
+    #         return os.path.dirname(sys.executable)
+    # if __name__ == '__main__':
+    #     return os.path.dirname(os.path.abspath(sys.argv[0]))
     return None
 
 def IsNSMBLevel(filename):
