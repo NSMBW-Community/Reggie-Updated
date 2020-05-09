@@ -27,7 +27,9 @@ jobs:
         python -OO build_release.py
     - name: Tar (Linux/Mac)
       run: |
-        tar -czvf build-${{ matrix.platform }}.tar.gz distrib/*
+        cd distrib
+        tar -czvf ../build-${{ matrix.platform }}.tar.gz ./*
+        cd ..
       if: ${{ matrix.platform == 'macos-latest' || matrix.platform == 'ubuntu-latest' }}
     - name: Upload artifacts (Linux/Mac)
       uses: actions/upload-artifact@v2
