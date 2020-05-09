@@ -274,29 +274,29 @@ shutil.rmtree(WORKPATH)
 ########################################################################
 print('>> Adjusting specfile...')
 
-# # New plist file data (if on Mac)
-# info_plist = {
-#     'CFBundleName': PROJECT_NAME,
-#     'CFBundleShortVersionString': PROJECT_VERSION,
-#     'CFBundleGetInfoString': PROJECT_NAME + ' ' + PROJECT_VERSION,
-#     'CFBundleExecutable': SCRIPT_FILE.split('.')[0],
-# }
+# New plist file data (if on Mac)
+info_plist = {
+    'CFBundleName': PROJECT_NAME,
+    'CFBundleShortVersionString': PROJECT_VERSION,
+    'CFBundleGetInfoString': PROJECT_NAME + ' ' + PROJECT_VERSION,
+    'CFBundleExecutable': SCRIPT_FILE.split('.')[0],
+}
 
-# # Open original specfile
-# with open(SPECFILE, 'r', encoding='utf-8') as f:
-#     lines = f.read().splitlines()
+# Open original specfile
+with open(SPECFILE, 'r', encoding='utf-8') as f:
+    lines = f.read().splitlines()
 
-# # Iterate over its lines, and potentially add new ones
-# new_lines = []
-# for line in lines:
-#     new_lines.append(line)
+# Iterate over its lines, and potentially add new ones
+new_lines = []
+for line in lines:
+    new_lines.append(line)
 
-#     if sys.platform == 'darwin' and 'BUNDLE(' in line:
-#         new_lines.append('info_plist=' + json.dumps(info_plist) + ',')
+    if sys.platform == 'darwin' and 'BUNDLE(' in line:
+        new_lines.append('info_plist=' + json.dumps(info_plist) + ',')
 
-# # Save new specfile
-# with open(SPECFILE, 'w', encoding='utf-8') as f:
-#     f.write('\n'.join(new_lines))
+# Save new specfile
+with open(SPECFILE, 'w', encoding='utf-8') as f:
+    f.write('\n'.join(new_lines))
 
 
 ########################################################################

@@ -25,8 +25,19 @@ jobs:
     - name: Build
       run: |
         python -OO build_release.py
-    - name: Upload artifacts
-      uses: actions/upload-artifact@v1
+    - name: Tar (Linux/Mac)
+      run: |
+        tar -czvf build-${{ matrix.platform }}.tar.gz distrib
+      runs-on: [macos-latest, ubuntu-latest]
+    - name: Upload artifacts (Linux/Mac)
+      uses: actions/upload-artifact@v2
+      with:
+        name: build-${{ matrix.platform }}
+        path: build-${{ matrix.platform }}.tar.gz
+      runs-on: [macos-latest, ubuntu-latest]
+    - name: Upload artifacts (Win)
+      uses: actions/upload-artifact@v2
       with:
         name: build-${{ matrix.platform }}
         path: distrib
+      runs-on: windows-latest
