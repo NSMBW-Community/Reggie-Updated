@@ -28,16 +28,16 @@ jobs:
     - name: Tar (Linux/Mac)
       run: |
         tar -czvf build-${{ matrix.platform }}.tar.gz distrib
-      runs-on: [macos-latest, ubuntu-latest]
+      if: ${{ matrix.platform == 'macos-latest' || matrix.platform == 'ubuntu-latest' }}
     - name: Upload artifacts (Linux/Mac)
       uses: actions/upload-artifact@v2
       with:
         name: build-${{ matrix.platform }}
         path: build-${{ matrix.platform }}.tar.gz
-      runs-on: [macos-latest, ubuntu-latest]
+      if: ${{ matrix.platform == 'macos-latest' || matrix.platform == 'ubuntu-latest' }}
     - name: Upload artifacts (Win)
       uses: actions/upload-artifact@v2
       with:
         name: build-${{ matrix.platform }}
         path: distrib
-      runs-on: windows-latest
+      if: ${{ matrix.platform == 'windows-latest' }}
