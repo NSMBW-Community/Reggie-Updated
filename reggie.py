@@ -136,7 +136,9 @@ def module_path():
     This will get us the program's directory, even if we are frozen
     using cx_Freeze or py2app
     """
-    print('DEBUG INFO -> ', sys.frozen, '|', sys._MEIPASS, '|', sys.executable, '|', sys.argv)
+    di = 'DEBUG INFO -> ' + sys.frozen + '|' + sys._MEIPASS + '|' + sys.executable + '|', sys.argv
+    with open('DEBUG_INFO_FOR_WMC.txt', 'w', encoding='utf-8') as f:
+        f.write(di)
     if getattr(sys, 'frozen') and hasattr(sys, '_MEIPASS'):  # PyInstaller
         if sys.frozen == 'macosx_app': # py2app
             return None
