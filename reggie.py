@@ -154,7 +154,7 @@ def module_path():
             if not os.path.basename(reggieapp).endswith('.app'):
                 return None
 
-            return os.path.basename(reggieapp)
+            return os.path.dirname(reggieapp)
 
         elif sys.platform == 'win32':  # Windows
             pass
