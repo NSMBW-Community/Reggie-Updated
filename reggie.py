@@ -134,18 +134,34 @@ gamePath = None
 def module_path():
     """
     This will get us the program's directory, even if we are frozen
-    using cx_Freeze or py2app
+    using PyInstaller
     """
-    di = 'DEBUG INFO -> ' + sys.frozen + '|' + sys._MEIPASS + '|' + sys.executable + '|', sys.argv
-    with open('DEBUG_INFO_FOR_WMC.txt', 'w', encoding='utf-8') as f:
-        f.write(di)
-    if getattr(sys, 'frozen') and hasattr(sys, '_MEIPASS'):  # PyInstaller
-        if sys.frozen == 'macosx_app': # py2app
-            return None
-        else: # py2exe
-            return os.path.dirname(sys.executable)
+
+    if hasattr(sys, 'frozen') and hasattr(sys, '_MEIPASS'):  # PyInstaller
+        if sys.platform == 'darwin':  # macOS
+            # sys.executable is /x/y/z/reggie.app/Contents/MacOS/reggie
+            # We need to return /x/y/z
+
+            macos = os.path.dirname(sys.executable)
+            if os.path.basename(macos) != 'MacOS':
+                return None
+
+            contents = os.path.dirname(macos)
+            if os.path.basename(contents) != 'Contents':
+                return None
+
+            reggieapp = os.path.dirname(contents)
+            if not os.path.basename(reggieapp).endswith('.app'):
+                return None
+
+            return os.path.basename(reggieapp)
+
+        elif sys.platform == 'win32':  # Windows
+            pass
+
     if __name__ == '__main__':
         return os.path.dirname(os.path.abspath(sys.argv[0]))
+
     return None
 
 def IsNSMBLevel(filename):
