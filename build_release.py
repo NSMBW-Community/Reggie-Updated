@@ -187,7 +187,8 @@ elif sys.platform == 'darwin':
     args.append('--icon=' + os.path.abspath(MAC_ICON))
     args.append('--osx-bundle-identifier=' + MAC_BUNDLE_IDENTIFIER)
 
-args.append('--add-data=' + os.pathsep.join(DATA_FOLDERS + DATA_FILES))
+for x in DATA_FOLDERS + DATA_FILES:
+    args.append('--add-data=' + x + os.pathsep + x)
 
 for e in excludes:
     args.append('--exclude-module=' + e)
