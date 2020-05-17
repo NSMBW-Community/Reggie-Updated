@@ -187,6 +187,8 @@ elif sys.platform == 'darwin':
     args.append('--icon=' + os.path.abspath(MAC_ICON))
     args.append('--osx-bundle-identifier=' + MAC_BUNDLE_IDENTIFIER)
 
+args.append('--add-data=' + os.pathsep.join(DATA_FOLDERS + DATA_FILES))
+
 for e in excludes:
     args.append('--exclude-module=' + e)
 args.extend(sys.argv[1:])
@@ -236,6 +238,8 @@ with open(SPECFILE, 'w', encoding='utf-8') as f:
 # run with minimal arguments this time.
 
 args = [
+    '--windowed',
+    '--onefile',
     '--distpath=' + DIR,
     '--workpath=' + WORKPATH,
     SPECFILE,
@@ -252,13 +256,13 @@ os.remove(SPECFILE)
 ########################################################################
 print('>> Copying required files...')
 
-for f in DATA_FOLDERS:
-    if os.path.isdir(os.path.join(DIR, f)):
-        shutil.rmtree(os.path.join(DIR, f))
-    shutil.copytree(f, os.path.join(DIR, f))
+# for f in DATA_FOLDERS:
+#     if os.path.isdir(os.path.join(DIR, f)):
+#         shutil.rmtree(os.path.join(DIR, f))
+#     shutil.copytree(f, os.path.join(DIR, f))
 
-for f in DATA_FILES:
-    shutil.copy(f, DIR)
+# for f in DATA_FILES:
+#     shutil.copy(f, DIR)
 
 
 ########################################################################
