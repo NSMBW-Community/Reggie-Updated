@@ -255,7 +255,7 @@ print('>> Copying required files...')
 
 if sys.platform == 'darwin':
     app_bundle_name = SCRIPT_FILE.split('.')[0] + '.app'
-    dest_folder = os.path.join(DIR, app_bundle_name, 'Resources')
+    dest_folder = os.path.join(DIR, app_bundle_name, 'Contents', 'Resources')
 else:
     dest_folder = DIR
 

@@ -140,17 +140,13 @@ def module_path():
     if hasattr(sys, 'frozen') and hasattr(sys, '_MEIPASS'):  # PyInstaller
         if sys.platform == 'darwin':  # macOS
             # sys.executable is /x/y/z/reggie.app/Contents/MacOS/reggie
-            # We need to return /x/y/z/reggie.app/Resources/
+            # We need to return /x/y/z/reggie.app/Contents/Resources/
 
             macos = os.path.dirname(sys.executable)
             if os.path.basename(macos) != 'MacOS':
                 return None
 
-            contents = os.path.dirname(macos)
-            if os.path.basename(contents) != 'Contents':
-                return None
-
-            return os.path.join(os.path.dirname(contents), 'Resources')
+            return os.path.join(os.path.dirname(macos), 'Resources')
 
     if __name__ == '__main__':
         return os.path.dirname(os.path.abspath(sys.argv[0]))
