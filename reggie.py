@@ -6772,6 +6772,9 @@ class ReggieWindow(QtWidgets.QMainWindow):
         hmenu.addAction(self.actions['tipbox'])
         hmenu.addSeparator()
         hmenu.addAction(self.actions['aboutqt'])
+        hmenu.addSeparator()
+        nsmblibAct = hmenu.addAction('Using NSMBLib' if HaveNSMBLib else 'Not using NSMBLib')
+        nsmblibAct.setEnabled(False)
 
         # create a toolbar
         self.toolbar = self.addToolBar('Level Editor')
