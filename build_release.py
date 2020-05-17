@@ -187,9 +187,6 @@ elif sys.platform == 'darwin':
     args.append('--icon=' + os.path.abspath(MAC_ICON))
     args.append('--osx-bundle-identifier=' + MAC_BUNDLE_IDENTIFIER)
 
-for x in DATA_FOLDERS + DATA_FILES:
-    args.append('--add-data=' + x + os.pathsep + x)
-
 for e in excludes:
     args.append('--exclude-module=' + e)
 args.extend(sys.argv[1:])
@@ -240,7 +237,6 @@ with open(SPECFILE, 'w', encoding='utf-8') as f:
 
 args = [
     '--windowed',
-    '--onefile',
     '--distpath=' + DIR,
     '--workpath=' + WORKPATH,
     SPECFILE,
@@ -257,13 +253,34 @@ os.remove(SPECFILE)
 ########################################################################
 print('>> Copying required files...')
 
-# for f in DATA_FOLDERS:
-#     if os.path.isdir(os.path.join(DIR, f)):
-#         shutil.rmtree(os.path.join(DIR, f))
-#     shutil.copytree(f, os.path.join(DIR, f))
+if sys.platform == 'darwin':
+    app_bundle_name = SCRIPT_FILE.split('.')[0] + '.app'
+    dest_folder = os.path.join(DIR, app_bundle_name, 'Resources')
+else:
+    dest_folder = DIR
 
-# for f in DATA_FILES:
-#     shutil.copy(f, DIR)
+for f in DATA_FOLDERS:
+    if os.path.isdir(os.path.join(dest_folder, f)):
+        shutil.rmtree(os.path.join(dest_folder, f))
+    shutil.copytree(f, os.path.join(dest_folder, f))
+
+for f in DATA_FILES:
+    shutil.copy(f, dest_folder)
+
+
+########################################################################
+################################ Cleanup ###############################
+########################################################################
+print('>> Cleaning up...')
+
+# On macOS, there's a second "reggie" executable for some reason,
+# separate from the app bundle. I don't know why it's there, but we
+# delete it.
+
+if sys.platform == 'darwin':
+    leftover_executable = os.path.join(DIR, SCRIPT_FILE.split('.')[0])
+    if os.path.isfile(leftover_executable):
+        os.unlink(leftover_executable)
 
 
 ########################################################################

@@ -140,7 +140,7 @@ def module_path():
     if hasattr(sys, 'frozen') and hasattr(sys, '_MEIPASS'):  # PyInstaller
         if sys.platform == 'darwin':  # macOS
             # sys.executable is /x/y/z/reggie.app/Contents/MacOS/reggie
-            # We need to return /x/y/z
+            # We need to return /x/y/z/reggie.app/Resources/
 
             macos = os.path.dirname(sys.executable)
             if os.path.basename(macos) != 'MacOS':
@@ -150,14 +150,7 @@ def module_path():
             if os.path.basename(contents) != 'Contents':
                 return None
 
-            reggieapp = os.path.dirname(contents)
-            if not os.path.basename(reggieapp).endswith('.app'):
-                return None
-
-            return os.path.dirname(reggieapp)
-
-        elif sys.platform == 'win32':  # Windows
-            pass
+            return os.path.join(os.path.dirname(contents), 'Resources')
 
     if __name__ == '__main__':
         return os.path.dirname(os.path.abspath(sys.argv[0]))
@@ -182,7 +175,7 @@ def FilesAreMissing():
     """Checks to see if any of the required files for Reggie are missing"""
 
     if not os.path.isdir('reggiedata'):
-        QtWidgets.QMessageBox.warning(None, 'Error',  'Sorry, you seem to be missing the required data files for Reggie! to work. Please redownload your copy of the editor.<br/><br/>' + str(module_path()) + '<br/><br/>' + str(os.getcwd()))
+        QtWidgets.QMessageBox.warning(None, 'Error', 'Sorry, you seem to be missing the required data files for Reggie! to work. Please redownload your copy of the editor.<br/><br/>' + str(module_path()) + '<br/><br/>' + str(os.getcwd()))
         return True
 
     required = ['entrances.png', 'entrancetypes.txt', 'icon_reggie.png', 'levelnames.txt', 'overrides.png',
