@@ -134,15 +134,23 @@ gamePath = None
 def module_path():
     """
     This will get us the program's directory, even if we are frozen
-    using cx_Freeze or py2app
+    using PyInstaller
     """
-    if hasattr(sys, 'frozen'):
-        if sys.frozen == 'macosx_app': # py2app
-            return None
-        else: # py2exe
-            return os.path.dirname(sys.executable)
+
+    if hasattr(sys, 'frozen') and hasattr(sys, '_MEIPASS'):  # PyInstaller
+        if sys.platform == 'darwin':  # macOS
+            # sys.executable is /x/y/z/reggie.app/Contents/MacOS/reggie
+            # We need to return /x/y/z/reggie.app/Contents/Resources/
+
+            macos = os.path.dirname(sys.executable)
+            if os.path.basename(macos) != 'MacOS':
+                return None
+
+            return os.path.join(os.path.dirname(macos), 'Resources')
+
     if __name__ == '__main__':
         return os.path.dirname(os.path.abspath(sys.argv[0]))
+
     return None
 
 def IsNSMBLevel(filename):
@@ -163,7 +171,7 @@ def FilesAreMissing():
     """Checks to see if any of the required files for Reggie are missing"""
 
     if not os.path.isdir('reggiedata'):
-        QtWidgets.QMessageBox.warning(None, 'Error',  'Sorry, you seem to be missing the required data files for Reggie! to work. Please redownload your copy of the editor.')
+        QtWidgets.QMessageBox.warning(None, 'Error', 'Sorry, you seem to be missing the required data files for Reggie! to work. Please redownload your copy of the editor.')
         return True
 
     required = ['entrances.png', 'entrancetypes.txt', 'icon_reggie.png', 'levelnames.txt', 'overrides.png',
@@ -1478,7 +1486,7 @@ class LevelUnit():
 
     def loadLevel(self, name, fullpath, area, progress=None):
         """Loads a specific level and area"""
-        startTime = time.clock()
+        startTime = time.time()
 
         # read the archive
         if fullpath:
@@ -1598,7 +1606,7 @@ class LevelUnit():
         if l2 is not None:
             self.LoadLayer(2,l2)
 
-        endTime = time.clock()
+        endTime = time.time()
         total = endTime - startTime
         #print('Level loaded in %f seconds' % total)
 
@@ -3322,8 +3330,8 @@ class LevelOverviewWidget(QtWidgets.QWidget):
             y = zone.objy / 16
             width = zone.width / 16
             height = zone.height / 16
-            fr(x, y, width, height, b)
-            dr(x, y, width, height)
+            fr(QtCore.QRectF(x, y, width, height), b)
+            dr(QtCore.QRectF(x, y, width, height))
             if x+width > maxX:
                 maxX = x+width
             if y+height > maxY:
@@ -3368,8 +3376,8 @@ class LevelOverviewWidget(QtWidgets.QWidget):
             y = location.objy / 16
             width = location.width / 16
             height = location.height / 16
-            fr(x, y, width, height, b)
-            dr(x, y, width, height)
+            fr(QtCore.QRectF(x, y, width, height), b)
+            dr(QtCore.QRectF(x, y, width, height))
             if x+width > maxX:
                 maxX = x+width
             if y+height > maxY:
@@ -3380,7 +3388,10 @@ class LevelOverviewWidget(QtWidgets.QWidget):
 
         b = self.locationbrush
         painter.setPen(QtGui.QPen(QtCore.Qt.blue, 1))
-        painter.drawRect(self.Xposlocator/24/self.mainWindowScale, self.Yposlocator/24/self.mainWindowScale, self.Wlocator/24/self.mainWindowScale, self.Hlocator/24/self.mainWindowScale)
+        painter.drawRect(QtCore.QRectF(self.Xposlocator/24/self.mainWindowScale,
+                                       self.Yposlocator/24/self.mainWindowScale,
+                                       self.Wlocator/24/self.mainWindowScale,
+                                       self.Hlocator/24/self.mainWindowScale))
 
 
     def Rescale(self):
@@ -5142,14 +5153,14 @@ class LevelViewWidget(QtWidgets.QGraphicsView):
             y1 = rect.top()
             y2 = rect.bottom()
             while x <= endx:
-                drawLine(x, starty, x, endy)
+                drawLine(QtCore.QLineF(x, starty, x, endy))
                 x += 24
 
             y = starty
             x1 = rect.left()
             x2 = rect.right()
             while y <= endy:
-                drawLine(startx, y, endx, y)
+                drawLine(QtCore.QLineF(startx, y, endx, y))
                 y += 24
 
 
@@ -5168,14 +5179,14 @@ class LevelViewWidget(QtWidgets.QGraphicsView):
             y1 = rect.top()
             y2 = rect.bottom()
             while x <= endx:
-                drawLine(x, starty, x, endy)
+                drawLine(QtCore.QLineF(x, starty, x, endy))
                 x += 96
 
             y = starty
             x1 = rect.left()
             x2 = rect.right()
             while y <= endy:
-                drawLine(startx, y, endx, y)
+                drawLine(QtCore.QLineF(startx, y, endx, y))
                 y += 96
 
 
@@ -5193,14 +5204,14 @@ class LevelViewWidget(QtWidgets.QGraphicsView):
         y1 = rect.top()
         y2 = rect.bottom()
         while x <= endx:
-            drawLine(x, starty, x, endy)
+            drawLine(QtCore.QLineF(x, starty, x, endy))
             x += 192
 
         y = starty
         x1 = rect.left()
         x2 = rect.right()
         while y <= endy:
-            drawLine(startx, y, endx, y)
+            drawLine(QtCore.QLineF(startx, y, endx, y))
             y += 192
 
 
@@ -7711,9 +7722,9 @@ class ReggieWindow(QtWidgets.QMainWindow):
 
         dlg = ChooseLevelNameDialog()
         if dlg.exec_() == QtWidgets.QDialog.Accepted:
-            #start = time.clock()
+            #start = time.time()
             self.LoadLevel(dlg.currentlevel, False, 1)
-            #end = time.clock()
+            #end = time.time()
             #print('Loaded in ' + str(end - start))
 
 
