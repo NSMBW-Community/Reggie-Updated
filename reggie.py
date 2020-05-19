@@ -115,6 +115,11 @@ def QFileDialog_getSaveFileName(*args, **kwargs):
         return retVal
     return retVal[0]
 
+def QValidatorValidateReturnValue(state, input, pos):
+    if QtCompatVersion < 0x50000:
+        return state, pos
+    return state, input, pos
+
 if hasattr(QtCore, 'pyqtSlot'): # PyQt
     QtCoreSlot = QtCore.pyqtSlot
     QtCoreSignal = QtCore.pyqtSignal
@@ -5223,7 +5228,7 @@ class LevelViewWidget(QtWidgets.QGraphicsView):
 class HexSpinBox(QtWidgets.QSpinBox):
     class HexValidator(QtGui.QValidator):
         def __init__(self, min, max):
-            super(HexValidator, self).__init__()
+            super(HexSpinBox.HexValidator, self).__init__()
             self.valid = set('0123456789abcdef')
             self.min = min
             self.max = max
@@ -5232,18 +5237,18 @@ class HexSpinBox(QtWidgets.QSpinBox):
             try:
                 input = str(input).lower()
             except:
-                return (self.Invalid, pos)
+                return QValidatorValidateReturnValue(self.Invalid, input, pos)
             valid = self.valid
 
             for char in input:
                 if char not in valid:
-                    return (self.Invalid, pos)
+                    return QValidatorValidateReturnValue(self.Invalid, input, pos)
 
             value = int(input, 16)
             if value < self.min or value > self.max:
-                return (self.Intermediate, pos)
+                return QValidatorValidateReturnValue(self.Intermediate, input, pos)
 
-            return (self.Acceptable, pos)
+            return QValidatorValidateReturnValue(self.Acceptable, input, pos)
 
 
     def __init__(self, format='%04X', *args):
