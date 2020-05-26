@@ -2921,9 +2921,6 @@ class SpriteEditorItem(LevelEditorItem):
 
 class EntranceEditorItem(LevelEditorItem):
     """Level editor item that represents an entrance"""
-    BoundingRect = QtCore.QRectF(0,0,24,24)
-    SelectionRect = QtCore.QRectF(0,0,23,23)
-    RoundedRect = QtCore.QRectF(1,1,22,22)
     EntranceImages = None
 
     def __init__(self, x, y, id, destarea, destentrance, type, zone, layer, path, settings):
@@ -2949,7 +2946,6 @@ class EntranceEditorItem(LevelEditorItem):
         self.entlayer = layer
         self.entpath = path
         self.listitem = None
-        self.LevelRect = (QtCore.QRectF(self.objx/16, self.objy/16, 24/16, 24/16))
 
         self.setFlag(self.ItemIsMovable, EntrancesNonFrozen)
         self.setFlag(self.ItemIsSelectable, EntrancesNonFrozen)
@@ -2961,6 +2957,7 @@ class EntranceEditorItem(LevelEditorItem):
 
         self.setZValue(25001)
         self.UpdateTooltip()
+        self.UpdateRects()
 
     def UpdateTooltip(self):
         """Updates the entrance object's tooltip"""
@@ -3047,6 +3044,23 @@ class EntranceEditorItem(LevelEditorItem):
         elist.selectionModel().clearSelection()
         Level.entrances.remove(self)
         self.scene().update(self.x(), self.y(), self.BoundingRect.width(), self.BoundingRect.height())
+
+    def UpdateRects(self):
+        """Recreates the bounding and selection rects"""
+        self.prepareGeometryChange()
+
+        if self.enttype in {3, 4}:
+            w, h = 2, 1
+        elif self.enttype in {5, 6}:
+            w, h = 1, 2
+        else:
+            w, h = 1, 1
+
+        self.BoundingRect = QtCore.QRectF(0, 0, 24 * w, 24 * h)
+        self.SelectionRect = QtCore.QRectF(0, 0, 24 * w - 1, 24 * h - 1)
+        self.LevelRect = QtCore.QRectF(self.objx / 16, self.objy / 16, 24/16 * w, 24/16 * h)
+        self.RoundedRect = QtCore.QRectF(1, 1, 24 * w - 2, 24 * h - 2)
+
 
 class PathEditorItem(LevelEditorItem):
     """Level editor item that represents a pathnode"""
@@ -4200,6 +4214,7 @@ class EntranceEditorWidget(QtWidgets.QWidget):
         if self.UpdateFlag: return
         SetDirty()
         self.ent.enttype = i
+        self.ent.UpdateRects()
         self.ent.update()
         self.ent.UpdateTooltip()
         self.ent.listitem.setText(self.ent.ListString())
