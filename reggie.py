@@ -8624,8 +8624,10 @@ class ReggieWindow(QtWidgets.QMainWindow):
         hovered = None
         type_zone = ZoneItem
         type_loc = LocationEditorItem
+        type_aux = sprites.AuxiliaryItem
+        type_aux_img = sprites.AuxiliaryImage
         for item in hovereditems:
-            if not isinstance(item, type_zone) and not isinstance(item, type_loc):
+            if not isinstance(item, type_zone) and not isinstance(item, type_loc) and not (isinstance(item, type_aux) and not isinstance(item, type_aux_img)):
                 hovered = item
                 break
 
