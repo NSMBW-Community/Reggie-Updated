@@ -1481,15 +1481,13 @@
     </list>
   </sprite>
   <sprite id="162" name="Vertical Scroll Limit (Left)" notes="This sprite allows you to limit how far the camera will scroll vertically. Place it on the left side of the area you want to limit, and place an identical sprite 163 on the right side.">
-    <value nybble="5" title="Unknown Value 5" comment="0, 1"/>
-    <list nybble="6" title="Limits Side">
+    <list nybble="5" title="Limits Side">
       <entry value="0">Bottom</entry>
       <entry value="1">Top</entry>
     </list>
   </sprite>
   <sprite id="163" name="Vertical Scroll Limit (Right)" notes="This sprite allows you to limit how far the camera will scroll vertically. Place it on the right side of the area you want to limit, and place an identical sprite 162 on the left side.">
-    <value nybble="5" title="Unknown Value 5" comment="0, 1"/>
-    <list nybble="6" title="Limits Side">
+    <list nybble="5" title="Limits Side">
       <entry value="0">Bottom</entry>
       <entry value="1">Top</entry>
     </list>
