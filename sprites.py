@@ -1768,15 +1768,15 @@ def InitRollingHillWithPipe(sprite): # 355, 360
 def InitBrownBlock(sprite):
     global ImageCache
     if 'BrownBlockTL' not in ImageCache:
-        ImageCache['BrownBlockTL'] = QtGui.QPixmap('reggiedata/sprites/brown_block_tl.png')
-        ImageCache['BrownBlockTM'] = QtGui.QPixmap('reggiedata/sprites/brown_block_tm.png')
-        ImageCache['BrownBlockTR'] = QtGui.QPixmap('reggiedata/sprites/brown_block_tr.png')
-        ImageCache['BrownBlockML'] = QtGui.QPixmap('reggiedata/sprites/brown_block_ml.png')
-        ImageCache['BrownBlockMM'] = QtGui.QPixmap('reggiedata/sprites/brown_block_mm.png')
-        ImageCache['BrownBlockMR'] = QtGui.QPixmap('reggiedata/sprites/brown_block_mr.png')
-        ImageCache['BrownBlockBL'] = QtGui.QPixmap('reggiedata/sprites/brown_block_bl.png')
-        ImageCache['BrownBlockBM'] = QtGui.QPixmap('reggiedata/sprites/brown_block_bm.png')
-        ImageCache['BrownBlockBR'] = QtGui.QPixmap('reggiedata/sprites/brown_block_br.png')
+        ImageCache['BrownBlockTL'] = QtGui.QPixmap('reggiedata/sprites/brown_block_TL.png')
+        ImageCache['BrownBlockTM'] = QtGui.QPixmap('reggiedata/sprites/brown_block_TM.png')
+        ImageCache['BrownBlockTR'] = QtGui.QPixmap('reggiedata/sprites/brown_block_TR.png')
+        ImageCache['BrownBlockML'] = QtGui.QPixmap('reggiedata/sprites/brown_block_ML.png')
+        ImageCache['BrownBlockMM'] = QtGui.QPixmap('reggiedata/sprites/brown_block_MM.png')
+        ImageCache['BrownBlockMR'] = QtGui.QPixmap('reggiedata/sprites/brown_block_MR.png')
+        ImageCache['BrownBlockBL'] = QtGui.QPixmap('reggiedata/sprites/brown_block_BL.png')
+        ImageCache['BrownBlockBM'] = QtGui.QPixmap('reggiedata/sprites/brown_block_BM.png')
+        ImageCache['BrownBlockBR'] = QtGui.QPixmap('reggiedata/sprites/brown_block_BR.png')
 
     sprite.dynamicSize = True
     sprite.dynSizer = SizeBrownBlock
