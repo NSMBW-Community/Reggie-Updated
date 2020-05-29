@@ -6585,7 +6585,11 @@ class ReggieWindow(QtWidgets.QMainWindow):
         else:
             act = QtWidgets.QAction(text, self)
 
-        if shortcut is not None: act.setShortcut(shortcut)
+        if shortcut is not None:
+            if isinstance(shortcut, list):
+                act.setShortcuts(shortcut)
+            else:
+                act.setShortcut(shortcut)
         if statustext is not None: act.setStatusTip(statustext)
         if toggle:
             act.setCheckable(True)
@@ -6706,7 +6710,7 @@ class ReggieWindow(QtWidgets.QMainWindow):
         self.actions['freezepaths'].setChecked(not PathsNonFrozen)
 
         self.CreateAction('zoommax', self.HandleZoomMax, GetIcon('zoommax'), 'Maximum Zoom', 'Zoom in all the way', QtGui.QKeySequence('Ctrl+PgDown'), False)
-        self.CreateAction('zoomin', self.HandleZoomIn, GetIcon('zoomin'), 'Zoom In', 'Zoom into the main level view', QtGui.QKeySequence.ZoomIn, False)
+        self.CreateAction('zoomin', self.HandleZoomIn, GetIcon('zoomin'), 'Zoom In', 'Zoom into the main level view', [QtGui.QKeySequence.ZoomIn, QtGui.QKeySequence('Ctrl+=')], False)
         self.CreateAction('zoomactual', self.HandleZoomActual, GetIcon('zoomactual'), 'Zoom 100%', 'Show the level at the default zoom', QtGui.QKeySequence('Ctrl+0'), False)
         self.CreateAction('zoomout', self.HandleZoomOut, GetIcon('zoomout'), 'Zoom Out', 'Zoom out of the main level view', QtGui.QKeySequence.ZoomOut, False)
         self.CreateAction('zoommin', self.HandleZoomMin, GetIcon('zoommin'), 'Minimum Zoom', 'Zoom out all the way', QtGui.QKeySequence('Ctrl+PgUp'), False)
