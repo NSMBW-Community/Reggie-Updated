@@ -45,7 +45,7 @@ import lz77
 import sprites
 
 ReggieID = 'Reggie r4 by Treeki, Tempus'
-ApplicationDisplayName = 'Reggie'
+ApplicationDisplayName = 'Reggie! Level Editor'
 
 
 # pre-Qt4.6 compatibility
@@ -7151,7 +7151,14 @@ class ReggieWindow(QtWidgets.QMainWindow):
 
     def UpdateTitle(self):
         """Sets the window title accordingly"""
-        self.setWindowTitle('Reggie! Level Editor - %s%s' % (Level.filename, ' [unsaved]' if Dirty else ''))
+        windowTitle = Level.filename + (' [unsaved]' if Dirty else '')
+        if QtCompatVersion < 0x50000:
+            # On Qt 4, we can't use setApplicationDisplayName(), so
+            # we have to append ApplicationDisplayName manually.
+            # I'm also avoiding using unicode literals (u'') because
+            # some versions of Python 3 don't support them.
+            windowTitle += b' \xe2\x80\x94 '.decode('utf-8') + ApplicationDisplayName
+        self.setWindowTitle(windowTitle)
 
 
     def CheckDirty(self):
