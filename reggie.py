@@ -5616,7 +5616,7 @@ class LoadingTab(QtWidgets.QWidget):
         item = QtWidgets.QListWidgetItem
         checked = QtCore.Qt.Checked
         unchecked = QtCore.Qt.Unchecked
-        flags = QtCore.Qt.ItemIsSelectable | QtCore.Qt.ItemIsUserCheckable | QtCore.Qt.ItemIsEditable | QtCore.Qt.ItemIsEnabled
+        flags = QtCore.Qt.ItemIsSelectable | QtCore.Qt.ItemIsUserCheckable | QtCore.Qt.ItemIsEnabled
 
         for id in range(64):
             i = item('Event %d' % (id+1))
