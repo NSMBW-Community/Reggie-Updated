@@ -1687,10 +1687,11 @@ class LevelUnit():
     def LoadOptions(self):
         """Loads block 2, the general options"""
         optdata = self.blocks[1]
-        optstruct = struct.Struct('>IxxxxHhLBBBx')
+        optstruct = struct.Struct('>IIHhLBBBx')
         offset = 0
         data = optstruct.unpack_from(optdata,offset)
-        self.defEvents, self.wrapFlag, self.timeLimit, self.unk1, self.startEntrance, self.unk2, self.unk3 = data
+        defEventsA, defEventsB, self.wrapFlag, self.timeLimit, self.unk1, self.startEntrance, self.unk2, self.unk3 = data
+        self.defEvents = defEventsA | defEventsB << 32
 
     def LoadEntrances(self):
         """Loads block 7, the entrances"""
@@ -1873,9 +1874,9 @@ class LevelUnit():
 
     def SaveOptions(self):
         """Saves block 2, the general options"""
-        optstruct = struct.Struct('>IxxxxHhLBBBx')
+        optstruct = struct.Struct('>IIHhLBBBx')
         buffer = create_string_buffer(20)
-        optstruct.pack_into(buffer, 0, self.defEvents, self.wrapFlag, self.timeLimit, self.unk1, self.startEntrance, self.unk2, self.unk3)
+        optstruct.pack_into(buffer, 0, self.defEvents & 0xFFFFFFFF, self.defEvents >> 32, self.wrapFlag, self.timeLimit, self.unk1, self.startEntrance, self.unk2, self.unk3)
         self.blocks[1] = buffer.raw
 
     def SaveLayer(self, idx):
@@ -5617,7 +5618,7 @@ class LoadingTab(QtWidgets.QWidget):
         unchecked = QtCore.Qt.Unchecked
         flags = QtCore.Qt.ItemIsSelectable | QtCore.Qt.ItemIsUserCheckable | QtCore.Qt.ItemIsEditable | QtCore.Qt.ItemIsEnabled
 
-        for id in range(32):
+        for id in range(64):
             i = item('Event %d' % (id+1))
             value = 1 << id
             i.setCheckState(checked if (defEvent & value) != 0 else unchecked)
@@ -8726,7 +8727,7 @@ class ReggieWindow(QtWidgets.QMainWindow):
             defEvents = 0
             eventChooser = dlg.LoadingTab.eventChooser
             checked = QtCore.Qt.Checked
-            for i in range(32):
+            for i in range(64):
                 if eventChooser.item(i).checkState() == checked:
                     defEvents |= (1 << i)
 
