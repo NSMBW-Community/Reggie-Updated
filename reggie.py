@@ -1901,6 +1901,9 @@ class LevelUnit():
         zonelist = self.zones
         for entrance in self.entrances:
             zoneID = MapPositionToZoneID(zonelist, entrance.objx, entrance.objy)
+            if zoneID < 0:
+                # This can happen if the level has no zones
+                zoneID = 0
             entstruct.pack_into(buffer, offset, int(entrance.objx), int(entrance.objy), int(entrance.entid), int(entrance.destarea), int(entrance.destentrance), int(entrance.enttype), zoneID, int(entrance.entlayer), int(entrance.entpath), int(entrance.entsettings))
             offset += 20
         self.blocks[6] = buffer.raw
@@ -2032,6 +2035,9 @@ class LevelUnit():
 
         for sprite in self.sprites:
             zone = f_MapPositionToZoneID(zonelist, sprite.objx, sprite.objy)
+            if zone < 0:
+                # This can happen if the level has no zones
+                zone = 0
             sprite.zoneID = zone
             if zone not in split:
                 split[zone] = []
