@@ -4731,6 +4731,7 @@ class LevelViewWidget(QtWidgets.QGraphicsView):
         self.setHorizontalScrollBar(self.XScrollBar)
 
         self.currentobj = None
+        self.lastCursorPosForMidButtonScroll = None
 
     def mousePressEvent(self, event):
         """Overrides mouse pressing events if needed"""
@@ -4975,6 +4976,10 @@ class LevelViewWidget(QtWidgets.QGraphicsView):
                     i.setSelected(not i.isSelected())
                     break
 
+        elif event.button() == QtCore.Qt.MidButton:
+            self.lastCursorPosForMidButtonScroll = event.pos()
+            QtWidgets.QGraphicsView.mousePressEvent(self, event)
+
         else:
             QtWidgets.QGraphicsView.mousePressEvent(self, event)
         mainWindow.levelOverview.update()
@@ -5147,6 +5152,14 @@ class LevelViewWidget(QtWidgets.QGraphicsView):
                     obj.objy = clickedy
                     obj.setPos(int(clickedx * 1.5), int(clickedy * 1.5))
             event.accept()
+
+        elif event.buttons() == QtCore.Qt.MidButton and self.lastCursorPosForMidButtonScroll is not None:
+            # https://stackoverflow.com/a/15785851
+            delta = event.pos() - self.lastCursorPosForMidButtonScroll
+            self.XScrollBar.setValue(self.XScrollBar.value() + (delta.x() if self.isRightToLeft() else -delta.x()))
+            self.YScrollBar.setValue(self.YScrollBar.value() - delta.y())
+            self.lastCursorPosForMidButtonScroll = event.pos()
+
         else:
             QtWidgets.QGraphicsView.mouseMoveEvent(self, event)
 
