@@ -44,7 +44,7 @@ import archive
 import lz77
 import sprites
 
-ReggieID = 'Reggie r4 by Treeki, Tempus'
+ReggieID = 'Reggie-Updated by Treeki, Tempus'
 ApplicationDisplayName = 'Reggie! Level Editor'
 
 
