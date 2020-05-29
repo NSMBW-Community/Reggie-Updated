@@ -5593,13 +5593,11 @@ class LoadingTab(QtWidgets.QWidget):
         self.timer = QtWidgets.QSpinBox()
         self.timer.setRange(0, 999)
         self.timer.setToolTip('<b>Timer:</b><br>Sets the countdown timer on load from the world map.')
-        timerLabel = QtWidgets.QLabel('Timer:')
         self.timer.setValue(Level.timeLimit + 200)
 
         self.entrance = QtWidgets.QSpinBox()
         self.entrance.setRange(0, 255)
         self.entrance.setToolTip('<b>Entrance ID:</b><br>Sets the entrance ID to load into when loading from the World Map')
-        entranceLabel = QtWidgets.QLabel('Entrance ID:')
         self.entrance.setValue(Level.startEntrance)
 
         self.wrap = QtWidgets.QCheckBox('Wrap across Edges')
