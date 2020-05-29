@@ -2930,6 +2930,8 @@ class EntranceEditorItem(LevelEditorItem):
     """Level editor item that represents an entrance"""
     EntranceImages = None
 
+    BoundingRect = QtCore.QRectF(0,0,24,24)
+
     def __init__(self, x, y, id, destarea, destentrance, type, zone, layer, path, settings):
         """Creates an entrance with specific data"""
         if EntranceEditorItem.EntranceImages is None:
