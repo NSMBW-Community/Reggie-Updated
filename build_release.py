@@ -128,16 +128,17 @@ print_emphasis('>> NOTE: If the PyInstaller output below says "INFO: UPX is not 
 
 
 ########################################################################
-############################### Excludes ###############################
+######################### Excludes and Includes ########################
 ########################################################################
 print('>>')
-print('>> Populating excludes...')
+print('>> Populating excludes and includes...')
 print('>>')
 
 # Static excludes
 excludes = ['calendar', 'difflib', 'doctest', 'hashlib', 'inspect',
     'locale', 'multiprocessing', 'optpath', 'os2emxpath', 'pdb',
     'select', 'socket', 'ssl', 'threading', 'unittest']
+includes = ['pkgutil']
 
 if sys.platform == 'nt':
     excludes.append('posixpath')
@@ -164,6 +165,7 @@ for qt in ['PySide2', 'PyQt4', 'PyQt5']:
             excludes.append(qt + '.Qt' + m)
 
 print('>> Will use the following excludes list: ' + ', '.join(excludes))
+print('>> Will use the following includes list: ' + ', '.join(includes))
 
 
 ########################################################################
@@ -189,6 +191,8 @@ elif sys.platform == 'darwin':
 
 for e in excludes:
     args.append('--exclude-module=' + e)
+for i in includes:
+    args.append('--hidden-import=' + i)
 args.extend(sys.argv[1:])
 args.append(SCRIPT_FILE)
 
