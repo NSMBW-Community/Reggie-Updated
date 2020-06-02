@@ -3585,8 +3585,9 @@ class ObjectPickerWidget(QtWidgets.QListView):
                         if tile != -1:
                             if isinstance(Tiles[tile], QtGui.QImage):
                                 p.drawImage(x, y, Tiles[tile])
-                            else:
+                            elif isinstance(Tiles[tile], QtGui.QPixmap):
                                 p.drawPixmap(x, y, Tiles[tile])
+                            # Else, it's probably None, so we shouldn't draw it
                         x += 24
                     y += 24
                 p.end()
@@ -4702,7 +4703,7 @@ class LevelScene(QtWidgets.QGraphicsScene):
             for row in tmap:
                 destx = 0
                 for tile in row:
-                    if tile > 0:
+                    if tile > 0 and local_Tiles[tile] is not None:
                         drawPixmap(destx, desty, local_Tiles[tile])
                     destx += 24
                 desty += 24
