@@ -7433,7 +7433,10 @@ class ReggieWindow(QtWidgets.QMainWindow):
 
                     objx = func_int(split[2])
                     objy = func_int(split[3])
-                    data = ''.join(func_map(func_chr, func_map(func_int, [split[4], split[5], split[6], split[7], split[8], split[9], '0', split[10]])))
+                    if sys.version_info.major < 3:
+                        data = ''.join(func_map(func_chr, func_map(func_int, [split[4], split[5], split[6], split[7], split[8], split[9], '0', split[10]])))
+                    else:
+                        data = bytes(func_map(func_int, [split[4], split[5], split[6], split[7], split[8], split[9], '0', split[10]]))
 
                     x = objx / 16
                     y = objy / 16
