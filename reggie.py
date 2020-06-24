@@ -3544,7 +3544,7 @@ class ObjectPickerWidget(QtWidgets.QListView):
                 return self.ritems[n]
 
             if role == QtCore.Qt.BackgroundRole:
-                return QtWidgets.qApp.palette().base()
+                return app.palette().base()
 
             if role == QtCore.Qt.UserRole:
                 return self.itemsize[n]
@@ -6721,7 +6721,7 @@ class ReggieWindow(QtWidgets.QMainWindow):
         self.CreateAction('backgrounds', self.HandleBG, GetIcon('background'), 'Backgrounds...', 'Apply backgrounds to individual zones in the current area', QtGui.QKeySequence('Ctrl+Alt+B'))
         self.CreateAction('metainfo', self.HandleInfo, None, 'Level Information...', 'Add title and author information to the metadata', QtGui.QKeySequence('Ctrl+Alt+I'))
 
-        self.CreateAction('aboutqt', QtWidgets.qApp.aboutQt, None, 'About PyQt...', 'About the Qt library Reggie! is based on', QtGui.QKeySequence('Ctrl+Shift+Y'))
+        self.CreateAction('aboutqt', app.aboutQt, None, 'About PyQt...', 'About the Qt library Reggie! is based on', QtGui.QKeySequence('Ctrl+Shift+Y'))
         self.CreateAction('infobox', self.InfoBox, GetIcon('about'), 'About Reggie!', 'Info about the program, and the team behind it', QtGui.QKeySequence('Ctrl+Shift+I'))
         self.CreateAction('helpbox', self.HelpBox, GetIcon('help'), 'Reggie! Help...', 'Help Documentation for the needy newbie', QtGui.QKeySequence('Ctrl+Shift+H'))
         self.CreateAction('tipbox', self.TipBox, GetIcon('tips'), 'Reggie! Tips...', 'Tips and controls for beginners and power users', QtGui.QKeySequence('Ctrl+Shift+T'))
