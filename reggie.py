@@ -29,6 +29,7 @@ import struct
 import sys
 import time
 import warnings
+import pathlib
 from xml.dom import minidom
 
 try:
@@ -154,7 +155,7 @@ def module_path():
             return os.path.join(os.path.dirname(macos), 'Resources')
 
     if __name__ == '__main__':
-        return os.path.dirname(os.path.abspath(sys.argv[0]))
+        return pathlib.Path(__file__).resolve().parent
 
     return None
 
