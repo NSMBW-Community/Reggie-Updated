@@ -209,6 +209,7 @@ print('>> Adjusting specfile...')
 
 # New plist file data (if on Mac)
 info_plist = {
+    'NSRequiresAquaSystemAppearance': False,
     'CFBundleName': PROJECT_NAME,
     'CFBundleShortVersionString': PROJECT_VERSION,
     'CFBundleGetInfoString': PROJECT_NAME + ' ' + PROJECT_VERSION,
