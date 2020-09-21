@@ -29,11 +29,11 @@ jobs:
         cd src
         cd *
         mv ./* ../../
-        # cd back to the "python" folder
-        cd ../..
       if: ${{ matrix.platform == 'macos-latest' }}
     - name: Build Python (Mac)
       run: |
+        pwd
+        cd python
         mkdir build
         export MACOSX_DEPLOYMENT_TARGET=10.13
         ./configure --enable-optimizations "--prefix=$(pwd)/build"
