@@ -38,7 +38,7 @@ jobs:
         mkdir build
         brew install openssl
         export MACOSX_DEPLOYMENT_TARGET=10.13
-        ./configure --enable-optimizations --with-openssl=$(brew --prefix openssl) "--prefix=$(pwd)/build"
+        ./configure --enable-optimizations --enable-framework --with-openssl=$(brew --prefix openssl) "--prefix=$(pwd)/build"
         make
         make install
         cd ..
