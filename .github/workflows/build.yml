@@ -2,6 +2,10 @@ name: Build
 
 on: [push]
 
+# macOS dark mode stuff is based on
+# https://github.com/pyinstaller/pyinstaller/issues/4627#issuecomment-609982803
+# and the comment linked from there
+
 jobs:
   build:
 
@@ -12,6 +16,32 @@ jobs:
     runs-on: ${{ matrix.platform }}
 
     steps:
+    - name: Download Python (Mac)
+      run: |
+        # Do all this in a "python" subfolder
+        mkdir python && cd python
+        # Download Python source and unzip into /src subfolder
+        curl -o Python.tar.xz https://www.python.org/ftp/python/3.8.5/Python-3.8.5.tar.xz
+        mkdir src
+        tar -xf Python.tar.xz -C ./src
+        # All the source code is annoyingly in e.g. /src/Python-3.8.5/ or similar, so let's
+        # move it all up by two directories in a subfolder-name-agnostic way
+        cd src
+        cd *
+        mv ./* ../../
+        # cd back to the "python" folder
+        cd ../..
+      if: ${{ matrix.platform == 'macos-latest' }}
+    - name: Build Python (Mac)
+      run: |
+        mkdir build
+        export MACOSX_DEPLOYMENT_TARGET=10.13
+        ./configure --enable-optimizations "--prefix=$(pwd)/build"
+        make
+        make install
+        # Test
+        build/bin/python3 -c "print('Hello world!!')"
+      if: ${{ matrix.platform == 'macos-latest' }}
     - uses: actions/checkout@v2
     - name: Set up Python
       uses: actions/setup-python@v1
