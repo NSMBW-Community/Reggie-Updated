@@ -36,8 +36,9 @@ jobs:
       run: |
         cd python
         mkdir build
+        brew install openssl
         export MACOSX_DEPLOYMENT_TARGET=10.13
-        ./configure --enable-optimizations "--prefix=$(pwd)/build"
+        ./configure --enable-optimizations --with-openssl=$(brew --prefix openssl) "--prefix=$(pwd)/build"
         make
         make install
         cd ..
@@ -52,14 +53,29 @@ jobs:
       shell: bash
       run: ln -s $(which python) ./python3
       if: ${{ matrix.platform == 'windows-latest' || matrix.platform == 'ubuntu-latest' }}
-    - name: Install dependencies
+    - name: Install dependencies except PyInstaller
       run: |
         ./python3 -m pip install --upgrade pip
         ./python3 -m pip install wheel
         ./python3 -m pip install PyQt5 PyInstaller nsmblib
-    - name: Build
+    - name: Install PyInstaller (Windows/Linux)
+      run: ./python3 -m pip install PyInstaller
+      if: ${{ matrix.platform == 'windows-latest' || matrix.platform == 'ubuntu-latest' }}
+    - name: Build and install PyInstaller (Mac)
       run: |
-        ./python3 -OO build_release.py
+        git clone https://github.com/pyinstaller/pyinstaller
+        cd pyinstaller/bootloader
+        export MACOSX_DEPLOYMENT_TARGET=10.13
+        export CFLAGS=-mmacosx-version-min=10.13
+        export CPPFLAGS=-mmacosx-version-min=10.13
+        export LDFLAGS=-mmacosx-version-min=10.13
+        export LINKFLAGS=-mmacosx-version-min=10.13
+        ../.././python3 ./waf all
+        cd ..
+        .././python3 -m pip install .
+      if: ${{ matrix.platform == 'macos-latest' }}
+    - name: Build
+      run: ./python3 -OO build_release.py
     - name: Tar (Linux/Mac)
       run: |
         cd distrib
