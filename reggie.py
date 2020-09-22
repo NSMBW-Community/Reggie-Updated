@@ -6931,10 +6931,23 @@ class ReggieWindow(QtWidgets.QMainWindow):
         dock.setVisible(True)
 
         # add tabs to it
+        tabsWrapper = QtWidgets.QWidget()
+        tabsWrapperLayout = QtWidgets.QVBoxLayout(tabsWrapper)
+        if app.style().metaObject().className() == 'QMacStyle':
+            # workaround for a weird macOS bug where the tab bar is too
+            # high
+            tabsWrapperLayout.setContentsMargins(0, 12, 0, 0)
+        else:
+            tabsWrapperLayout.setContentsMargins(0, 0, 0, 0)
+
         tabs = QtWidgets.QTabWidget()
+        tabsWrapperLayout.addWidget(tabs)
+        tabBar = QtWidgets.QTabBar()
+        tabBar.setUsesScrollButtons(True)
+        tabs.setTabBar(tabBar)
         tabs.setIconSize(QtCore.QSize(16, 16))
         tabs.currentChanged.connect(self.CreationTabChanged)
-        dock.setWidget(tabs)
+        dock.setWidget(tabsWrapper)
         self.creationTabs = tabs
 
         # object choosing tabs
