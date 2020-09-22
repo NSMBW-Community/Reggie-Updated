@@ -6943,7 +6943,7 @@ class ReggieWindow(QtWidgets.QMainWindow):
         tabs = QtWidgets.QTabWidget()
         tabsWrapperLayout.addWidget(tabs)
         tabBar = QtWidgets.QTabBar()
-        tabBar.setUsesScrollButtons(True)
+        tabBar.setUsesScrollButtons(True)  # for macOS
         tabs.setTabBar(tabBar)
         tabs.setIconSize(QtCore.QSize(16, 16))
         tabs.currentChanged.connect(self.CreationTabChanged)
