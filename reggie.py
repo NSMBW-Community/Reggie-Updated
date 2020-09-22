@@ -1344,23 +1344,6 @@ def createHorzLine():
     f.setFrameStyle(QtWidgets.QFrame.HLine | QtWidgets.QFrame.Sunken)
     return f
 
-class IconsOnlyTabBar(QtWidgets.QTabBar):
-    """
-    A QTabBar subclass that is designed to only display icons.
-
-    On macOS Mojave (and probably other versions around there),
-    QTabWidget tabs are way too wide when only displaying icons.
-    This ultimately causes the Reggie palette itself to have a really
-    high minimum width.
-
-    This subclass limits tab widths to fix the problem.
-    """
-    def tabSizeHint(self, index):
-        res = super(IconsOnlyTabBar, self).tabSizeHint(index)
-        if app.style().metaObject().className() == 'QMacStyle':
-            res.setWidth(res.height() * 2)
-        return res
-
 def LoadNumberFont():
     """Creates a valid font we can use to display the item numbers"""
     global NumberFont
@@ -6948,11 +6931,23 @@ class ReggieWindow(QtWidgets.QMainWindow):
         dock.setVisible(True)
 
         # add tabs to it
+        tabsWrapper = QtWidgets.QWidget()
+        tabsWrapperLayout = QtWidgets.QVBoxLayout(tabsWrapper)
+        if app.style().metaObject().className() == 'QMacStyle':
+            # workaround for a weird macOS bug where the tab bar is too
+            # high
+            tabsWrapperLayout.setContentsMargins(0, 12, 0, 0)
+        else:
+            tabsWrapperLayout.setContentsMargins(0, 0, 0, 0)
+
         tabs = QtWidgets.QTabWidget()
-        tabs.setTabBar(IconsOnlyTabBar())
+        tabsWrapperLayout.addWidget(tabs)
+        tabBar = QtWidgets.QTabBar()
+        tabBar.setUsesScrollButtons(True)  # for macOS
+        tabs.setTabBar(tabBar)
         tabs.setIconSize(QtCore.QSize(16, 16))
         tabs.currentChanged.connect(self.CreationTabChanged)
-        dock.setWidget(tabs)
+        dock.setWidget(tabsWrapper)
         self.creationTabs = tabs
 
         # object choosing tabs
