@@ -12,13 +12,19 @@ jobs:
     strategy:
       matrix:
         python-version: [3.8]
-        platform: [macos-latest, windows-latest, ubuntu-latest]
+        platform: [windows-latest, macos-latest, ubuntu-latest]
     runs-on: ${{ matrix.platform }}
 
     steps:
+    - name: Set environment variables (Windows/Linux)
+      run: echo "::set-env name=PYTHON_CMD::python"
+      if: ${{ matrix.platform == 'windows-latest' || matrix.platform == 'ubuntu-latest' }}
+    - name: Set environment variables (macOS)
+      run: echo "::set-env name=PYTHON_CMD::./python3"
+      if: ${{ matrix.platform == 'macos-latest' }}
     - name: Checkout repository
       uses: actions/checkout@v2
-    - name: Download Python (Mac)
+    - name: Download Python (macOS)
       run: |
         # Do all this in a "python" subfolder
         mkdir python && cd python
@@ -32,7 +38,7 @@ jobs:
         cd *
         mv ./* ../../
       if: ${{ matrix.platform == 'macos-latest' }}
-    - name: Build Python and make symlink (Mac)
+    - name: Build Python and make symlink (macOS)
       run: |
         cd python
         mkdir build
@@ -49,26 +55,17 @@ jobs:
       with:
         python-version: ${{ matrix.python-version }}
       if: ${{ matrix.platform == 'windows-latest' || matrix.platform == 'ubuntu-latest' }}
-    - name: Make Python symlink (Linux)
-      run: ln -s $(which python) ./python3
-      if: ${{ matrix.platform == 'ubuntu-latest' }}
-    - name: Install dependencies (Windows)
+    - name: Install dependencies other than PyInstaller
       run: |
-        python -m pip install --upgrade pip
-        python -m pip install wheel
-        python -m pip install PyQt5 nsmblib PyInstaller
-      if: ${{ matrix.platform == 'windows-latest' }}
-    - name: Install dependencies (Linux)
+        $PYTHON_CMD -m pip install --upgrade pip
+        $PYTHON_CMD -m pip install wheel
+        $PYTHON_CMD -m pip install PyQt5 nsmblib
+    - name: Install PyInstaller (Windows/Linux)
       run: |
-        ./python3 -m pip install --upgrade pip
-        ./python3 -m pip install wheel
-        ./python3 -m pip install PyQt5 nsmblib PyInstaller
-      if: ${{ matrix.platform == 'ubuntu-latest' }}
-    - name: Install dependencies (Mac)
+        $PYTHON_CMD -m pip install PyInstaller
+      if: ${{ matrix.platform == 'windows-latest' || matrix.platform == 'ubuntu-latest' }}
+    - name: Build and install PyInstaller (macOS)
       run: |
-        ./python3 -m pip install --upgrade pip
-        ./python3 -m pip install wheel
-        ./python3 -m pip install PyQt5 nsmblib
         git clone https://github.com/pyinstaller/pyinstaller
         cd pyinstaller/bootloader
         export MACOSX_DEPLOYMENT_TARGET=10.13
@@ -80,23 +77,13 @@ jobs:
         cd ..
         .././python3 -m pip install .
       if: ${{ matrix.platform == 'macos-latest' }}
-    - name: Build (Windows)
-      run: python -OO build_release.py
-      if: ${{ matrix.platform == 'windows-latest' }}
-    - name: Build (Linux/Mac)
-      run: ./python3 -OO build_release.py
-      if: ${{ matrix.platform == 'macos-latest' || matrix.platform == 'ubuntu-latest' }}
-    - name: Tar (Linux/Mac)
+    - name: Build
+      run: $PYTHON_CMD -OO build_release.py
+    - name: Tar (macOS/Linux)
       run: |
         cd distrib
         tar -czvf ../build-${{ matrix.platform }}.tar.gz ./*
         cd ..
-      if: ${{ matrix.platform == 'macos-latest' || matrix.platform == 'ubuntu-latest' }}
-    - name: Upload artifacts (Linux/Mac)
-      uses: actions/upload-artifact@v2
-      with:
-        name: build-${{ matrix.platform }}
-        path: build-${{ matrix.platform }}.tar.gz
       if: ${{ matrix.platform == 'macos-latest' || matrix.platform == 'ubuntu-latest' }}
     - name: Upload artifacts (Windows)
       uses: actions/upload-artifact@v2
@@ -104,3 +91,9 @@ jobs:
         name: build-${{ matrix.platform }}
         path: distrib/*
       if: ${{ matrix.platform == 'windows-latest' }}
+    - name: Upload artifacts (macOS/Linux)
+      uses: actions/upload-artifact@v2
+      with:
+        name: build-${{ matrix.platform }}
+        path: build-${{ matrix.platform }}.tar.gz
+      if: ${{ matrix.platform == 'macos-latest' || matrix.platform == 'ubuntu-latest' }}
