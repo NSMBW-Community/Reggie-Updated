@@ -57,12 +57,12 @@ jobs:
       if: ${{ matrix.platform == 'windows-latest' || matrix.platform == 'ubuntu-latest' }}
     - name: Install dependencies other than PyInstaller
       run: |
-        $PYTHON_CMD -m pip install --upgrade pip
-        $PYTHON_CMD -m pip install wheel
-        $PYTHON_CMD -m pip install PyQt5 nsmblib
+        ${PYTHON_CMD} -m pip install --upgrade pip
+        ${PYTHON_CMD} -m pip install wheel
+        ${PYTHON_CMD} -m pip install PyQt5 nsmblib
     - name: Install PyInstaller (Windows/Linux)
       run: |
-        $PYTHON_CMD -m pip install PyInstaller
+        ${PYTHON_CMD} -m pip install PyInstaller
       if: ${{ matrix.platform == 'windows-latest' || matrix.platform == 'ubuntu-latest' }}
     - name: Build and install PyInstaller (macOS)
       run: |
@@ -78,7 +78,7 @@ jobs:
         .././python3 -m pip install .
       if: ${{ matrix.platform == 'macos-latest' }}
     - name: Build
-      run: $PYTHON_CMD -OO build_release.py
+      run: ${PYTHON_CMD} -OO build_release.py
     - name: Tar (macOS/Linux)
       run: |
         cd distrib
