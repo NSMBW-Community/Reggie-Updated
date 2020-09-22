@@ -137,7 +137,8 @@ print('>>')
 # Static excludes
 excludes = ['calendar', 'difflib', 'doctest', 'hashlib', 'inspect',
     'locale', 'multiprocessing', 'optpath', 'os2emxpath', 'pdb',
-    'select', 'socket', 'ssl', 'threading', 'unittest']
+    'select', 'socket', 'ssl', 'threading', 'unittest',
+    'FixTk', 'tcl', 'tk', '_tkinter', 'tkinter', 'Tkinter']
 includes = ['pkgutil']
 
 if sys.platform == 'nt':
