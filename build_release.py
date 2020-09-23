@@ -265,7 +265,7 @@ os.remove(SPECFILE)
 print('>> Copying required files...')
 
 if sys.platform == 'darwin':
-    dest_folder = os.path.join(DIR, APP_BUNDLE_NAME, 'Contents', 'Resources')
+    dest_folder = os.path.join(DIR, AUTO_APP_BUNDLE_NAME, 'Contents', 'Resources')
 else:
     dest_folder = DIR
 
