@@ -37,6 +37,7 @@ import PyInstaller.__main__
 # etc)
 
 PROJECT_NAME = 'Reggie!'
+FULL_PROJECT_NAME = 'Reggie! Level Editor'
 PROJECT_VERSION = '1.0'
 
 WIN_ICON = os.path.join('reggiedata', 'win_icon.ico')
@@ -46,6 +47,10 @@ MAC_BUNDLE_IDENTIFIER = 'ca.chronometry.reggie'
 SCRIPT_FILE = 'reggie.py'
 DATA_FOLDERS = ['reggiedata', 'reggieextras']
 DATA_FILES = ['readme.md', 'license.txt']
+
+# macOS only
+AUTO_APP_BUNDLE_NAME = SCRIPT_FILE.split('.')[0] + '.app'
+FINAL_APP_BUNDLE_NAME = FULL_PROJECT_NAME + '.app'
 
 
 ########################################################################
@@ -211,8 +216,9 @@ print('>> Adjusting specfile...')
 # New plist file data (if on Mac)
 info_plist = {
     'CFBundleName': PROJECT_NAME,
+    'CFBundleDisplayName': FULL_PROJECT_NAME,
     'CFBundleShortVersionString': PROJECT_VERSION,
-    'CFBundleGetInfoString': PROJECT_NAME + ' ' + PROJECT_VERSION,
+    'CFBundleGetInfoString': FULL_PROJECT_NAME + ' ' + PROJECT_VERSION,
     'CFBundleExecutable': SCRIPT_FILE.split('.')[0],
 }
 
@@ -259,8 +265,7 @@ os.remove(SPECFILE)
 print('>> Copying required files...')
 
 if sys.platform == 'darwin':
-    app_bundle_name = SCRIPT_FILE.split('.')[0] + '.app'
-    dest_folder = os.path.join(DIR, app_bundle_name, 'Contents', 'Resources')
+    dest_folder = os.path.join(DIR, APP_BUNDLE_NAME, 'Contents', 'Resources')
 else:
     dest_folder = DIR
 
@@ -286,6 +291,12 @@ if sys.platform == 'darwin':
     leftover_executable = os.path.join(DIR, SCRIPT_FILE.split('.')[0])
     if os.path.isfile(leftover_executable):
         os.unlink(leftover_executable)
+
+# Also on macOS, we have to rename the .app folder to the display name
+# because CFBundleDisplayName is dumb and doesn't actually affect
+# the app name shown in Finder
+if sys.platform == 'darwin':
+    os.rename(os.path.join(DIR, AUTO_APP_BUNDLE_NAME), os.path.join(DIR, FINAL_APP_BUNDLE_NAME))
 
 
 ########################################################################
