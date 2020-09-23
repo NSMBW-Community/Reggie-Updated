@@ -135,7 +135,7 @@ print('>> Populating excludes and includes...')
 print('>>')
 
 # Static excludes
-excludes = ['calendar', 'difflib', 'doctest', 'hashlib', 'inspect',
+excludes = ['calendar', 'datetime', 'difflib', 'doctest', 'hashlib', 'inspect',
     'locale', 'multiprocessing', 'optpath', 'os2emxpath', 'pdb',
     'select', 'socket', 'ssl', 'threading', 'unittest',
     'FixTk', 'tcl', 'tk', '_tkinter', 'tkinter', 'Tkinter']
@@ -165,8 +165,16 @@ for qt in ['PySide2', 'PyQt4', 'PyQt5']:
         for m in neededQtModules:
             excludes.append(qt + '.Qt' + m)
 
+if sys.platform == 'linux':
+    excludes_binaries = [
+        'libQt5Network.so', 'libQt5Qml.so', 'libQt5QmlModels.so',
+        'libQt5Quick.so', 'libQt5WebSockets.so', 'libgtk-3.so']
+else:
+    excludes_binaries = []
+
 print('>> Will use the following excludes list: ' + ', '.join(excludes))
 print('>> Will use the following includes list: ' + ', '.join(includes))
+print('>> Will use the following binary excludes list: ' + ', '.join(excludes_binaries))
 
 
 ########################################################################
@@ -223,6 +231,18 @@ with open(SPECFILE, 'r', encoding='utf-8') as f:
 # Iterate over its lines, and potentially add new ones
 new_lines = []
 for line in lines:
+    if 'PYZ(' in line:
+        new_lines.append('EXCLUDES = ' + repr(excludes_binaries))
+        new_lines.append('new_binaries = []')
+        new_lines.append('for x, y, z in a.binaries:')
+        new_lines.append('    for e in EXCLUDES:')
+        new_lines.append('        if x.startswith(e):')
+        new_lines.append('            print("specfile: excluding " + x)')
+        new_lines.append('            break')
+        new_lines.append('    else:')
+        new_lines.append('        new_binaries.append((x, y, z))')
+        new_lines.append('a.binaries = new_binaries')
+
     new_lines.append(line)
 
     if sys.platform == 'darwin' and 'BUNDLE(' in line:
@@ -231,6 +251,7 @@ for line in lines:
 # Save new specfile
 with open(SPECFILE, 'w', encoding='utf-8') as f:
     f.write('\n'.join(new_lines))
+
 
 
 ########################################################################
