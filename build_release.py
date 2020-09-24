@@ -165,7 +165,11 @@ for qt in ['PySide2', 'PyQt4', 'PyQt5']:
         for m in neededQtModules:
             excludes.append(qt + '.Qt' + m)
 
-if sys.platform == 'linux':
+if sys.platform == 'darwin':
+    excludes_binaries = [
+        'QtNetwork', 'QtPrintSupport', 'QtQml', 'QtQmlModels',
+        'QtQuick', 'QtWebSockets']
+elif sys.platform == 'linux':
     excludes_binaries = [
         'libQt5Network.so', 'libQt5Qml.so', 'libQt5QmlModels.so',
         'libQt5Quick.so', 'libQt5WebSockets.so', 'libgtk-3.so']
