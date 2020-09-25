@@ -165,12 +165,15 @@ for qt in ['PySide2', 'PyQt4', 'PyQt5']:
         for m in neededQtModules:
             excludes.append(qt + '.Qt' + m)
 
+if sys.platform == 'win32':
+    excludes_binaries = [
+        'Qt5Network.dll', 'Qt5Qml.dll', 'Qt5QmlModels.dll', 'Qt5Quick.dll', 'Qt5WebSockets.dll', 'opengl32sw.dll', 'd3dcompiler_47.dll']
 if sys.platform == 'darwin':
+    # Sadly, we can't exclude anything on macOS -- it just crashes if we try :(
     # excludes_binaries = [
     #     'QtNetwork', 'QtPrintSupport', 'QtQml', 'QtQmlModels',
     #     'QtQuick', 'QtWebSockets']
-    excludes_binaries = [
-        'QtNetwork', 'QtPrintSupport', 'QtQml']
+    excludes_binaries = []
 elif sys.platform == 'linux':
     excludes_binaries = [
         'libQt5Network.so', 'libQt5Qml.so', 'libQt5QmlModels.so',
