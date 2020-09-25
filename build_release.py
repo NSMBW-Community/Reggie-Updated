@@ -134,12 +134,11 @@ print('>>')
 print('>> Populating excludes and includes...')
 print('>>')
 
-# Static excludes
+# Excludes
 excludes = ['calendar', 'datetime', 'difflib', 'doctest', 'hashlib', 'inspect',
     'locale', 'multiprocessing', 'optpath', 'os2emxpath', 'pdb',
     'select', 'socket', 'ssl', 'threading', 'unittest',
     'FixTk', 'tcl', 'tk', '_tkinter', 'tkinter', 'Tkinter']
-includes = ['pkgutil']
 
 if sys.platform == 'nt':
     excludes.append('posixpath')
@@ -165,25 +164,50 @@ for qt in ['PySide2', 'PyQt4', 'PyQt5']:
         for m in neededQtModules:
             excludes.append(qt + '.Qt' + m)
 
+# Includes
+includes = ['pkgutil']
+
+# Binary excludes
+excludes_binaries = []
 if sys.platform == 'win32':
     excludes_binaries = [
-        'Qt5Network.dll', 'Qt5Qml.dll', 'Qt5QmlModels.dll', 'Qt5Quick.dll', 'Qt5WebSockets.dll', 'opengl32sw.dll', 'd3dcompiler_47.dll']
+        # Qt stuff
+        'Qt5Network.dll', 'Qt5Qml.dll', 'Qt5QmlModels.dll',
+        'Qt5Quick.dll', 'Qt5WebSockets.dll',
+        # Other stuff
+        'opengl32sw.dll',
+        'd3dcompiler_',  # currently (2020-09-25) "d3dcompiler_47.dll",
+                         # but that'll probably change eventually, so we
+                         # just exclude anything that starts with this
+                         # substring
+    ]
+
 elif sys.platform == 'darwin':
-    # Sadly, we can't exclude anything on macOS -- it just crashes if we try :(
+    # Sadly, we can't exclude anything on macOS -- it just crashes. :(
+    # If a workaround could be found, here's the list we'd use:
     # excludes_binaries = [
+    #     # Qt stuff (none of these have any file extensions at all)
     #     'QtNetwork', 'QtPrintSupport', 'QtQml', 'QtQmlModels',
-    #     'QtQuick', 'QtWebSockets']
-    excludes_binaries = []
+    #     'QtQuick', 'QtWebSockets',
+    # ]
+    pass
+
 elif sys.platform == 'linux':
     excludes_binaries = [
+        # Qt stuff
+        # Currently (2020-09-25) these all end with ".so.5", but that
+        # may change, so we exclude anything that starts with these
+        # substrings
         'libQt5Network.so', 'libQt5Qml.so', 'libQt5QmlModels.so',
-        'libQt5Quick.so', 'libQt5WebSockets.so', 'libgtk-3.so']
-else:
-    excludes_binaries = []
+        'libQt5Quick.so', 'libQt5WebSockets.so',
+        # Other stuff
+        'libgtk-3.so',
+    ]
+
 
 print('>> Will use the following excludes list: ' + ', '.join(excludes))
 print('>> Will use the following includes list: ' + ', '.join(includes))
-print('>> Will use the following binary excludes list: ' + ', '.join(excludes_binaries))
+print('>> Will use the following binaries excludes list: ' + ', '.join(excludes_binaries))
 
 
 ########################################################################
@@ -240,7 +264,7 @@ with open(SPECFILE, 'r', encoding='utf-8') as f:
 # Iterate over its lines, and potentially add new ones
 new_lines = []
 for line in lines:
-    if 'PYZ(' in line:
+    if 'PYZ(' in line and excludes_binaries:
         new_lines.append('EXCLUDES = ' + repr(excludes_binaries))
         new_lines.append('new_binaries = []')
         new_lines.append('for x, y, z in a.binaries:')
