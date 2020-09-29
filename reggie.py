@@ -5850,6 +5850,8 @@ class ZonesDialog(QtWidgets.QDialog):
 
 
 class ZoneTab(QtWidgets.QWidget):
+    updatingMusic = False
+
     def __init__(self, z):
         super(ZoneTab, self).__init__()
 
@@ -6074,11 +6076,25 @@ class ZoneTab(QtWidgets.QWidget):
     def createAudio(self, z):
         self.Audio = QtWidgets.QGroupBox('Audio')
 
+        musicIdTooltip = '<b>Background Music:</b><br>Changes the background music'
+
+        self.Zone_music_id = QtWidgets.QSpinBox()
+        self.Zone_music_id.setRange(0, 255)
+        self.Zone_music_id.setToolTip(musicIdTooltip)
+        self.Zone_music_id.setValue(z.music)
+
         self.Zone_music = QtWidgets.QComboBox()
-        self.Zone_music.setToolTip('<b>Background Music:</b><br>Changes the background music')
+        self.Zone_music.setToolTip(musicIdTooltip)
         newItems2 = ['None', 'Overworld', 'Underground', 'Underwater', 'Mushrooms/Athletic', 'Ghost House', 'Pyramids', 'Snow', 'Lava', 'Tower', 'Castle', 'Airship', 'Bonus Area', 'Drum Rolls', 'Tower Boss', 'Castle Boss', 'Toad House', 'Airship Boss', 'Forest', 'Enemy Ambush', 'Beach', 'Volcano', "Peach's Castle", 'Credits Jazz', 'Airship Drums', 'Bowser', 'Mega Bowser', 'Epilogue']
         self.Zone_music.addItems(newItems2)
         self.Zone_music.setCurrentIndex(z.music)
+
+        self.Zone_music_id.valueChanged.connect(self.musicIDChanged)
+        self.Zone_music.currentIndexChanged.connect(self.musicListItemChanged)
+
+        music_layout = QtWidgets.QHBoxLayout()
+        music_layout.addWidget(self.Zone_music_id)
+        music_layout.addWidget(self.Zone_music, 1)
 
         self.Zone_sfx = QtWidgets.QComboBox()
         self.Zone_sfx.setToolTip('<b>Sound Modulation:</b><br>Changes the sound effect modulation')
@@ -6092,11 +6108,31 @@ class ZoneTab(QtWidgets.QWidget):
 
 
         ZoneAudioLayout = QtWidgets.QFormLayout()
-        ZoneAudioLayout.addRow('Background Music:', self.Zone_music)
+        ZoneAudioLayout.addRow('Background Music:', music_layout)
         ZoneAudioLayout.addRow('Sound Modulation:', self.Zone_sfx)
         ZoneAudioLayout.addRow('Boss Flag:', self.Zone_boss)
 
         self.Audio.setLayout(ZoneAudioLayout)
+
+
+    @QtCoreSlot(int)
+    def musicIDChanged(self, id):
+        if self.updatingMusic:
+            return
+
+        self.updatingMusic = True
+        self.Zone_music.setCurrentIndex(id)
+        self.updatingMusic = False
+
+
+    @QtCoreSlot(int)
+    def musicListItemChanged(self, id):
+        if self.updatingMusic:
+            return
+
+        self.updatingMusic = True
+        self.Zone_music_id.setValue(id)
+        self.updatingMusic = False
 
 
 
@@ -9052,7 +9088,7 @@ class ReggieWindow(QtWidgets.QMainWindow):
                 z.yupperbound = tab.Zone_yboundup.value()
                 z.ylowerbound = tab.Zone_ybounddown.value()
 
-                z.music = tab.Zone_music.currentIndex()
+                z.music = tab.Zone_music_id.value()
                 z.sfxmod = (tab.Zone_sfx.currentIndex() * 16)
                 if tab.Zone_boss.isChecked():
                     z.sfxmod = z.sfxmod + 1
