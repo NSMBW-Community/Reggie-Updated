@@ -6100,7 +6100,7 @@ class ZoneTab(QtWidgets.QWidget):
         self.Zone_sfx.setToolTip('<b>Sound Modulation:</b><br>Changes the sound effect modulation')
         newItems3 = ['Normal', 'Wall Echo', 'Room Echo', 'Double Echo', 'Cave Echo', 'Underwater Echo', 'Triple Echo', 'High Pitch Echo', 'Tinny Echo', 'Flat', 'Dull', 'Hollow Echo', 'Rich', 'Triple Underwater', 'Ring Echo']
         self.Zone_sfx.addItems(newItems3)
-        self.Zone_sfx.setCurrentIndex(z.sfxmod / 16)
+        self.Zone_sfx.setCurrentIndex(z.sfxmod // 16)
 
         self.Zone_boss = QtWidgets.QCheckBox()
         self.Zone_boss.setToolTip('<b>Boss Flag:</b><br>Set for bosses to allow proper music switching by sprites')
