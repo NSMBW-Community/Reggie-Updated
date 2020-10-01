@@ -4162,6 +4162,11 @@ class EntranceEditorWidget(QtWidgets.QWidget):
         self.ent = ent
         self.UpdateFlag = True
 
+        if ent.enttype < 0: ent.enttype = 0
+        if ent.enttype >= len(EntranceTypeNames): ent.enttype = len(EntranceTypeNames) - 1
+        if ent.entlayer < 0: ent.entlayer = 0
+        if ent.entlayer >= 3: ent.entlayer = 2
+
         self.entranceID.setValue(ent.entid)
         self.entranceType.setCurrentIndex(ent.enttype)
         self.destArea.setValue(ent.destarea)
@@ -6033,18 +6038,21 @@ class ZoneTab(QtWidgets.QWidget):
             addList = ['Hidden', 'On Top']
             self.Zone_visibility.addItems(addList)
             self.Zone_visibility.setToolTip('<b>Hidden</b> - Mario is hidden when moving behind objects on Layer 0<br><b>On Top</b> - Mario is displayed above Layer 0 at all times.<br><br>Note: Entities behind layer 0 other than Mario are never visible')
+            if VRadioMod >= len(addList): VRadioMod = len(addList) - 1
             self.Zone_visibility.setCurrentIndex(VRadioMod)
         elif self.Zone_vspotlight.isChecked():
             self.Zone_visibility.clear()
             addList = ['Small', 'Large', 'Full Screen']
             self.Zone_visibility.addItems(addList)
             self.Zone_visibility.setToolTip('<b>Small</b> - A small, centered spotlight affords visibility through layer 0.<br><b>Large</b> - A large, centered spotlight affords visibility through layer 0<br><b>Full Screen</b> - the entire screen is revealed whenever Mario walks behind layer 0')
+            if VRadioMod >= len(addList): VRadioMod = len(addList) - 1
             self.Zone_visibility.setCurrentIndex(VRadioMod)
         elif self.Zone_vfulldark.isChecked():
             self.Zone_visibility.clear()
             addList = ['Large Foglight', 'Lightbeam', 'Large Focus Light', 'Small Foglight', 'Small Focus Light', 'Absolute Black']
             self.Zone_visibility.addItems(addList)
             self.Zone_visibility.setToolTip('<b>Large Foglight</b> - A large, organic light source surrounds Mario<br><b>Lightbeam</b> - Mario is able to aim a conical lightbeam through use of the Wiimote<br><b>Large Focus Light</b> - A large spotlight which changes size based upon player movement<br><b>Small Foglight</b> - A small, organic light source surrounds Mario<br><b>Small Focuslight</b> - A small spotlight which changes size based on player movement<br><b>Absolute Black</b> - Visibility is provided only by fireballs, stars, and certain sprites')
+            if VRadioMod >= len(addList): VRadioMod = len(addList) - 1
             self.Zone_visibility.setCurrentIndex(VRadioMod)
 
 
@@ -6100,6 +6108,8 @@ class ZoneTab(QtWidgets.QWidget):
         self.Zone_sfx.setToolTip('<b>Sound Modulation:</b><br>Changes the sound effect modulation')
         newItems3 = ['Normal', 'Wall Echo', 'Room Echo', 'Double Echo', 'Cave Echo', 'Underwater Echo', 'Triple Echo', 'High Pitch Echo', 'Tinny Echo', 'Flat', 'Dull', 'Hollow Echo', 'Rich', 'Triple Underwater', 'Ring Echo']
         self.Zone_sfx.addItems(newItems3)
+        if z.sfxmod < 0: z.sfxmod = 0
+        if z.sfxmod // 16 >= len(newItems3): z.sfxmod = ((len(newItems3) - 1) * 16) | (z.sfxmod & 15)
         self.Zone_sfx.setCurrentIndex(z.sfxmod // 16)
 
         self.Zone_boss = QtWidgets.QCheckBox()
@@ -6227,6 +6237,8 @@ class BGTab(QtWidgets.QWidget):
         addstr = ['100%', '125%', '150%', '200%']
         self.zoomA.addItems(addstr)
         self.zoomA.setToolTip('<b>Zoom:</b><br>Sets the zoom level of the background image')
+        if z.ZoomA < 0: z.ZoomA = 0
+        if z.ZoomA >= len(addstr): z.ZoomA = len(addstr) - 1
         self.zoomA.setCurrentIndex(z.ZoomA)
 
         self.toscreenA = QtWidgets.QRadioButton()
@@ -6308,6 +6320,8 @@ class BGTab(QtWidgets.QWidget):
         addstr = ['100%', '125%', '150%', '200%']
         self.zoomB.addItems(addstr)
         self.zoomB.setToolTip('<b>Zoom:</b><br>Sets the zoom level of the background image')
+        if z.ZoomB < 0: z.ZoomB = 0
+        if z.ZoomB >= len(addstr): z.ZoomB = len(addstr) - 1
         self.zoomB.setCurrentIndex(z.ZoomB)
 
         self.toscreenB = QtWidgets.QRadioButton()
