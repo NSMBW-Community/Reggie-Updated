@@ -3303,14 +3303,14 @@ class LevelOverviewWidget(QtWidgets.QWidget):
         QtWidgets.QWidget.mouseMoveEvent(self, event)
 
         if event.buttons() == QtCore.Qt.LeftButton:
-            self.moveIt.emit(event.pos().x() * self.posmult, event.pos().y() * self.posmult)
+            self.moveIt.emit(int(event.pos().x() * self.posmult), int(event.pos().y() * self.posmult))
 
     def mousePressEvent(self, event):
         """Handles mouse pressing events over the widget"""
         QtWidgets.QWidget.mousePressEvent(self, event)
 
         if event.button() == QtCore.Qt.LeftButton:
-            self.moveIt.emit(event.pos().x() * self.posmult, event.pos().y() * self.posmult)
+            self.moveIt.emit(int(event.pos().x() * self.posmult), int(event.pos().y() * self.posmult))
 
     def paintEvent(self, event):
         """Paints the level overview widget"""
@@ -4502,8 +4502,8 @@ class LocationEditorWidget(QtWidgets.QWidget):
         self.locationID.setValue(loc.id)
         self.locationX.setValue(loc.objx)
         self.locationY.setValue(loc.objy)
-        self.locationWidth.setValue(loc.width)
-        self.locationHeight.setValue(loc.height)
+        self.locationWidth.setValue(int(loc.width))
+        self.locationHeight.setValue(int(loc.height))
 
         self.UpdateFlag = False
 
