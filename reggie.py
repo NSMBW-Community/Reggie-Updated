@@ -31,14 +31,31 @@ import time
 import warnings
 from xml.dom import minidom
 
-try:
-    from PyQt5 import QtCore, QtGui, QtWidgets
-except ImportError:
+def importQt():
+    global QtCore, QtGui, QtWidgets
+
+    try:
+        from PyQt5 import QtCore, QtGui, QtWidgets
+        return
+    except ImportError:
+        pass
+
     try:
         from PySide2 import QtCore, QtGui, QtWidgets
+        return
     except ImportError:
+        pass
+
+    try:
         from PyQt4 import QtCore, QtGui
         QtWidgets = QtGui
+        return
+    except ImportError:
+        pass
+
+    raise RuntimeError('Could not find any supported Qt bindings. Please read the readme for more information.')
+
+importQt()
 
 import archive
 import lz77
