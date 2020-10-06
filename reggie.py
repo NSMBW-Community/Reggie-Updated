@@ -6854,7 +6854,9 @@ class ReggieWindow(QtWidgets.QMainWindow):
         hmenu.addSeparator()
         hmenu.addAction(self.actions['aboutqt'])
         hmenu.addSeparator()
-        nsmblibAct = hmenu.addAction('Using NSMBLib' if HaveNSMBLib else 'Not using NSMBLib')
+        pyverAct = hmenu.addAction('Using Python %d.%d.%d' % sys.version_info[:3])
+        pyverAct.setEnabled(False)
+        nsmblibAct = hmenu.addAction(('Using NSMBLib %d' % nsmblib.getVersion()) if HaveNSMBLib else 'Not using NSMBLib')
         nsmblibAct.setEnabled(False)
 
         # create a toolbar
