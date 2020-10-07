@@ -3106,6 +3106,8 @@ class PathEditorItem(LevelEditorItem):
         global DirtyOverride
         DirtyOverride += 1
         self.setPos(int(objx*1.5),int(objy*1.5))
+        nodeinfo['x'] = self.objx
+        nodeinfo['y'] = self.objy
         DirtyOverride -= 1
 
         self.setZValue(25003)
