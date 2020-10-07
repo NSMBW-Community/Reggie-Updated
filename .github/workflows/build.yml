@@ -17,10 +17,10 @@ jobs:
 
     steps:
     - name: Set environment variables (Windows/Linux)
-      run: echo "::set-env name=PYTHON_CMD::python"
+      run: echo "PYTHON_CMD=python" >> $GITHUB_ENV
       if: ${{ matrix.platform == 'windows-latest' || matrix.platform == 'ubuntu-latest' }}
     - name: Set environment variables (macOS)
-      run: echo "::set-env name=PYTHON_CMD::./python3"
+      run: echo "PYTHON_CMD=./python3" >> $GITHUB_ENV
       if: ${{ matrix.platform == 'macos-latest' }}
     - name: Checkout repository
       uses: actions/checkout@v2
