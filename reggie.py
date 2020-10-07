@@ -3039,7 +3039,8 @@ class EntranceEditorItem(LevelEditorItem):
 
         #painter.drawText(self.BoundingRect,QtCore.Qt.AlignLeft,str(self.entid))
         painter.setFont(self.font)
-        painter.drawText(3,12,str(self.entid))
+        fontheight = QtGui.QFontMetrics(self.font).ascent() * 2/3
+        painter.drawText(QtCore.QPointF(3,7+fontheight/2),str(self.entid))
 
         if self.isSelected():
             #painter.setRenderHint(QtGui.QPainter.Antialiasing, False)
@@ -3153,8 +3154,9 @@ class PathEditorItem(LevelEditorItem):
         icontype = 0
 
         painter.setFont(self.font)
-        painter.drawText(4,7+(QtGui.QFontMetrics(self.font).ascent()*2/3)/2,str(self.pathid))
-        painter.drawText(4,17+(QtGui.QFontMetrics(self.font).ascent()*2/3)/2,str(self.nodeid))
+        fontheight = QtGui.QFontMetrics(self.font).ascent() * 2/3
+        painter.drawText(QtCore.QPointF(4,7+fontheight/2),str(self.pathid))
+        painter.drawText(QtCore.QPointF(4,17+fontheight/2),str(self.nodeid))
         painter.drawPoint(self.objx, self.objy)
 
         if self.isSelected():
