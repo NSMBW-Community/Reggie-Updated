@@ -3108,7 +3108,7 @@ class PathEditorItem(LevelEditorItem):
         self.setPos(int(objx*1.5),int(objy*1.5))
         DirtyOverride -= 1
 
-        self.setZValue(25002)
+        self.setZValue(25003)
         self.UpdateTooltip()
 
         # now that we're inited, set
