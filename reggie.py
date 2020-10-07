@@ -3153,8 +3153,8 @@ class PathEditorItem(LevelEditorItem):
         icontype = 0
 
         painter.setFont(self.font)
-        painter.drawText(4,11,str(self.pathid))
-        painter.drawText(4,9 + QtGui.QFontMetrics(self.font).height(),str(self.nodeid))
+        painter.drawText(3,12,str(self.pathid))
+        painter.drawText(3,22,str(self.nodeid))
         painter.drawPoint(self.objx, self.objy)
 
         if self.isSelected():
