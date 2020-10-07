@@ -3236,9 +3236,11 @@ class PathEditorLineItem(LevelEditorItem):
 
         mywidth = (8 + (max(xcoords) - self.objx))*1.5
         myheight = (8 + (max(ycoords) - self.objy))*1.5
-        global DirtyOverride
+        global DirtyOverride, OverrideSnapping
         DirtyOverride += 1
+        OverrideSnapping = True
         self.setPos(self.objx * 1.5, self.objy * 1.5)
+        OverrideSnapping = False
         DirtyOverride -= 1
         self.prepareGeometryChange()
         self.BoundingRect = QtCore.QRectF(0,0,mywidth,myheight)
