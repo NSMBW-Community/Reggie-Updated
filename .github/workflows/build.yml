@@ -17,6 +17,7 @@ jobs:
 
     steps:
     - name: Set environment variables (Windows/Linux)
+      shell: bash
       run: echo "PYTHON_CMD=python" >> $GITHUB_ENV
       if: ${{ matrix.platform == 'windows-latest' || matrix.platform == 'ubuntu-latest' }}
     - name: Set environment variables (macOS)
