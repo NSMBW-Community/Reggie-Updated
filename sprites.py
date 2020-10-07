@@ -19,10 +19,10 @@
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 try:
-    from PySide2 import QtCore, QtGui, QtWidgets
+    from PyQt5 import QtCore, QtGui, QtWidgets
 except ImportError:
     try:
-        from PyQt5 import QtCore, QtGui, QtWidgets
+        from PySide2 import QtCore, QtGui, QtWidgets
     except ImportError:
         from PyQt4 import QtCore, QtGui
         QtWidgets = QtGui
