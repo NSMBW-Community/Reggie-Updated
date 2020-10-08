@@ -3273,6 +3273,14 @@ class PathEditorLineItem(LevelEditorItem):
 
         painter.drawLines(lines)
 
+        painter.setPen(QtGui.QPen(linecolor, 3, join = QtCore.Qt.RoundJoin, cap = QtCore.Qt.RoundCap, style = QtCore.Qt.DotLine))
+        if self.nodelist[0]['graphicsitem'].pathinfo['loops']:
+            painter.drawLine(QtCore.QLineF(
+                float(snl[-1]['x']*1.5) - self.x(),
+                float(snl[-1]['y']*1.5) - self.y(),
+                float(snl[0]['x']*1.5) - self.x(),
+                float(snl[0]['y']*1.5) - self.y()))
+
 
     def delete(self):
         """Delete the line from the level"""
@@ -4442,6 +4450,7 @@ class PathNodeEditorWidget(QtWidgets.QWidget):
         if self.UpdateFlag: return
         SetDirty()
         self.path.pathinfo['loops'] = (i == QtCore.Qt.Checked)
+        self.path.pathinfo['peline'].update()
 
 
 
