@@ -3159,7 +3159,6 @@ class PathEditorItem(LevelEditorItem):
         fontheight = QtGui.QFontMetrics(self.font).ascent() * 2/3
         painter.drawText(QtCore.QPointF(4,7+fontheight/2),str(self.pathid))
         painter.drawText(QtCore.QPointF(4,17+fontheight/2),str(self.nodeid))
-        painter.drawPoint(self.objx, self.objy)
 
         if self.isSelected():
             #painter.setRenderHint(QtGui.QPainter.Antialiasing, False)
