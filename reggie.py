@@ -3212,6 +3212,10 @@ class PathEditorLineItem(LevelEditorItem):
         self.setZValue(25002)
         self.UpdateTooltip()
 
+    def itemChange(self, change, value):
+        """Avoids snapping for path lines"""
+        return QtWidgets.QGraphicsItem.itemChange(self, change, value)
+
     def UpdateTooltip(self):
         """For compatibility, just in case"""
         self.setToolTip('')
@@ -3235,11 +3239,9 @@ class PathEditorLineItem(LevelEditorItem):
 
         mywidth = (8 + (max(xcoords) - self.objx))*1.5
         myheight = (8 + (max(ycoords) - self.objy))*1.5
-        global DirtyOverride, OverrideSnapping
+        global DirtyOverride
         DirtyOverride += 1
-        OverrideSnapping = True
         self.setPos(self.objx * 1.5, self.objy * 1.5)
-        OverrideSnapping = False
         DirtyOverride -= 1
         self.prepareGeometryChange()
         self.BoundingRect = QtCore.QRectF(0,0,mywidth,myheight)
