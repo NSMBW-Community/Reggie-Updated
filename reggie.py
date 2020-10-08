@@ -5183,9 +5183,7 @@ class LevelViewWidget(QtWidgets.QGraphicsView):
         """Overrides mouse release events if needed"""
         if event.button() == QtCore.Qt.RightButton:
             self.currentobj = None
-            event.accept()
-        else:
-            QtWidgets.QGraphicsView.mouseReleaseEvent(self, event)
+        QtWidgets.QGraphicsView.mouseReleaseEvent(self, event)
 
 
     def drawForeground(self, painter, rect):
