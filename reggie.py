@@ -32,30 +32,36 @@ import warnings
 from xml.dom import minidom
 
 def importQt():
-    global QtCore, QtGui, QtWidgets
-
+    """
+    A function to find a supported Qt bindings library. Using a function
+    for this is helpful because it can return early and be imported by
+    other modules that also need access to Qt.
+    Returns QtCore, QtGui, QtWidgets, and an int equivalent to PyQt's
+    QtCore.QT_VERSION.
+    """
     try:
         from PyQt5 import QtCore, QtGui, QtWidgets
-        return
-    except ImportError:
-        pass
-
-    try:
-        from PySide2 import QtCore, QtGui, QtWidgets
-        return
+        return QtCore, QtGui, QtWidgets, QtCore.QT_VERSION
     except ImportError:
         pass
 
     try:
         from PyQt4 import QtCore, QtGui
-        QtWidgets = QtGui
-        return
+        return QtCore, QtGui, QtGui, QtCore.QT_VERSION
+    except ImportError:
+        pass
+
+    try:
+        from PySide2 import QtCore, QtGui, QtWidgets
+        qcvi = QtCore.__version_info__
+        QtCompatVersion = (qcvi[0] << 16) | (qcvi[1] << 8) | qcvi[2]
+        return QtCore, QtGui, QtWidgets, QtCompatVersion
     except ImportError:
         pass
 
     raise RuntimeError('Could not find any supported Qt bindings. Please read the readme for more information.')
 
-importQt()
+QtCore, QtGui, QtWidgets, QtCompatVersion = importQt()
 
 import archive
 import lz77
@@ -64,13 +70,6 @@ import sprites
 ReggieID = 'Reggie-Updated by Treeki, Tempus'
 ApplicationDisplayName = 'Reggie! Level Editor'
 
-
-# pre-Qt4.6 compatibility
-if hasattr(QtCore, 'QT_VERSION'): # PyQt
-    QtCompatVersion = QtCore.QT_VERSION
-else: # PySide2
-    QtCompatVersionTuple = QtCore.__version_info__
-    QtCompatVersion = (QtCompatVersionTuple[0] << 16) | (QtCompatVersionTuple[1] << 8) | QtCompatVersionTuple[2]
 
 if QtCompatVersion < 0x40600 or not hasattr(QtWidgets.QGraphicsItem, 'ItemSendsGeometryChanges'):
     # enables itemChange being called on QGraphicsItem
