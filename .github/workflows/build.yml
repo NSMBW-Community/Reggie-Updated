@@ -33,7 +33,7 @@ jobs:
       if: ${{ matrix.platform == 'macos-latest' }}
       uses: actions/cache@v2
       with:
-        path: ./python
+        path: ['./python', '/Library/Frameworks/Python.framework/Versions/3.9']
         key: macos-python-${{ env.manual-python-version }}-AAA
     - name: Download Python (macOS)
       if: ${{ matrix.platform == 'macos-latest' && !steps.caching.outputs.cache-hit }}
@@ -58,7 +58,7 @@ jobs:
         export MACOSX_DEPLOYMENT_TARGET=10.13
         ./configure --enable-optimizations --enable-framework --with-openssl=$(brew --prefix openssl) "--prefix=$(pwd)/build"
         make
-        sudo make altinstall
+        sudo make install
         brew install coreutils
         echo "DID MAKE ALTINSTALL -- HERE'S SOME THINGS:"
         echo $(pwd)
@@ -91,7 +91,7 @@ jobs:
         ls python/build/bin
         echo "some more stuff:"
         echo $(pwd)
-        echo $(readlink ./python/build/bin/python3)
+        echo $(greadlink -f ./python/build/bin/python3)
         echo "making symlink:"
         ln -s ./python/build/bin/python3 ./python3
         echo "testing symlink:"
