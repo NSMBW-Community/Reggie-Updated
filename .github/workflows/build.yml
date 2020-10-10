@@ -11,12 +11,12 @@ jobs:
 
     strategy:
       matrix:
-        python-version: [3.9]  # Don't forget to also change the hardcoded Python source code download URL for macOS!
+        python-version: [3.9]  # Don't forget to also change the "manual-python-version" numbers below!
         platform: [windows-latest, macos-latest, ubuntu-latest]
     runs-on: ${{ matrix.platform }}
 
     env:
-      manual-python-version: 3.9
+      manual-python-version: 3.9  # Don't forget to also change the matrix "python-version" number above!
       manual-python-version-full: 3.9.0
 
     steps:
