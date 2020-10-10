@@ -37,6 +37,7 @@ jobs:
         path: |
           ./python
           ./python-framework
+          ~/Library/Python/3.9
         key: macos-python-${{ env.manual-python-version-full }}
     - name: Download Python (macOS, cache miss)
       if: ${{ matrix.platform == 'macos-latest' && !steps.caching.outputs.cache-hit }}
