@@ -59,6 +59,7 @@ jobs:
         ./configure --enable-optimizations --enable-framework --with-openssl=$(brew --prefix openssl) "--prefix=$(pwd)/build"
         make
         sudo make altinstall
+        brew install coreutils
         echo "DID MAKE ALTINSTALL -- HERE'S SOME THINGS:"
         echo $(pwd)
         python -c "import os; print(os.path.realpath('.'))"
@@ -74,6 +75,7 @@ jobs:
         ls ./build/bin
         echo "-------------------- C"
         python -c "import os; print(os.path.realpath('./build/bin/python3'))"
+        greadlink -f ./build/bin/python3
         echo "END ALL"
         cd ..
     - name: Make Python symlink (macOS)
