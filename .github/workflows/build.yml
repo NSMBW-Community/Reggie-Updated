@@ -71,9 +71,9 @@ jobs:
         ls python/build/bin
         echo "some more stuff:"
         echo $(pwd)
-        echo $(readlink python/build/bin/python3)
+        echo $(readlink ./python/build/bin/python3)
         echo "making symlink:"
-        ln -s python/build/bin/python3 ./python3
+        ln -s ./python/build/bin/python3 ./python3
         echo "testing symlink:"
         ./python3 -c "import sys; print(sys.version)"
     - name: Set up Python (Windows/Linux)
