@@ -37,7 +37,7 @@ jobs:
         path: |
           ./python
           ./python-framework
-        key: macos-python-${{ env.manual-python-version-full }}-AAB
+        key: macos-python-${{ env.manual-python-version-full }}
     - name: Download Python (macOS, cache miss)
       if: ${{ matrix.platform == 'macos-latest' && !steps.caching.outputs.cache-hit }}
       run: |
@@ -65,8 +65,7 @@ jobs:
         cd ..
     - name: Copy Python for caching (macOS, cache miss)
       if: ${{ matrix.platform == 'macos-latest' && !steps.caching.outputs.cache-hit }}
-      run: |
-        cp -r /Library/Frameworks/Python.framework/Versions/${{ env.manual-python-version }} ./python-framework
+      run: cp -r /Library/Frameworks/Python.framework/Versions/${{ env.manual-python-version }} ./python-framework
     - name: Un-copy Python from cache (macOS, cache hit)
       if: ${{ matrix.platform == 'macos-latest' && steps.caching.outputs.cache-hit }}
       run: |
