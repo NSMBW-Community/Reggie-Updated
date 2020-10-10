@@ -34,7 +34,7 @@ jobs:
       uses: actions/cache@v2
       with:
         path: ./python
-        key: macos-python-${{ env.manual-python-version }}
+        key: macos-python-${{ env.manual-python-version }}-XXX
     - name: Download Python (macOS)
       if: ${{ matrix.platform == 'macos-latest' && !steps.caching.outputs.cache-hit }}
       run: |
@@ -58,7 +58,9 @@ jobs:
         export MACOSX_DEPLOYMENT_TARGET=10.13
         ./configure --enable-optimizations --enable-framework --with-openssl=$(brew --prefix openssl) "--prefix=$(pwd)/build"
         make
-        sudo make install
+        sudo make altinstall
+        echo "DID MAKE ALTINSTALL -- HERE'S THE READLINK:"
+        echo $(readlink ./build/bin/python3)
         cd ..
     - name: Make Python symlink (macOS)
       if: ${{ matrix.platform == 'macos-latest' }}
