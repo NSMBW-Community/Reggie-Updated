@@ -61,19 +61,19 @@ jobs:
         sudo make altinstall
         echo "DID MAKE ALTINSTALL -- HERE'S SOME THINGS:"
         echo $(pwd)
-        echo $(readlink .)
+        python -c "import os; print(os.path.realpath('.'))"
         echo "BEGIN LS"
         ls .
         echo "-------------------- A"
-        echo $(readlink ./build)
+        python -c "import os; print(os.path.realpath('./build'))"
         echo "BEGIN LS"
         ls ./build
         echo "-------------------- B"
-        echo $(readlink ./build/bin)
+        python -c "import os; print(os.path.realpath('./build/bin'))"
         echo "BEGIN LS"
         ls ./build/bin
         echo "-------------------- C"
-        echo $(readlink ./build/bin/python3)
+        python -c "import os; print(os.path.realpath('./build/bin/python3'))"
         echo "END ALL"
         cd ..
     - name: Make Python symlink (macOS)
