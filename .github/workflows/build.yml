@@ -36,7 +36,7 @@ jobs:
         path: |
           ./python
           ./python-framework
-        key: macos-python-${{ env.manual-python-version }}-AAA
+        key: macos-python-${{ env.manual-python-version }}-AAB
     - name: Download Python (macOS)
       if: ${{ matrix.platform == 'macos-latest' && !steps.caching.outputs.cache-hit }}
       run: |
