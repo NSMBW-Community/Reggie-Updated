@@ -16,7 +16,8 @@ jobs:
     runs-on: ${{ matrix.platform }}
 
     env:
-      manual-python-version: 3.9.0
+      manual-python-version: 3.9
+      manual-python-version-full: 3.9.0
 
     steps:
     - name: Set environment variables (Windows/Linux)
@@ -36,14 +37,14 @@ jobs:
         path: |
           ./python
           ./python-framework
-        key: macos-python-${{ env.manual-python-version }}-AAB
+        key: macos-python-${{ env.manual-python-version-full }}-AAB
     - name: Download Python (macOS, cache miss)
       if: ${{ matrix.platform == 'macos-latest' && !steps.caching.outputs.cache-hit }}
       run: |
         # Do all this in a "python" subfolder
         mkdir python && cd python
         # Download Python source and unzip into /src subfolder
-        curl -o Python.tar.xz https://www.python.org/ftp/python/${{ env.manual-python-version }}/Python-${{ env.manual-python-version }}.tar.xz
+        curl -o Python.tar.xz https://www.python.org/ftp/python/${{ env.manual-python-version-full }}/Python-${{ env.manual-python-version-full }}.tar.xz
         mkdir src
         tar -xf Python.tar.xz -C ./src
         # All the source code is annoyingly in e.g. /src/Python-3.9.0/ or similar, so let's
@@ -61,55 +62,20 @@ jobs:
         ./configure --enable-optimizations --enable-framework --with-openssl=$(brew --prefix openssl) "--prefix=$(pwd)/build"
         make -j2
         sudo make install
-        brew install coreutils
-        echo "DID MAKE ALTINSTALL -- HERE'S SOME THINGS:"
-        echo $(pwd)
-        python -c "import os; print(os.path.realpath('.'))"
-        echo "BEGIN LS"
-        ls .
-        echo "-------------------- A"
-        python -c "import os; print(os.path.realpath('./build'))"
-        echo "BEGIN LS"
-        ls ./build
-        echo "-------------------- B"
-        python -c "import os; print(os.path.realpath('./build/bin'))"
-        echo "BEGIN LS"
-        ls ./build/bin
-        echo "-------------------- C"
-        python -c "import os; print(os.path.realpath('./build/bin/python3'))"
-        greadlink -f ./build/bin/python3
-        python -c "import os; print(os.path.realpath('./build/bin/python3.9'))"
-        greadlink -f ./build/bin/python3.9
-        echo "END ALL"
         cd ..
     - name: Copy Python for caching (macOS, cache miss)
       if: ${{ matrix.platform == 'macos-latest' && !steps.caching.outputs.cache-hit }}
       run: |
-        cp -r /Library/Frameworks/Python.framework/Versions/3.9 ./python-framework
+        cp -r /Library/Frameworks/Python.framework/Versions/${{ env.manual-python-version }} ./python-framework
     - name: Un-copy Python from cache (macOS, cache hit)
       if: ${{ matrix.platform == 'macos-latest' && steps.caching.outputs.cache-hit }}
       run: |
         sudo mkdir /Library/Frameworks/Python.framework
         sudo mkdir /Library/Frameworks/Python.framework/Versions
-        sudo cp -r ./python-framework /Library/Frameworks/Python.framework/Versions/3.9
-        echo "DEBUG: LS"
-        ls /Library/Frameworks/Python.framework/Versions/3.9
+        sudo cp -r ./python-framework /Library/Frameworks/Python.framework/Versions/${{ env.manual-python-version }}
     - name: Make Python symlink (macOS)
       if: ${{ matrix.platform == 'macos-latest' }}
-      run: |
-        echo "ls .:"
-        ls .
-        echo "ls python:"
-        ls python
-        echo "ls python/build/bin:"
-        ls python/build/bin
-        echo "some more stuff:"
-        echo $(pwd)
-        echo $(greadlink -f ./python/build/bin/python3)
-        echo "making symlink:"
-        ln -s ./python/build/bin/python3 ./python3
-        echo "testing symlink:"
-        ./python3 -c "import sys; print(sys.version)"
+      run: ln -s ./python/build/bin/python3 ./python3
     - name: Set up Python (Windows/Linux)
       if: ${{ matrix.platform == 'windows-latest' || matrix.platform == 'ubuntu-latest' }}
       uses: actions/setup-python@v2
