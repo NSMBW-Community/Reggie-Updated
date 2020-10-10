@@ -59,8 +59,22 @@ jobs:
         ./configure --enable-optimizations --enable-framework --with-openssl=$(brew --prefix openssl) "--prefix=$(pwd)/build"
         make
         sudo make altinstall
-        echo "DID MAKE ALTINSTALL -- HERE'S THE READLINK:"
+        echo "DID MAKE ALTINSTALL -- HERE'S SOME THINGS:"
+        echo $(pwd)
+        echo $(readlink .)
+        echo "BEGIN LS"
+        ls .
+        echo "-------------------- A"
+        echo $(readlink ./build)
+        echo "BEGIN LS"
+        ls ./build
+        echo "-------------------- B"
+        echo $(readlink ./build/bin)
+        echo "BEGIN LS"
+        ls ./build/bin
+        echo "-------------------- C"
         echo $(readlink ./build/bin/python3)
+        echo "END ALL"
         cd ..
     - name: Make Python symlink (macOS)
       if: ${{ matrix.platform == 'macos-latest' }}
