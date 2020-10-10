@@ -34,7 +34,7 @@ jobs:
       uses: actions/cache@v2
       with:
         path: ./python
-        key: macos-python-${{ env.manual-python-version }}-XXX
+        key: macos-python-${{ env.manual-python-version }}-AAA
     - name: Download Python (macOS)
       if: ${{ matrix.platform == 'macos-latest' && !steps.caching.outputs.cache-hit }}
       run: |
