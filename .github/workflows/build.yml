@@ -91,8 +91,8 @@ jobs:
       shell: bash
       run: |
         $PYTHON_CMD -m pip install PyInstaller
-    - name: Build and install PyInstaller (macOS)
-      if: ${{ matrix.platform == 'macos-latest' }}
+    - name: Build and install PyInstaller (macOS, cache miss)
+      if: ${{ matrix.platform == 'macos-latest' && !steps.caching.outputs.cache-hit }}
       run: |
         git clone https://github.com/pyinstaller/pyinstaller
         cd pyinstaller/bootloader
