@@ -28,6 +28,12 @@ jobs:
       run: echo "PYTHON_CMD=./python3" >> $GITHUB_ENV
     - name: Checkout repository
       uses: actions/checkout@v2
+    - name: Prepare for cache restoration (macOS)
+      if: ${{ matrix.platform == 'macos-latest' }}
+      run: |
+        mkdir /Library/Frameworks/Python.framework
+        mkdir /Library/Frameworks/Python.framework/Versions
+        mkdir /Library/Frameworks/Python.framework/Versions/3.9
     - name: Cache Python build (macOS)
       id: caching
       if: ${{ matrix.platform == 'macos-latest' }}
@@ -59,7 +65,7 @@ jobs:
         brew install openssl
         export MACOSX_DEPLOYMENT_TARGET=10.13
         ./configure --enable-optimizations --enable-framework --with-openssl=$(brew --prefix openssl) "--prefix=$(pwd)/build"
-        make
+        make -j2
         sudo make install
         brew install coreutils
         echo "DID MAKE ALTINSTALL -- HERE'S SOME THINGS:"
