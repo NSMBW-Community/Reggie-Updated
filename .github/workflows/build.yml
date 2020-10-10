@@ -76,6 +76,8 @@ jobs:
         echo "-------------------- C"
         python -c "import os; print(os.path.realpath('./build/bin/python3'))"
         greadlink -f ./build/bin/python3
+        python -c "import os; print(os.path.realpath('./build/bin/python3.9'))"
+        greadlink -f ./build/bin/python3.9
         echo "END ALL"
         cd ..
     - name: Make Python symlink (macOS)
