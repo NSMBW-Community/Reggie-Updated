@@ -62,7 +62,13 @@ jobs:
         cd ..
     - name: Make Python symlink (macOS)
       if: ${{ matrix.platform == 'macos-latest' }}
-      run: ln -s python/build/bin/python3 ./python3
+      run: |
+        echo "ls .:"
+        ls .
+        echo "ls python:"
+        ls python
+        echo "making symlink:"
+        ln -s python/build/bin/python3 ./python3
     - name: Set up Python (Windows/Linux)
       if: ${{ matrix.platform == 'windows-latest' || matrix.platform == 'ubuntu-latest' }}
       uses: actions/setup-python@v2
