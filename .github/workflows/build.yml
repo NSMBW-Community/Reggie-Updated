@@ -67,8 +67,12 @@ jobs:
         ls .
         echo "ls python:"
         ls python
+        echo "ls python/build/bin:"
+        ls python/build/bin
         echo "making symlink:"
         ln -s python/build/bin/python3 ./python3
+        echo "testing symlink:"
+        ./python3 -c "import sys; print(sys.version)"
     - name: Set up Python (Windows/Linux)
       if: ${{ matrix.platform == 'windows-latest' || matrix.platform == 'ubuntu-latest' }}
       uses: actions/setup-python@v2
