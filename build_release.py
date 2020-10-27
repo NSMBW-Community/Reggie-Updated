@@ -231,9 +231,11 @@ args = [
 ]
 
 if sys.platform == 'win32':
-    args.append('--icon=' + os.path.abspath(WIN_ICON))
+    if WIN_ICON:
+        args.append('--icon=' + os.path.abspath(WIN_ICON))
 elif sys.platform == 'darwin':
-    args.append('--icon=' + os.path.abspath(MAC_ICON))
+    if MAC_ICON:
+        args.append('--icon=' + os.path.abspath(MAC_ICON))
     args.append('--osx-bundle-identifier=' + MAC_BUNDLE_IDENTIFIER)
 
 for e in excludes:
