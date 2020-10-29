@@ -2134,7 +2134,7 @@ class LevelUnit():
             'Webpage': self.Webpage,
             'Password': self.Password
         }
-        return pickle.dumps(info, 2)
+        return pickletools.optimize(pickle.dumps(info, 2))
 
 
 class LevelEditorItem(QtWidgets.QGraphicsItem):
