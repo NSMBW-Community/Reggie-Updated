@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python
 # -*- coding: latin-1 -*-
 
 # Reggie! - New Super Mario Bros. Wii Level Editor
