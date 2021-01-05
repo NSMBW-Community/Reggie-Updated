@@ -70,8 +70,8 @@ jobs:
     - name: Un-copy Python from cache (macOS, cache hit)
       if: ${{ matrix.platform == 'macos-latest' && steps.caching.outputs.cache-hit }}
       run: |
-        sudo mkdir /Library/Frameworks/Python.framework
-        sudo mkdir /Library/Frameworks/Python.framework/Versions
+        sudo mkdir -p /Library/Frameworks/Python.framework
+        sudo mkdir -p /Library/Frameworks/Python.framework/Versions
         sudo cp -r ./python-framework /Library/Frameworks/Python.framework/Versions/${{ env.manual-python-version }}
     - name: Make Python symlink (macOS)
       if: ${{ matrix.platform == 'macos-latest' }}
