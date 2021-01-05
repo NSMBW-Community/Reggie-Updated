@@ -124,11 +124,11 @@ jobs:
       if: ${{ runner.os == 'Windows' }}
       uses: actions/upload-artifact@v2
       with:
-        name: build-${{ matrix.platform }}
+        name: build-${{ matrix.platform }}-${{ matrix.arch }}
         path: distrib/*
     - name: Upload artifacts (macOS/Linux)
       if: ${{ runner.os == 'macOS' || runner.os == 'Linux' }}
       uses: actions/upload-artifact@v2
       with:
-        name: build-${{ matrix.platform }}
+        name: build-${{ matrix.platform }}-${{ matrix.arch }}
         path: build-${{ matrix.platform }}.tar.gz
