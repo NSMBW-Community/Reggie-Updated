@@ -13,6 +13,11 @@ jobs:
       matrix:
         python-version: [3.9]  # Don't forget to also change the "manual-python-version" numbers below!
         platform: [windows-latest, macos-latest, ubuntu-latest]
+        arch: [64]
+        # include:  # Add 32-bit Windows build
+        #   - python-version: 3.9
+        #     platform: windows-latest
+        #     arch: 32
     runs-on: ${{ matrix.platform }}
 
     env:
@@ -21,17 +26,17 @@ jobs:
 
     steps:
     - name: Set environment variables (Windows/Linux)
-      if: ${{ matrix.platform == 'windows-latest' || matrix.platform == 'ubuntu-latest' }}
+      if: ${{ runner.os == 'Windows' || runner.os == 'Linux' }}
       shell: bash
       run: echo "PYTHON_CMD=python" >> $GITHUB_ENV
     - name: Set environment variables (macOS)
-      if: ${{ matrix.platform == 'macos-latest' }}
+      if: ${{ runner.os == 'macOS' }}
       run: echo "PYTHON_CMD=./python3" >> $GITHUB_ENV
     - name: Checkout repository
       uses: actions/checkout@v2
     - name: Cache Python build (macOS)
       id: caching
-      if: ${{ matrix.platform == 'macos-latest' }}
+      if: ${{ runner.os == 'macOS' }}
       uses: actions/cache@v2
       with:
         path: |
@@ -40,7 +45,7 @@ jobs:
           ~/Library/Python/${{ env.manual-python-version }}
         key: macos-python-${{ env.manual-python-version-full }}
     - name: Download Python (macOS, cache miss)
-      if: ${{ matrix.platform == 'macos-latest' && !steps.caching.outputs.cache-hit }}
+      if: ${{ runner.os == 'macOS' && !steps.caching.outputs.cache-hit }}
       run: |
         # Do all this in a "python" subfolder
         mkdir python && cd python
@@ -54,7 +59,7 @@ jobs:
         cd *
         mv ./* ../../
     - name: Build Python (macOS, cache miss)
-      if: ${{ matrix.platform == 'macos-latest' && !steps.caching.outputs.cache-hit }}
+      if: ${{ runner.os == 'macOS' && !steps.caching.outputs.cache-hit }}
       run: |
         cd python
         mkdir build
@@ -65,19 +70,19 @@ jobs:
         sudo make install
         cd ..
     - name: Copy Python for caching (macOS, cache miss)
-      if: ${{ matrix.platform == 'macos-latest' && !steps.caching.outputs.cache-hit }}
+      if: ${{ runner.os == 'macOS' && !steps.caching.outputs.cache-hit }}
       run: cp -r /Library/Frameworks/Python.framework/Versions/${{ env.manual-python-version }} ./python-framework
     - name: Un-copy Python from cache (macOS, cache hit)
-      if: ${{ matrix.platform == 'macos-latest' && steps.caching.outputs.cache-hit }}
+      if: ${{ runner.os == 'macOS' && steps.caching.outputs.cache-hit }}
       run: |
         sudo mkdir -p /Library/Frameworks/Python.framework
         sudo mkdir -p /Library/Frameworks/Python.framework/Versions
         sudo cp -r ./python-framework /Library/Frameworks/Python.framework/Versions/${{ env.manual-python-version }}
     - name: Make Python symlink (macOS)
-      if: ${{ matrix.platform == 'macos-latest' }}
+      if: ${{ runner.os == 'macOS' }}
       run: ln -s ./python/build/bin/python3 ./python3
     - name: Set up Python (Windows/Linux)
-      if: ${{ matrix.platform == 'windows-latest' || matrix.platform == 'ubuntu-latest' }}
+      if: ${{ runner.os == 'Windows' || runner.os == 'Linux' }}
       uses: actions/setup-python@v2
       with:
         python-version: ${{ matrix.python-version }}
@@ -88,12 +93,12 @@ jobs:
         $PYTHON_CMD -m pip install wheel
         $PYTHON_CMD -m pip install PyQt5 nsmblib
     - name: Install PyInstaller (Windows/Linux)
-      if: ${{ matrix.platform == 'windows-latest' || matrix.platform == 'ubuntu-latest' }}
+      if: ${{ runner.os == 'Windows' || runner.os == 'Linux' }}
       shell: bash
       run: |
         $PYTHON_CMD -m pip install PyInstaller
     - name: Build and install PyInstaller (macOS, cache miss)
-      if: ${{ matrix.platform == 'macos-latest' && !steps.caching.outputs.cache-hit }}
+      if: ${{ runner.os == 'macOS' && !steps.caching.outputs.cache-hit }}
       run: |
         git clone https://github.com/pyinstaller/pyinstaller
         cd pyinstaller/bootloader
@@ -109,19 +114,19 @@ jobs:
       shell: bash
       run: $PYTHON_CMD -OO build_release.py
     - name: Tar (macOS/Linux)
-      if: ${{ matrix.platform == 'macos-latest' || matrix.platform == 'ubuntu-latest' }}
+      if: ${{ runner.os == 'macOS' || runner.os == 'Linux' }}
       run: |
         cd distrib
         tar -czvf ../build-${{ matrix.platform }}.tar.gz ./*
         cd ..
     - name: Upload artifacts (Windows)
-      if: ${{ matrix.platform == 'windows-latest' }}
+      if: ${{ runner.os == 'Windows' }}
       uses: actions/upload-artifact@v2
       with:
         name: build-${{ matrix.platform }}
         path: distrib/*
     - name: Upload artifacts (macOS/Linux)
-      if: ${{ matrix.platform == 'macos-latest' || matrix.platform == 'ubuntu-latest' }}
+      if: ${{ runner.os == 'macOS' || runner.os == 'Linux' }}
       uses: actions/upload-artifact@v2
       with:
         name: build-${{ matrix.platform }}
