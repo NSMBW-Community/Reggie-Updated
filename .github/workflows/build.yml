@@ -13,11 +13,11 @@ jobs:
       matrix:
         python-version: [3.9]  # Don't forget to also change the "manual-python-version" numbers below!
         platform: [windows-latest, macos-latest, ubuntu-latest]
-        arch: [64]
-        # include:  # Add 32-bit Windows build
-        #   - python-version: 3.9
-        #     platform: windows-latest
-        #     arch: 32
+        arch: ['x64']
+        include:  # Add 32-bit Windows build
+          - python-version: 3.9
+            platform: windows-latest
+            arch: 'x86'
     runs-on: ${{ matrix.platform }}
 
     env:
@@ -86,6 +86,7 @@ jobs:
       uses: actions/setup-python@v2
       with:
         python-version: ${{ matrix.python-version }}
+        architecture: ${{ matrix.arch }}
     - name: Install dependencies other than PyInstaller
       shell: bash
       run: |
