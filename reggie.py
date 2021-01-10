@@ -1389,6 +1389,7 @@ Dirty = False
 DirtyOverride = 0
 AutoSaveDirty = False
 OverrideSnapping = False
+OverrideItemMovement = False
 CurrentPaintType = 0
 CurrentObject = -1
 CurrentSprite = -1
@@ -2150,6 +2151,8 @@ class LevelEditorItem(QtWidgets.QGraphicsItem):
         """Makes sure positions don't go out of bounds and updates them as necessary"""
 
         if change == QtWidgets.QGraphicsItem.ItemPositionChange:
+            if OverrideItemMovement: return self.pos()
+
             # snap to 24x24
             newpos = toPyObject(value)
 
@@ -2267,6 +2270,8 @@ class LevelObjectEditorItem(LevelEditorItem):
         """Makes sure positions don't go out of bounds and updates them as necessary"""
 
         if change == QtWidgets.QGraphicsItem.ItemPositionChange:
+            if OverrideItemMovement: return self.pos()
+
             scene = self.scene()
             if scene is None: return value
 
@@ -2628,6 +2633,7 @@ class ZoneItem(LevelEditorItem):
 
     def itemChange(self, change, value):
         """Avoids snapping for zones"""
+        if OverrideItemMovement: return self.pos()
         return QtWidgets.QGraphicsItem.itemChange(self, change, value)
 
 class LocationEditorItem(LevelEditorItem):
@@ -2872,6 +2878,7 @@ class SpriteEditorItem(LevelEditorItem):
         """Makes sure positions don't go out of bounds and updates them as necessary"""
 
         if change == QtWidgets.QGraphicsItem.ItemPositionChange:
+            if OverrideItemMovement: return self.pos()
             if self.scene() is None: return value
             if self.ChangingPos: return value
 
@@ -3263,6 +3270,7 @@ class PathEditorLineItem(LevelEditorItem):
 
     def itemChange(self, change, value):
         """Avoids snapping for path lines"""
+        if OverrideItemMovement: return self.pos()
         return QtWidgets.QGraphicsItem.itemChange(self, change, value)
 
     def UpdateTooltip(self):
@@ -4806,6 +4814,28 @@ class LevelViewWidget(QtWidgets.QGraphicsView):
 
         self.currentobj = None
         self.lastCursorPosForMidButtonScroll = None
+
+    def moveEvent(self, event):
+        """Overrides widget movement events, to improve behavior when docks are shown/hidden"""
+        # We scroll the view by the same amount as it moved by. This
+        # keeps the view stable when a dock widget is shown in the left
+        # or top dock area.
+
+        # We need to freeze all items while we scroll, or else Qt freaks
+        # out and moves the newly selected item somewhere random
+        global OverrideItemMovement
+        OverrideItemMovement = True
+
+        delta = event.pos() - event.oldPos()
+        x, y = delta.x(), delta.y()
+        if x != 0:
+            self.XScrollBar.setValue(self.XScrollBar.value() + x)
+        if y != 0:
+            self.YScrollBar.setValue(self.YScrollBar.value() + y)
+
+        QtWidgets.QGraphicsView.moveEvent(self, event)
+        OverrideItemMovement = False
+
 
     def mousePressEvent(self, event):
         """Overrides mouse pressing events if needed"""
