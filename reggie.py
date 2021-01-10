@@ -6030,9 +6030,12 @@ class ZoneTab(QtWidgets.QWidget):
     def createVisibility(self, z):
         self.Visibility = QtWidgets.QGroupBox('Rendering and Camera')
 
+        comboboxSizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.MinimumExpanding, QtWidgets.QSizePolicy.Fixed)
+
         self.Zone_modeldark = QtWidgets.QComboBox()
         self.Zone_modeldark.addItems(ZoneThemeValues)
         self.Zone_modeldark.setToolTip('<b>Zone Theme:</b><br>Changes the way models and parts of the background are rendered (for blurring, darkness, lava effects, and so on). Themes with * next to them are used in the game, but look the same as the overworld theme.')
+        self.Zone_modeldark.setSizePolicy(comboboxSizePolicy)
         if z.modeldark < 0: z.modeldark = 0
         if z.modeldark >= len(ZoneThemeValues): z.modeldark = len(ZoneThemeValues) - 1
         self.Zone_modeldark.setCurrentIndex(z.modeldark)
@@ -6040,6 +6043,7 @@ class ZoneTab(QtWidgets.QWidget):
         self.Zone_terraindark = QtWidgets.QComboBox()
         self.Zone_terraindark.addItems(ZoneTerrainThemeValues)
         self.Zone_terraindark.setToolTip("<b>Terrain Theme:</b><br>Changes the way the terrain is rendered. It also affects the parts of the background which the normal theme doesn't change.")
+        self.Zone_terraindark.setSizePolicy(comboboxSizePolicy)
         if z.terraindark < 0: z.terraindark = 0
         if z.terraindark >= len(ZoneTerrainThemeValues): z.terraindark = len(ZoneTerrainThemeValues) - 1
         self.Zone_terraindark.setCurrentIndex(z.terraindark)
@@ -6069,78 +6073,65 @@ class ZoneTab(QtWidgets.QWidget):
             self.Zone_vfulldark.setChecked(True)
 
 
-        self.ChangeList()
-        self.Zone_vnormal.clicked.connect(self.ChangeList)
-        self.Zone_vspotlight.clicked.connect(self.ChangeList)
-        self.Zone_vfulldark.clicked.connect(self.ChangeList)
+        self.ChangeVisibilityList()
+        self.Zone_vnormal.clicked.connect(self.ChangeVisibilityList)
+        self.Zone_vspotlight.clicked.connect(self.ChangeVisibilityList)
+        self.Zone_vfulldark.clicked.connect(self.ChangeVisibilityList)
 
+        self.zm = -1
 
-        self.Zone_xtrack = QtWidgets.QCheckBox()
-        self.Zone_xtrack.setToolTip('<b>X Tracking:</b><br>Allows the camera to track Mario across the X dimension. Turning off this option centers the screen horizontally in the view, producing a stationary camera mode.')
-        if z.cammode in [0, 3, 6]:
-            self.Zone_xtrack.setChecked(True)
-        self.Zone_ytrack = QtWidgets.QCheckBox()
-        self.Zone_ytrack.setToolTip('<b>Y Tracking:</b><br>Allows the camera to track Mario across the Y dimension. Turning off this option centers the screen vertically in the view, producing very vertically limited stages.')
-        if z.cammode in [0, 1, 3, 4]:
-            self.Zone_ytrack.setChecked(True)
+        self.Zone_cammodebuttongroup = QtWidgets.QButtonGroup()
+        cammodebuttons = []
+        for i, name, tooltip in [
+                    (0, 'Normal', 'The standard camera mode, appropriate for most situations.'),
+                    (3, 'Static Zoom', 'In this mode, the camera will not zoom out during multiplayer.'),
+                    (4, 'Static Zoom, Y Tracking Only', 'In this mode, the camera will not zoom out during multiplayer, and will be centered horizontally in the zone.'),
+                    (5, 'Static Zoom, Event-Controlled', 'In this mode, the camera will not zoom out during multiplayer, and will use event-controlled camera settings (which currently cannot be edited).'),
+                    (6, 'X Tracking Only', 'In this mode, the camera will only move horizontally. It will be aligned to the bottom edge of the zone.'),
+                    (7, 'X Expanding Only', 'In this mode, the camera will only zoom out during multiplayer if the players are far apart horizontally.'),
+                    (1, 'Y Tracking Only', 'In this mode, the camera will only move vertically. It will be centered horizontally in the zone.'),
+                    (2, 'Y Expanding Only', 'In this mode, the camera will zoom out during multiplayer if the players are far apart vertically.'),
+                ]:
 
+            rb = QtWidgets.QRadioButton(name)
+            rb.setToolTip('<b>' + name + ':</b><br>' + tooltip)
+            self.Zone_cammodebuttongroup.addButton(rb, i)
+            cammodebuttons.append(rb)
 
-        self.Zone_camerazoom = QtWidgets.QComboBox()
-        self.Zone_camerazoom.setToolTip('<b>Zoom Level:</b><br>Changes the camera zoom functionality<br>&nbsp;&nbsp;&nbsp;Negative values: Zoom in<br>&nbsp;&nbsp;&nbsp;Positive values: Zoom out<br><br>Zoom level 4 is rather glitchy')
-        newItems1 = ['-2', '-1', '0', '1', '2', '3', '4']
-        self.Zone_camerazoom.addItems(newItems1)
-        if z.camzoom == 8:
-            self.Zone_camerazoom.setCurrentIndex(0)
-        elif (z.camzoom == 9 and z.cammode in [3, 4]) or (z.camzoom in [19, 20] and z.cammode == 9):
-            self.Zone_camerazoom.setCurrentIndex(1)
-        elif (z.camzoom in [0, 1, 2] and z.cammode in [0, 1, 6]) or (z.camzoom in [10, 11] and z.cammode in [3, 4]) or (z.camzoom == 13 and z.cammode == 9):
-            self.Zone_camerazoom.setCurrentIndex(2)
-        elif z.camzoom in [5, 6, 7, 9, 10] and z.cammode in [0, 1, 6] or (z.camzoom == 12 and z.cammode == 9):
-            self.Zone_camerazoom.setCurrentIndex(3)
-        elif (z.camzoom in [4, 11] and z.cammode in [0, 1, 6]) or (z.camzoom in [1, 5] and z.cammode in [3, 4])  or (z.camzoom == 14 and z.cammode == 9):
-            self.Zone_camerazoom.setCurrentIndex(4)
-        elif (z.camzoom == 3 and z.cammode in [0, 1, 6]) or (z.camzoom == 2 and z.cammode in [3, 4]) or (z.camzoom == 15 and z.cammode == 9):
-            self.Zone_camerazoom.setCurrentIndex(5)
-        elif (z.camzoom == 16 and z.cammode in [0, 1, 6]) or (z.camzoom in [3, 7] and z.cammode in [3, 4]) or (z.camzoom == 16 and z.cammode == 9):
-            self.Zone_camerazoom.setCurrentIndex(6)
-        else:
-            self.Zone_camerazoom.setCurrentIndex(2)
+            if i == z.cammode:
+                rb.setChecked(True)
 
-        self.Zone_camerabias = QtWidgets.QCheckBox()
-        self.Zone_camerabias.setToolTip('<b>Bias:</b><br>Sets the screen bias to the left edge on load, preventing initial scrollback.<br>Useful for pathed levels<br>&nbsp;&nbsp;&nbsp;Note: Not all zoom/mode combinations support bias')
-        if z.camzoom in [1, 2, 3, 4, 5, 6, 9, 10]:
-            self.Zone_camerabias.setChecked(True)
+            rb.clicked.connect(self.ChangeCamModeList)
 
+        self.Zone_screensizes = QtWidgets.QComboBox()
+        self.Zone_screensizes.setToolTip("<b>Screen Sizes:</b><br>Selects screen sizes the camera can use during multiplayer. The camera will zoom out if the players are too far apart, and zoom back in when they get closer together. Values represent screen heights, measured in tiles.<br><br>In single-player, only the smallest size will be used.<br><br>Options marked with * or ** are glitchy if zone bounds are set to 0; see the Upper/Lower Bounds tooltips for more info.<br>Options marked with ** are also unplayably glitchy in multiplayer.")
+        self.Zone_screensizes.setSizePolicy(comboboxSizePolicy)
 
-        ZoneZoomLayout = QtWidgets.QFormLayout()
-        ZoneZoomLayout.addRow('Zoom Level:', self.Zone_camerazoom)
-        ZoneZoomLayout.addRow('Zone Theme:', self.Zone_modeldark)
-        ZoneZoomLayout.addRow('Terrain Lighting:', self.Zone_terraindark)
+        self.ChangeCamModeList()
+        self.Zone_screensizes.setCurrentIndex(z.camzoom)
 
+        ZoneCameraModesLayout = QtWidgets.QGridLayout()
+        for i, b in enumerate(cammodebuttons):
+            ZoneCameraModesLayout.addWidget(b, i % 4, i // 4)
         ZoneCameraLayout = QtWidgets.QFormLayout()
-        ZoneCameraLayout.addRow('X Tracking:', self.Zone_xtrack)
-        ZoneCameraLayout.addRow('Y Tracking:', self.Zone_ytrack)
-        ZoneCameraLayout.addRow('Bias:', self.Zone_camerabias)
+        ZoneCameraLayout.addRow(ZoneCameraModesLayout)
+        ZoneCameraLayout.addRow('Screen Sizes:', self.Zone_screensizes)
+        ZoneCameraLayout.addRow('Zone Theme:', self.Zone_modeldark)
+        ZoneCameraLayout.addRow('Terrain Lighting:', self.Zone_terraindark)
 
         ZoneVisibilityLayout = QtWidgets.QHBoxLayout()
         ZoneVisibilityLayout.addWidget(self.Zone_vnormal)
         ZoneVisibilityLayout.addWidget(self.Zone_vspotlight)
         ZoneVisibilityLayout.addWidget(self.Zone_vfulldark)
 
-
-
-        TopLayout = QtWidgets.QHBoxLayout()
-        TopLayout.addLayout(ZoneCameraLayout)
-        TopLayout.addLayout(ZoneZoomLayout)
-
         InnerLayout = QtWidgets.QVBoxLayout()
-        InnerLayout.addLayout(TopLayout)
+        InnerLayout.addLayout(ZoneCameraLayout)
         InnerLayout.addLayout(ZoneVisibilityLayout)
         InnerLayout.addWidget(self.Zone_visibility)
         self.Visibility.setLayout(InnerLayout)
 
     @QtCoreSlot(bool)
-    def ChangeList(self):
+    def ChangeVisibilityList(self):
         VRadioMod = self.zv % 16
 
         if self.Zone_vnormal.isChecked():
@@ -6164,6 +6155,64 @@ class ZoneTab(QtWidgets.QWidget):
             self.Zone_visibility.setToolTip('<b>Large Foglight</b> - A large, organic light source surrounds Mario<br><b>Lightbeam</b> - Mario is able to aim a conical lightbeam through use of the Wiimote<br><b>Large Focus Light</b> - A large spotlight which changes size based upon player movement<br><b>Small Foglight</b> - A small, organic light source surrounds Mario<br><b>Small Focuslight</b> - A small spotlight which changes size based on player movement<br><b>Absolute Black</b> - Visibility is provided only by fireballs, stars, and certain sprites')
             if VRadioMod >= len(addList): VRadioMod = len(addList) - 1
             self.Zone_visibility.setCurrentIndex(VRadioMod)
+
+
+    @QtCoreSlot(bool)
+    def ChangeCamModeList(self):
+        mode = self.Zone_cammodebuttongroup.checkedId()
+
+        oldListChoice = [1, 1, 2, 3, 3, 3, 1, 1][self.zm]
+        newListChoice = [1, 1, 2, 3, 3, 3, 1, 1][mode]
+
+        if self.zm == -1 or oldListChoice != newListChoice:
+
+            if newListChoice == 1:
+                sizes = [
+                    ([14, 19], ''),
+                    ([14, 19, 24], ''),
+                    ([14, 19, 28], ''),
+                    ([20, 24], ''),
+                    ([19, 24, 28], ''),
+                    ([17, 24], ''),
+                    ([17, 24, 28], ''),
+                    ([17, 20], ''),
+                    ([7, 11, 28], '**'),
+                    ([17, 20.5, 24], ''),
+                    ([17, 20, 28], ''),
+                ]
+            elif newListChoice == 2:
+                sizes = [
+                    ([14, 19], ''),
+                    ([14, 19, 24], ''),
+                    ([14, 19, 28], ''),
+                    ([19, 19, 24], ''),
+                    ([19, 24, 28], ''),
+                    ([19, 24, 28], ''),
+                    ([17, 24, 28], ''),
+                    ([17, 20.5, 24], ''),
+                ]
+            else:
+                sizes = [
+                    ([14], ''),
+                    ([19], ''),
+                    ([24], ''),
+                    ([28], ''),
+                    ([17], ''),
+                    ([20], ''),
+                    ([16], ''),
+                    ([28], ''),
+                    ([7], '*'),
+                    ([10.5], '*'),
+                ]
+
+            items = []
+            for i, (options, asterisk) in enumerate(sizes):
+                items.append(', '.join(str(o) for o in options) + asterisk)
+
+            self.Zone_screensizes.clear()
+            self.Zone_screensizes.addItems(items)
+            self.Zone_screensizes.setCurrentIndex(0)
+            self.zm = mode
 
 
     def createBounds(self, z):
@@ -8997,207 +9046,8 @@ class ReggieWindow(QtWidgets.QMainWindow):
                 z.modeldark = tab.Zone_modeldark.currentIndex()
                 z.terraindark = tab.Zone_terraindark.currentIndex()
 
-                if tab.Zone_xtrack.isChecked():
-                    if tab.Zone_ytrack.isChecked():
-                        if tab.Zone_camerabias.isChecked():
-                            #Xtrack, YTrack, Bias
-                            if tab.Zone_camerazoom.currentIndex() == 0:
-                                z.cammode = 0
-                                z.camzoom = 8
-                                QtWidgets.QMessageBox.warning(None, 'Error', 'Zoom level -2 does not support bias modes.')
-                            elif tab.Zone_camerazoom.currentIndex() == 1:
-                                z.cammode = 3
-                                z.camzoom = 9
-                                QtWidgets.QMessageBox.warning(None, 'Error', 'Zoom level -1 does not support bias modes.')
-                            elif tab.Zone_camerazoom.currentIndex() == 2:
-                                z.cammode = 0
-                                z.camzoom = 1
-                            elif tab.Zone_camerazoom.currentIndex() == 3:
-                                z.cammode = 0
-                                z.camzoom = 6
-                            elif tab.Zone_camerazoom.currentIndex() == 4:
-                                z.cammode = 0
-                                z.camzoom = 4
-                            elif tab.Zone_camerazoom.currentIndex() == 5:
-                                z.cammode = 0
-                                z.camzoom = 3
-                            elif tab.Zone_camerazoom.currentIndex() == 6:
-                                z.cammode = 3
-                                z.camzoom = 3
-                        else:
-                            #Xtrack, YTrack, No Bias
-                            if tab.Zone_camerazoom.currentIndex() == 0:
-                                z.cammode = 0
-                                z.camzoom = 8
-                            elif tab.Zone_camerazoom.currentIndex() == 1:
-                                z.cammode = 3
-                                z.camzoom = 9
-                            elif tab.Zone_camerazoom.currentIndex() == 2:
-                                z.cammode = 0
-                                z.camzoom = 0
-                            elif tab.Zone_camerazoom.currentIndex() == 3:
-                                z.cammode = 0
-                                z.camzoom = 7
-                            elif tab.Zone_camerazoom.currentIndex() == 4:
-                                z.cammode = 0
-                                z.camzoom = 11
-                            elif tab.Zone_camerazoom.currentIndex() == 5:
-                                z.cammode = 3
-                                z.camzoom = 2
-                            elif tab.Zone_camerazoom.currentIndex() == 6:
-                                z.cammode = 3
-                                z.camzoom = 7
-                    else:
-                        if tab.Zone_camerabias.isChecked():
-                            #Xtrack, No YTrack, Bias
-                            z.cammode = 6
-                            if tab.Zone_camerazoom.currentIndex() == 0:
-                                z.camzoom = 8
-                                QtWidgets.QMessageBox.warning(None, 'Error', 'Zoom level -2 does not support bias modes.')
-                            elif tab.Zone_camerazoom.currentIndex() == 1:
-                                z.camzoom = 1
-                                QtWidgets.QMessageBox.warning(None, 'Error', 'Zoom level -1 is not supported with these Tracking modes. Set to Zoom level 0')
-                            elif tab.Zone_camerazoom.currentIndex() == 2:
-                                z.camzoom = 2
-                            elif tab.Zone_camerazoom.currentIndex() == 3:
-                                z.camzoom = 6
-                            elif tab.Zone_camerazoom.currentIndex() == 4:
-                                z.camzoom = 4
-                            elif tab.Zone_camerazoom.currentIndex() == 5:
-                                z.camzoom = 3
-                            elif tab.Zone_camerazoom.currentIndex() == 6:
-                                z.camzoom = 16
-                                QtWidgets.QMessageBox.warning(None, 'Error', 'Zoom mode 4 can be glitchy with these settings.')
-                        else:
-                            #Xtrack, No YTrack, No Bias
-                            z.cammode = 6
-                            if tab.Zone_camerazoom.currentIndex() == 0:
-                                z.camzoom = 8
-                            elif tab.Zone_camerazoom.currentIndex() == 1:
-                                z.camzoom = 0
-                                QtWidgets.QMessageBox.warning(None, 'Error', 'Zoom level -1 is not supported with these Tracking modes. Set to Zoom level 0')
-                            elif tab.Zone_camerazoom.currentIndex() == 2:
-                                z.camzoom = 0
-                            elif tab.Zone_camerazoom.currentIndex() == 3:
-                                z.camzoom = 7
-                            elif tab.Zone_camerazoom.currentIndex() == 4:
-                                z.camzoom = 11
-                            elif tab.Zone_camerazoom.currentIndex() == 5:
-                                z.camzoom = 3
-                            elif tab.Zone_camerazoom.currentIndex() == 6:
-                                z.camzoom = 16
-                                QtWidgets.QMessageBox.warning(None, 'Error', 'Zoom mode 4 can be glitchy with these settings.')
-                else:
-                    if tab.Zone_ytrack.isChecked():
-                        if tab.Zone_camerabias.isChecked():
-                            #No Xtrack, YTrack, Bias
-                            if tab.Zone_camerazoom.currentIndex() == 0:
-                                z.cammode = 1
-                                z.camzoom = 8
-                                QtWidgets.QMessageBox.warning(None, 'Error', 'Zoom level -2 does not support bias modes.')
-                            elif tab.Zone_camerazoom.currentIndex() == 1:
-                                z.cammode = 4
-                                z.camzoom = 9
-                                QtWidgets.QMessageBox.warning(None, 'Error', 'Zoom level -1 does not support bias modes.')
-                            elif tab.Zone_camerazoom.currentIndex() == 2:
-                                z.cammode = 1
-                                z.camzoom = 1
-                            elif tab.Zone_camerazoom.currentIndex() == 3:
-                                z.cammode = 1
-                                z.camzoom = 10
-                            elif tab.Zone_camerazoom.currentIndex() == 4:
-                                z.cammode = 1
-                                z.camzoom = 4
-                            elif tab.Zone_camerazoom.currentIndex() == 5:
-                                z.cammode = 1
-                                z.camzoom = 3
-                            elif tab.Zone_camerazoom.currentIndex() == 6:
-                                z.cammode = 4
-                                z.camzoom = 3
-                        else:
-                            #No Xtrack, YTrack, No Bias
-                            if tab.Zone_camerazoom.currentIndex() == 0:
-                                z.cammode = 4
-                                z.camzoom = 8
-                            elif tab.Zone_camerazoom.currentIndex() == 1:
-                                z.cammode = 4
-                                z.camzoom = 9
-                            elif tab.Zone_camerazoom.currentIndex() == 2:
-                                z.cammode = 1
-                                z.camzoom = 0
-                            elif tab.Zone_camerazoom.currentIndex() == 3:
-                                z.cammode = 1
-                                z.camzoom = 7
-                            elif tab.Zone_camerazoom.currentIndex() == 4:
-                                z.cammode = 1
-                                z.camzoom = 11
-                            elif tab.Zone_camerazoom.currentIndex() == 5:
-                                z.cammode = 4
-                                z.camzoom = 2
-                            elif tab.Zone_camerazoom.currentIndex() == 6:
-                                z.cammode = 4
-                                z.camzoom = 7
-                    else:
-                        if tab.Zone_camerabias.isChecked():
-                            #No Xtrack, No YTrack, Bias (glitchy)
-                            if tab.Zone_camerazoom.currentIndex() == 0:
-                                z.cammode = 9
-                                z.camzoom = 8
-                                QtWidgets.QMessageBox.warning(None, 'Error', 'No tracking mode is consistently glitchy and does not support bias.')
-                            elif tab.Zone_camerazoom.currentIndex() == 1:
-                                z.cammode = 9
-                                z.camzoom = 20
-                                QtWidgets.QMessageBox.warning(None, 'Error', 'No tracking mode is consistently glitchy and does not support bias.')
-                            elif tab.Zone_camerazoom.currentIndex() == 2:
-                                z.cammode = 9
-                                z.camzoom = 13
-                                QtWidgets.QMessageBox.warning(None, 'Error', 'No tracking mode is consistently glitchy and does not support bias.')
-                            elif tab.Zone_camerazoom.currentIndex() == 3:
-                                z.cammode = 9
-                                z.camzoom = 12
-                                QtWidgets.QMessageBox.warning(None, 'Error', 'No tracking mode is consistently glitchy and does not support bias.')
-                            elif tab.Zone_camerazoom.currentIndex() == 4:
-                                z.cammode = 9
-                                z.camzoom = 14
-                                QtWidgets.QMessageBox.warning(None, 'Error', 'No tracking mode is consistently glitchy and does not support bias.')
-                            elif tab.Zone_camerazoom.currentIndex() == 5:
-                                z.cammode = 9
-                                z.camzoom = 15
-                                QtWidgets.QMessageBox.warning(None, 'Error', 'No tracking mode is consistently glitchy and does not support bias.')
-                            elif tab.Zone_camerazoom.currentIndex() == 6:
-                                z.cammode = 9
-                                z.camzoom = 16
-                                QtWidgets.QMessageBox.warning(None, 'Error', 'No tracking mode is consistently glitchy and does not support bias.')
-                        else:
-                            #No Xtrack, No YTrack, No Bias (glitchy)
-                            if tab.Zone_camerazoom.currentIndex() == 0:
-                                z.cammode = 9
-                                z.camzoom = 8
-                                QtWidgets.QMessageBox.warning(None, 'Error', 'No tracking mode is consistently glitchy.')
-                            elif tab.Zone_camerazoom.currentIndex() == 1:
-                                z.cammode = 9
-                                z.camzoom = 19
-                                QtWidgets.QMessageBox.warning(None, 'Error', 'No tracking mode is consistently glitchy.')
-                            elif tab.Zone_camerazoom.currentIndex() == 2:
-                                z.cammode = 9
-                                z.camzoom = 13
-                                QtWidgets.QMessageBox.warning(None, 'Error', 'No tracking mode is consistently glitchy.')
-                            elif tab.Zone_camerazoom.currentIndex() == 3:
-                                z.cammode = 9
-                                z.camzoom = 12
-                                QtWidgets.QMessageBox.warning(None, 'Error', 'No tracking mode is consistently glitchy.')
-                            elif tab.Zone_camerazoom.currentIndex() == 4:
-                                z.cammode = 9
-                                z.camzoom = 14
-                                QtWidgets.QMessageBox.warning(None, 'Error', 'No tracking mode is consistently glitchy.')
-                            elif tab.Zone_camerazoom.currentIndex() == 5:
-                                z.cammode = 9
-                                z.camzoom = 15
-                                QtWidgets.QMessageBox.warning(None, 'Error', 'No tracking mode is consistently glitchy.')
-                            elif tab.Zone_camerazoom.currentIndex() == 6:
-                                z.cammode = 9
-                                z.camzoom = 16
-                                QtWidgets.QMessageBox.warning(None, 'Error', 'No tracking mode is consistently glitchy.')
+                z.cammode = tab.Zone_cammodebuttongroup.checkedId()
+                z.camzoom = tab.Zone_screensizes.currentIndex()
 
 
                 if tab.Zone_vnormal.isChecked():
