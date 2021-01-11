@@ -48,6 +48,8 @@ SCRIPT_FILE = 'reggie.py'
 DATA_FOLDERS = ['reggiedata', 'reggieextras']
 DATA_FILES = ['readme.md', 'license.txt']
 
+EXCLUDE_THREADING = True
+
 # macOS only
 AUTO_APP_BUNDLE_NAME = SCRIPT_FILE.split('.')[0] + '.app'
 FINAL_APP_BUNDLE_NAME = FULL_PROJECT_NAME + '.app'
@@ -142,8 +144,11 @@ print('>>')
 # Excludes
 excludes = ['calendar', 'datetime', 'difflib', 'doctest', 'hashlib', 'inspect',
     'locale', 'multiprocessing', 'optpath', 'os2emxpath', 'pdb',
-    'select', 'socket', 'ssl', 'threading', 'unittest',
+    'select', 'socket', 'ssl', 'unittest',
     'FixTk', 'tcl', 'tk', '_tkinter', 'tkinter', 'Tkinter']
+
+if EXCLUDE_THREADING:
+    excludes.append('threading')
 
 if sys.platform == 'nt':
     excludes.append('posixpath')
