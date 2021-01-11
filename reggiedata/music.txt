@@ -19,7 +19,7 @@ Airship Boss
 Forest
 Enemy Ambush
 Beach
-Volcano
+Lava Underground
 Peach's Castle
 Credits Jazz
 Airship Drums
