@@ -201,7 +201,7 @@ def FilesAreMissing():
 
     required = ['entrances.png', 'entrancetypes.txt', 'icon_reggie.png', 'levelnames.txt', 'overrides.png',
                 'spritedata.xml', 'tilesets.txt', 'bga/000A.png', 'bga.txt', 'bgb/000A.png', 'bgb.txt',
-                'about.html', 'spritecategories.xml']
+                'music.txt', 'about.html', 'spritecategories.xml']
 
     missing = []
 
@@ -568,6 +568,17 @@ def LoadEntranceNames():
 
     with open('reggiedata/entrancetypes.txt', 'r') as getit:
         EntranceTypeNames = [x.strip() for x in getit.readlines()]
+
+
+MusicNames = None
+def LoadMusicNames():
+    """Ensures that the music names are loaded"""
+    global MusicNames
+    if MusicNames is not None: return
+
+    with open('reggiedata/music.txt', 'r') as getit:
+        MusicNames = [x.strip() for x in getit.readlines()]
+
 
 
 def DecodeReggieInfo(data, validKeys):
@@ -6252,8 +6263,7 @@ class ZoneTab(QtWidgets.QWidget):
 
         self.Zone_music = QtWidgets.QComboBox()
         self.Zone_music.setToolTip(musicIdTooltip)
-        newItems2 = ['None', 'Overworld', 'Underground', 'Underwater', 'Mushrooms/Athletic', 'Ghost House', 'Pyramids', 'Snow', 'Lava', 'Tower', 'Castle', 'Airship', 'Bonus Area', 'Drum Rolls', 'Tower Boss', 'Castle Boss', 'Toad House', 'Airship Boss', 'Forest', 'Enemy Ambush', 'Beach', 'Volcano', "Peach's Castle", 'Credits Jazz', 'Airship Drums', 'Bowser', 'Mega Bowser', 'Epilogue']
-        self.Zone_music.addItems(newItems2)
+        self.Zone_music.addItems(MusicNames)
         self.Zone_music.setCurrentIndex(z.music)
 
         self.Zone_music_id.valueChanged.connect(self.musicIDChanged)
@@ -9205,6 +9215,7 @@ def main():
     LoadBgBNames()
     LoadSpriteData()
     LoadEntranceNames()
+    LoadMusicNames()
     LoadNumberFont()
     LoadNumberFontBold()
     LoadOverrides()

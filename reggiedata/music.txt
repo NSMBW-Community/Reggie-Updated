@@ -1,0 +1,28 @@
+None
+Overworld
+Underground
+Underwater
+Mushrooms/Athletic
+Ghost House
+Pyramids
+Snow
+Lava
+Tower
+Castle
+Airship
+Bonus Area
+Drum Rolls
+Tower Boss
+Castle Boss
+Toad House
+Airship Boss
+Forest
+Enemy Ambush
+Beach
+Volcano
+Peach's Castle
+Credits Jazz
+Airship Drums
+Bowser
+Mega Bowser
+Epilogue
