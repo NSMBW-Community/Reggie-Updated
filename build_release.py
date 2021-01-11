@@ -48,6 +48,7 @@ SCRIPT_FILE = 'reggie.py'
 DATA_FOLDERS = ['reggiedata', 'reggieextras']
 DATA_FILES = ['readme.md', 'license.txt']
 
+EXCLUDE_SELECT = True
 EXCLUDE_THREADING = True
 
 # macOS only
@@ -144,9 +145,11 @@ print('>>')
 # Excludes
 excludes = ['calendar', 'datetime', 'difflib', 'doctest', 'hashlib', 'inspect',
     'locale', 'multiprocessing', 'optpath', 'os2emxpath', 'pdb',
-    'select', 'socket', 'ssl', 'unittest',
+    'socket', 'ssl', 'unittest',
     'FixTk', 'tcl', 'tk', '_tkinter', 'tkinter', 'Tkinter']
 
+if EXCLUDE_SELECT:
+    excludes.append('select')
 if EXCLUDE_THREADING:
     excludes.append('threading')
 
