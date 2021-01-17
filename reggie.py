@@ -1793,12 +1793,12 @@ class LevelUnit():
         """Loads block 3, the bounding preferences"""
         bdngdata = self.blocks[2]
         count = len(bdngdata) // 24
-        bdngstruct = struct.Struct('>llllxBxBxxxx')
+        bdngstruct = struct.Struct('>4lHHhh')
         offset = 0
         bounding = []
         for i in range(count):
             datab = bdngstruct.unpack_from(bdngdata,offset)
-            bounding.append([datab[0], datab[1], datab[2], datab[3], datab[4], datab[5]])
+            bounding.append([datab[0], datab[1], datab[2], datab[3], datab[4], datab[5], datab[6], datab[7]])
             offset += 24
         self.bounding = bounding
 
@@ -2040,7 +2040,7 @@ class LevelUnit():
 
     def SaveZones(self):
         """Saves blocks 10, 3, 5 and 6, the zone data, boundings, bgA and bgB data respectively"""
-        bdngstruct = struct.Struct('>llllxBxBxxxx')
+        bdngstruct = struct.Struct('>4lHHhh')
         bgAstruct = struct.Struct('>xBhhhhHHHxxxBxxxx')
         bgBstruct = struct.Struct('>xBhhhhHHHxxxBxxxx')
         zonestruct = struct.Struct('>HHHHHHBBBBxBBBBxBB')
@@ -2054,7 +2054,7 @@ class LevelUnit():
         for z in Level.zones:
             if z.objx < 0: z.objx = 0
             if z.objy < 0: z.objy = 0
-            bdngstruct.pack_into(buffer2, offset, z.yupperbound, z.ylowerbound, z.unkbound1, z.unkbound2, i, 0xF)
+            bdngstruct.pack_into(buffer2, offset, z.yupperbound, z.ylowerbound, z.yupperbound2, z.ylowerbound2, i, z.mpcamzoomadjust, z.yupperbound3, z.ylowerbound3)
             bgAstruct.pack_into(buffer4, offset, i, z.XscrollA, z.YscrollA, z.YpositionA, z.XpositionA, z.bg1A, z.bg2A, z.bg3A, z.ZoomA)
             bgBstruct.pack_into(buffer5, offset, i, z.XscrollB, z.YscrollB, z.YpositionB, z.XpositionB, z.bg1B, z.bg2B, z.bg3B, z.ZoomB)
             zonestruct.pack_into(buffer9, offset, z.objx, z.objy, z.width, z.height, z.modeldark, z.terraindark, i, i, z.cammode, z.camzoom, z.visibility, i, i, z.unknownz, z.music, z.sfxmod)
@@ -2450,10 +2450,12 @@ class ZoneItem(LevelEditorItem):
 
         self.yupperbound = bounding[0]
         self.ylowerbound = bounding[1]
-        self.unkbound1 = bounding[2]
-        self.unkbound2 = bounding[3]
+        self.yupperbound2 = bounding[2]
+        self.ylowerbound2 = bounding[3]
         self.entryid = bounding[4]
-        self.unknownbnf = bounding[5]
+        self.mpcamzoomadjust = bounding[5]
+        self.yupperbound3 = bounding[6]
+        self.ylowerbound3 = bounding[7]
 
         bgABlock = None
         id = self.block5id
@@ -5938,7 +5940,7 @@ class ZonesDialog(QtWidgets.QDialog):
         a = []
         b = []
 
-        a.append([0, 0, 0, 0, 0, 0])
+        a.append([0, 0, 0, 0, 0, 15, 0, 0])
         b.append([0, 0, 0, 0, 0, 10, 10, 10, 0])
         id = len(self.zoneTabs)
         z = ZoneItem(16, 16, 448, 224, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, a, b, b, id)
@@ -5984,15 +5986,23 @@ class ZoneTab(QtWidgets.QWidget):
         self.zoneObj = z
 
         self.createDimensions(z)
-        self.createVisibility(z)
+        self.createCamera(z)
+        self.createRendering(z)
         self.createBounds(z)
         self.createAudio(z)
 
-        mainLayout = QtWidgets.QVBoxLayout()
-        mainLayout.addWidget(self.Dimensions)
-        mainLayout.addWidget(self.Visibility)
-        mainLayout.addWidget(self.Bounds)
-        mainLayout.addWidget(self.Audio)
+        leftLayout = QtWidgets.QVBoxLayout()
+        leftLayout.addWidget(self.Dimensions)
+        leftLayout.addWidget(self.Rendering)
+        leftLayout.addWidget(self.Audio)
+
+        rightLayout = QtWidgets.QVBoxLayout()
+        rightLayout.addWidget(self.Camera)
+        rightLayout.addWidget(self.Bounds)
+
+        mainLayout = QtWidgets.QHBoxLayout()
+        mainLayout.addLayout(leftLayout)
+        mainLayout.addLayout(rightLayout)
         self.setLayout(mainLayout)
 
 
@@ -6038,56 +6048,10 @@ class ZoneTab(QtWidgets.QWidget):
 
 
 
-    def createVisibility(self, z):
-        self.Visibility = QtWidgets.QGroupBox('Rendering and Camera')
+    def createCamera(self, z):
+        self.Camera = QtWidgets.QGroupBox('Camera')
 
         comboboxSizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.MinimumExpanding, QtWidgets.QSizePolicy.Fixed)
-
-        self.Zone_modeldark = QtWidgets.QComboBox()
-        self.Zone_modeldark.addItems(ZoneThemeValues)
-        self.Zone_modeldark.setToolTip('<b>Zone Theme:</b><br>Changes the way models and parts of the background are rendered (for blurring, darkness, lava effects, and so on). Themes with * next to them are used in the game, but look the same as the overworld theme.')
-        self.Zone_modeldark.setSizePolicy(comboboxSizePolicy)
-        if z.modeldark < 0: z.modeldark = 0
-        if z.modeldark >= len(ZoneThemeValues): z.modeldark = len(ZoneThemeValues) - 1
-        self.Zone_modeldark.setCurrentIndex(z.modeldark)
-
-        self.Zone_terraindark = QtWidgets.QComboBox()
-        self.Zone_terraindark.addItems(ZoneTerrainThemeValues)
-        self.Zone_terraindark.setToolTip("<b>Terrain Theme:</b><br>Changes the way the terrain is rendered. It also affects the parts of the background which the normal theme doesn't change.")
-        self.Zone_terraindark.setSizePolicy(comboboxSizePolicy)
-        if z.terraindark < 0: z.terraindark = 0
-        if z.terraindark >= len(ZoneTerrainThemeValues): z.terraindark = len(ZoneTerrainThemeValues) - 1
-        self.Zone_terraindark.setCurrentIndex(z.terraindark)
-
-
-        self.Zone_vnormal = QtWidgets.QRadioButton('Normal')
-        self.Zone_vnormal.setToolTip('<b>Normal:</b><br>Sets the visibility mode to normal.')
-
-        self.Zone_vspotlight = QtWidgets.QRadioButton('Layer 0 Spotlight')
-        self.Zone_vspotlight.setToolTip('<b>Layer 0 Spotlight:</b><br>Sets the visibility mode to spotlight. In spotlight mode, moving behind layer 0 objects enables a spotlight that follows Mario around.')
-
-        self.Zone_vfulldark = QtWidgets.QRadioButton('Full Darkness')
-        self.Zone_vfulldark.setToolTip('<b>Full Darkness:</b><br>Sets the visibility mode to full darkness. In full darkness mode, the screen is completely black and visibility is only provided by the available spotlight effect. Stars and some sprites can enhance the default visibility.')
-
-        self.Zone_visibility = QtWidgets.QComboBox()
-
-        self.zv = z.visibility
-        VRadioDiv = self.zv // 16
-
-        if VRadioDiv == 0:
-            self.Zone_vnormal.setChecked(True)
-        elif VRadioDiv == 1:
-            self.Zone_vspotlight.setChecked(True)
-        elif VRadioDiv == 2:
-            self.Zone_vfulldark.setChecked(True)
-        elif VRadioDiv == 3:
-            self.Zone_vfulldark.setChecked(True)
-
-
-        self.ChangeVisibilityList()
-        self.Zone_vnormal.clicked.connect(self.ChangeVisibilityList)
-        self.Zone_vspotlight.clicked.connect(self.ChangeVisibilityList)
-        self.Zone_vfulldark.clicked.connect(self.ChangeVisibilityList)
 
         self.zm = -1
 
@@ -6121,51 +6085,29 @@ class ZoneTab(QtWidgets.QWidget):
         self.ChangeCamModeList()
         self.Zone_screensizes.setCurrentIndex(z.camzoom)
 
+        self.Zone_yrestrict = QtWidgets.QCheckBox()
+        self.Zone_yrestrict.setToolTip('<b>Only Scroll Upwards If Flying:</b><br>Prevents the screen from scrolling upwards unless the player uses a Propeller Suit or Block.<br><br>This feature looks rather glitchy and is not recommended.')
+        self.Zone_yrestrict.setChecked(z.mpcamzoomadjust != 15)
+        self.Zone_yrestrict.stateChanged.connect(self.ChangeMPZoomAdjust)
+
+        self.Zone_mpzoomadjust = QtWidgets.QSpinBox()
+        self.Zone_mpzoomadjust.setRange(0, 14)
+        self.Zone_mpzoomadjust.setToolTip('<b>Multiplayer Screen Size Adjust:</b><br>Increases the height of the screen during multiplayer mode. Requires "Only Scroll Upwards If Flying" to be checked.<br><br>This causes very glitchy behavior if the zone is much taller than the adjusted screen height, if the screen becomes more than 28 tiles tall, or when the camera zooms in during the end-of-level celebration.')
+
+        self.ChangeMPZoomAdjust()
+        if z.mpcamzoomadjust < 15:
+            self.Zone_mpzoomadjust.setValue(z.mpcamzoomadjust)
+
         ZoneCameraModesLayout = QtWidgets.QGridLayout()
         for i, b in enumerate(cammodebuttons):
             ZoneCameraModesLayout.addWidget(b, i % 4, i // 4)
+
         ZoneCameraLayout = QtWidgets.QFormLayout()
         ZoneCameraLayout.addRow(ZoneCameraModesLayout)
         ZoneCameraLayout.addRow('Screen Sizes:', self.Zone_screensizes)
-        ZoneCameraLayout.addRow('Zone Theme:', self.Zone_modeldark)
-        ZoneCameraLayout.addRow('Terrain Lighting:', self.Zone_terraindark)
-
-        ZoneVisibilityLayout = QtWidgets.QHBoxLayout()
-        ZoneVisibilityLayout.addWidget(self.Zone_vnormal)
-        ZoneVisibilityLayout.addWidget(self.Zone_vspotlight)
-        ZoneVisibilityLayout.addWidget(self.Zone_vfulldark)
-
-        InnerLayout = QtWidgets.QVBoxLayout()
-        InnerLayout.addLayout(ZoneCameraLayout)
-        InnerLayout.addLayout(ZoneVisibilityLayout)
-        InnerLayout.addWidget(self.Zone_visibility)
-        self.Visibility.setLayout(InnerLayout)
-
-    @QtCoreSlot(bool)
-    def ChangeVisibilityList(self):
-        VRadioMod = self.zv % 16
-
-        if self.Zone_vnormal.isChecked():
-            self.Zone_visibility.clear()
-            addList = ['Hidden', 'On Top']
-            self.Zone_visibility.addItems(addList)
-            self.Zone_visibility.setToolTip('<b>Hidden</b> - Mario is hidden when moving behind objects on Layer 0<br><b>On Top</b> - Mario is displayed above Layer 0 at all times.<br><br>Note: Entities behind layer 0 other than Mario are never visible')
-            if VRadioMod >= len(addList): VRadioMod = len(addList) - 1
-            self.Zone_visibility.setCurrentIndex(VRadioMod)
-        elif self.Zone_vspotlight.isChecked():
-            self.Zone_visibility.clear()
-            addList = ['Small', 'Large', 'Full Screen']
-            self.Zone_visibility.addItems(addList)
-            self.Zone_visibility.setToolTip('<b>Small</b> - A small, centered spotlight affords visibility through layer 0.<br><b>Large</b> - A large, centered spotlight affords visibility through layer 0<br><b>Full Screen</b> - the entire screen is revealed whenever Mario walks behind layer 0')
-            if VRadioMod >= len(addList): VRadioMod = len(addList) - 1
-            self.Zone_visibility.setCurrentIndex(VRadioMod)
-        elif self.Zone_vfulldark.isChecked():
-            self.Zone_visibility.clear()
-            addList = ['Large Foglight', 'Lightbeam', 'Large Focus Light', 'Small Foglight', 'Small Focus Light', 'Absolute Black']
-            self.Zone_visibility.addItems(addList)
-            self.Zone_visibility.setToolTip('<b>Large Foglight</b> - A large, organic light source surrounds Mario<br><b>Lightbeam</b> - Mario is able to aim a conical lightbeam through use of the Wiimote<br><b>Large Focus Light</b> - A large spotlight which changes size based upon player movement<br><b>Small Foglight</b> - A small, organic light source surrounds Mario<br><b>Small Focuslight</b> - A small spotlight which changes size based on player movement<br><b>Absolute Black</b> - Visibility is provided only by fireballs, stars, and certain sprites')
-            if VRadioMod >= len(addList): VRadioMod = len(addList) - 1
-            self.Zone_visibility.setCurrentIndex(VRadioMod)
+        ZoneCameraLayout.addRow('Only Scroll Upwards If Flying:', self.Zone_yrestrict)
+        ZoneCameraLayout.addRow('Multiplayer Screen Size Adjust:', self.Zone_mpzoomadjust)
+        self.Camera.setLayout(ZoneCameraLayout)
 
 
     @QtCoreSlot(bool)
@@ -6226,27 +6168,162 @@ class ZoneTab(QtWidgets.QWidget):
             self.zm = mode
 
 
+    @QtCoreSlot(int)
+    def ChangeMPZoomAdjust(self):
+        self.Zone_mpzoomadjust.setEnabled(self.Zone_yrestrict.isChecked())
+        self.Zone_mpzoomadjust.setValue(0)
+
+
+
+    def createRendering(self, z):
+        self.Rendering = QtWidgets.QGroupBox('Rendering')
+
+        comboboxSizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.MinimumExpanding, QtWidgets.QSizePolicy.Fixed)
+
+        self.Zone_modeldark = QtWidgets.QComboBox()
+        self.Zone_modeldark.addItems(ZoneThemeValues)
+        self.Zone_modeldark.setToolTip('<b>Zone Theme:</b><br>Changes the way models and parts of the background are rendered (for blurring, darkness, lava effects, and so on). Themes with * next to them are used in the game, but look the same as the overworld theme.')
+        self.Zone_modeldark.setSizePolicy(comboboxSizePolicy)
+        if z.modeldark < 0: z.modeldark = 0
+        if z.modeldark >= len(ZoneThemeValues): z.modeldark = len(ZoneThemeValues) - 1
+        self.Zone_modeldark.setCurrentIndex(z.modeldark)
+
+        self.Zone_terraindark = QtWidgets.QComboBox()
+        self.Zone_terraindark.addItems(ZoneTerrainThemeValues)
+        self.Zone_terraindark.setToolTip("<b>Terrain Theme:</b><br>Changes the way the terrain is rendered. It also affects the parts of the background which the normal theme doesn't change.")
+        self.Zone_terraindark.setSizePolicy(comboboxSizePolicy)
+        if z.terraindark < 0: z.terraindark = 0
+        if z.terraindark >= len(ZoneTerrainThemeValues): z.terraindark = len(ZoneTerrainThemeValues) - 1
+        self.Zone_terraindark.setCurrentIndex(z.terraindark)
+
+
+        self.Zone_vnormal = QtWidgets.QRadioButton('Normal')
+        self.Zone_vnormal.setToolTip('<b>Normal:</b><br>Sets the visibility mode to normal.')
+
+        self.Zone_vspotlight = QtWidgets.QRadioButton('Layer 0 Spotlight')
+        self.Zone_vspotlight.setToolTip('<b>Layer 0 Spotlight:</b><br>Sets the visibility mode to spotlight. In spotlight mode, moving behind layer 0 objects enables a spotlight that follows Mario around.')
+
+        self.Zone_vfulldark = QtWidgets.QRadioButton('Full Darkness')
+        self.Zone_vfulldark.setToolTip('<b>Full Darkness:</b><br>Sets the visibility mode to full darkness. In full darkness mode, the screen is completely black and visibility is only provided by the available spotlight effect. Stars and some sprites can enhance the default visibility.')
+
+        self.Zone_visibility = QtWidgets.QComboBox()
+
+        self.zv = z.visibility
+        VRadioDiv = self.zv // 16
+
+        if VRadioDiv == 0:
+            self.Zone_vnormal.setChecked(True)
+        elif VRadioDiv == 1:
+            self.Zone_vspotlight.setChecked(True)
+        elif VRadioDiv == 2:
+            self.Zone_vfulldark.setChecked(True)
+        elif VRadioDiv == 3:
+            self.Zone_vfulldark.setChecked(True)
+
+
+        self.ChangeVisibilityList()
+        self.Zone_vnormal.clicked.connect(self.ChangeVisibilityList)
+        self.Zone_vspotlight.clicked.connect(self.ChangeVisibilityList)
+        self.Zone_vfulldark.clicked.connect(self.ChangeVisibilityList)
+
+        ZoneRenderingLayout = QtWidgets.QFormLayout()
+        ZoneRenderingLayout.addRow('Zone Theme:', self.Zone_modeldark)
+        ZoneRenderingLayout.addRow('Terrain Lighting:', self.Zone_terraindark)
+
+        ZoneVisibilityLayout = QtWidgets.QHBoxLayout()
+        ZoneVisibilityLayout.addWidget(self.Zone_vnormal)
+        ZoneVisibilityLayout.addWidget(self.Zone_vspotlight)
+        ZoneVisibilityLayout.addWidget(self.Zone_vfulldark)
+
+        InnerLayout = QtWidgets.QVBoxLayout()
+        InnerLayout.addLayout(ZoneRenderingLayout)
+        InnerLayout.addLayout(ZoneVisibilityLayout)
+        InnerLayout.addWidget(self.Zone_visibility)
+        self.Rendering.setLayout(InnerLayout)
+
+
+    @QtCoreSlot(bool)
+    def ChangeVisibilityList(self):
+        VRadioMod = self.zv % 16
+
+        if self.Zone_vnormal.isChecked():
+            self.Zone_visibility.clear()
+            addList = ['Hidden', 'On Top']
+            self.Zone_visibility.addItems(addList)
+            self.Zone_visibility.setToolTip('<b>Hidden</b> - Mario is hidden when moving behind objects on Layer 0<br><b>On Top</b> - Mario is displayed above Layer 0 at all times.<br><br>Note: Entities behind layer 0 other than Mario are never visible')
+            if VRadioMod >= len(addList): VRadioMod = len(addList) - 1
+            self.Zone_visibility.setCurrentIndex(VRadioMod)
+        elif self.Zone_vspotlight.isChecked():
+            self.Zone_visibility.clear()
+            addList = ['Small', 'Large', 'Full Screen']
+            self.Zone_visibility.addItems(addList)
+            self.Zone_visibility.setToolTip('<b>Small</b> - A small, centered spotlight affords visibility through layer 0.<br><b>Large</b> - A large, centered spotlight affords visibility through layer 0<br><b>Full Screen</b> - the entire screen is revealed whenever Mario walks behind layer 0')
+            if VRadioMod >= len(addList): VRadioMod = len(addList) - 1
+            self.Zone_visibility.setCurrentIndex(VRadioMod)
+        elif self.Zone_vfulldark.isChecked():
+            self.Zone_visibility.clear()
+            addList = ['Large Foglight', 'Lightbeam', 'Large Focus Light', 'Small Foglight', 'Small Focus Light', 'Absolute Black']
+            self.Zone_visibility.addItems(addList)
+            self.Zone_visibility.setToolTip('<b>Large Foglight</b> - A large, organic light source surrounds Mario<br><b>Lightbeam</b> - Mario is able to aim a conical lightbeam through use of the Wiimote<br><b>Large Focus Light</b> - A large spotlight which changes size based upon player movement<br><b>Small Foglight</b> - A small, organic light source surrounds Mario<br><b>Small Focuslight</b> - A small spotlight which changes size based on player movement<br><b>Absolute Black</b> - Visibility is provided only by fireballs, stars, and certain sprites')
+            if VRadioMod >= len(addList): VRadioMod = len(addList) - 1
+            self.Zone_visibility.setCurrentIndex(VRadioMod)
+
+
     def createBounds(self, z):
         self.Bounds = QtWidgets.QGroupBox('Bounds')
 
         #Block3 = Level.bounding[z.block3id]
 
         self.Zone_yboundup = QtWidgets.QSpinBox()
-        self.Zone_yboundup.setRange(-32766, 32767)
-        self.Zone_yboundup.setToolTip('<b>Upper Bounds:</b><br>Positive values: Easier to scroll upwards (110 is centered)<br>Negative values: Harder to scroll upwards (30 is the top edge of the screen)<br><br>Values higher than 240 can cause instant death upon screen scrolling')
+        self.Zone_yboundup.setRange(-32768, 32767)
+        self.Zone_yboundup.setToolTip('<b>Upper Bounds:</b><br>Controls how close Mario needs to be to the top edge of the screen to move the camera upwards. Units are 1/16 of a tile.<br><br>Value "0": 5 tiles away from the top edge of the screen<br>Positive values: Easier to scroll upwards<br>Negative values: Harder to scroll upwards (-80 is the top edge of the screen)<br><br>Very high values (larger than the screen size) cause instant death upon screen scrolling.<br>Very negative values prevent the screen from scrolling upwards at all.')
         self.Zone_yboundup.setSpecialValueText('32')
         self.Zone_yboundup.setValue(z.yupperbound)
 
         self.Zone_ybounddown = QtWidgets.QSpinBox()
-        self.Zone_ybounddown.setRange(-32766, 32767)
-        self.Zone_ybounddown.setToolTip('<b>Lower Bounds:</b><br>Positive values: Harder to scroll downwards (65 is the bottom edge of the screen)<br>Negative values: Easier to scroll downwards (95 is centered)<br><br>Values higher than 100 will prevent the sceen from scrolling while Mario until Mario is offscreen')
+        self.Zone_ybounddown.setRange(-32768, 32767)
+        self.Zone_ybounddown.setToolTip('<b>Lower Bounds:</b><br>Controls how close Mario needs to be to the bottom edge of the screen to move the camera downwards. Units are 1/16 of a tile.<br><br>Value "0": 4.5 tiles away from the bottom edge of the screen<br>Positive values: Harder to scroll downwards (72 is the bottom edge of the screen)<br>Negative values: Easier to scroll downwards<br><br>Very high values prevent the screen from scrolling downwards at all.<br>Very negative values (larger than the screen size) cause instant death upon screen scrolling.')
         self.Zone_ybounddown.setValue(z.ylowerbound)
 
+        self.Zone_yboundup2 = QtWidgets.QSpinBox()
+        self.Zone_yboundup2.setRange(-32768, 32767)
+        self.Zone_yboundup2.setToolTip('<b>Lakitu Upper Bounds:</b><br>Used instead of Upper Bounds when at least one player is riding a Lakitu cloud.<br><br>The values are a little different from the regular Upper Bounds setting: value "0" represents 5.5 tiles away from the top edge of the screen, and the edge is at -88.')
+        self.Zone_yboundup2.setSpecialValueText('32')
+        self.Zone_yboundup2.setValue(z.yupperbound2)
+
+        self.Zone_ybounddown2 = QtWidgets.QSpinBox()
+        self.Zone_ybounddown2.setRange(-32768, 32767)
+        self.Zone_ybounddown2.setToolTip('<b>Lakitu Lower Bounds:</b><br>Used instead of Lower Bounds when at least one player is riding a Lakitu cloud.<br><br>The values are a little different from the regular Lower Bounds setting: value "0" represents 5.5 tiles away from the bottom edge of the screen, and the edge is at 88.')
+        self.Zone_ybounddown2.setValue(z.ylowerbound2)
+
+        self.Zone_yboundup3 = QtWidgets.QSpinBox()
+        self.Zone_yboundup3.setRange(-32768, 32767)
+        self.Zone_yboundup3.setToolTip('<b>Multiplayer Upper Bounds Adjust:</b><br>Added to the upper bounds value (regular or Lakitu) during multiplayer mode, and during the transition back to normal camera behavior after an Auto-Scrolling Controller reaches the end of its path.')
+        self.Zone_yboundup3.setSpecialValueText('32')
+        self.Zone_yboundup3.setValue(z.yupperbound3)
+
+        self.Zone_ybounddown3 = QtWidgets.QSpinBox()
+        self.Zone_ybounddown3.setRange(-32768, 32767)
+        self.Zone_ybounddown3.setToolTip('<b>Multiplayer Lower Bounds Adjust:</b><br>Added to the lower bounds value (regular or Lakitu) during multiplayer mode, and during the transition back to normal camera behavior after an Auto-Scrolling Controller reaches the end of its path.')
+        self.Zone_ybounddown3.setValue(z.ylowerbound3)
+
+
+        TopLeftLayout = QtWidgets.QFormLayout()
+        TopLeftLayout.addRow('Upper Bounds:', self.Zone_yboundup)
+        TopLeftLayout.addRow('Lower Bounds:', self.Zone_ybounddown)
+
+        TopRightLayout = QtWidgets.QFormLayout()
+        TopRightLayout.addRow('Lakitu Upper Bounds:', self.Zone_yboundup2)
+        TopRightLayout.addRow('Lakitu Lower Bounds:', self.Zone_ybounddown2)
+
+        TopLayout = QtWidgets.QHBoxLayout()
+        TopLayout.addLayout(TopLeftLayout)
+        TopLayout.addLayout(TopRightLayout)
 
         ZoneBoundsLayout = QtWidgets.QFormLayout()
-
-        ZoneBoundsLayout.addRow('Upper Bounds:', self.Zone_yboundup)
-        ZoneBoundsLayout.addRow('Lower Bounds:', self.Zone_ybounddown)
+        ZoneBoundsLayout.addRow(TopLayout)
+        ZoneBoundsLayout.addRow('Multiplayer Upper Bounds Adjust:', self.Zone_yboundup3)
+        ZoneBoundsLayout.addRow('Multiplayer Lower Bounds Adjust:', self.Zone_ybounddown3)
 
         self.Bounds.setLayout(ZoneBoundsLayout)
 
@@ -9053,12 +9130,18 @@ class ReggieWindow(QtWidgets.QMainWindow):
                 z.UpdateRects()
                 z.setPos(z.objx*1.5, z.objy*1.5)
 
-                z.modeldark = tab.Zone_modeldark.currentIndex()
-                z.terraindark = tab.Zone_terraindark.currentIndex()
 
                 z.cammode = tab.Zone_cammodebuttongroup.checkedId()
                 z.camzoom = tab.Zone_screensizes.currentIndex()
 
+                if tab.Zone_yrestrict.isChecked():
+                    z.mpcamzoomadjust = tab.Zone_mpzoomadjust.value()
+                else:
+                    z.mpcamzoomadjust = 15
+
+
+                z.modeldark = tab.Zone_modeldark.currentIndex()
+                z.terraindark = tab.Zone_terraindark.currentIndex()
 
                 if tab.Zone_vnormal.isChecked():
                     z.visibility = 0
@@ -9073,6 +9156,10 @@ class ReggieWindow(QtWidgets.QMainWindow):
 
                 z.yupperbound = tab.Zone_yboundup.value()
                 z.ylowerbound = tab.Zone_ybounddown.value()
+                z.yupperbound2 = tab.Zone_yboundup2.value()
+                z.ylowerbound2 = tab.Zone_ybounddown2.value()
+                z.yupperbound3 = tab.Zone_yboundup3.value()
+                z.ylowerbound3 = tab.Zone_ybounddown3.value()
 
                 z.music = tab.Zone_music_id.value()
                 z.sfxmod = (tab.Zone_sfx.currentIndex() * 16)
