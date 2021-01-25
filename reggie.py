@@ -8994,8 +8994,8 @@ class ReggieWindow(QtWidgets.QMainWindow):
         """Handles key press events for the main window if needed"""
         if event.key() == QtCore.Qt.Key_Delete or event.key() == QtCore.Qt.Key_Backspace:
             sel = self.scene.selectedItems()
-            self.SelectionUpdateFlag = True
             if len(sel) > 0:
+                self.SelectionUpdateFlag = True
                 for obj in sel:
                     obj.delete()
                     obj.setSelected(False)
