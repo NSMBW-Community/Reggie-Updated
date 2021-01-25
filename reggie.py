@@ -8151,12 +8151,13 @@ class ReggieWindow(QtWidgets.QMainWindow):
     @QtCoreSlot(int)
     def HandleSwitchArea(self, idx):
         """Handle activated signals for areaComboBox"""
-        if self.CheckDirty():
-            self.areaComboBox.setCurrentIndex(Level.areanum)
+        currentIdx = Level.areanum - 1
+
+        if idx == currentIdx:
             return
 
-        if Level.areanum != idx+1:
-            self.LoadLevel(Level.arcname, True, idx+1)
+        if self.CheckDirty() or not self.LoadLevel(Level.arcname, True, idx+1):
+            self.areaComboBox.setCurrentIndex(currentIdx)
 
 
     @QtCoreSlot(bool)
