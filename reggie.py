@@ -9266,7 +9266,7 @@ class ReggieWindow(QtWidgets.QMainWindow):
 
             else:
                 i = dlg.zoneCombo.currentIndex() - 2
-                ScreenshotImage = QtGui.QImage(Level.zones[i].width*1.5, Level.zones[i].height*1.5, QtGui.QImage.Format_ARGB32)
+                ScreenshotImage = QtGui.QImage(int(Level.zones[i].width*1.5), int(Level.zones[i].height*1.5), QtGui.QImage.Format_ARGB32)
                 ScreenshotImage.fill(QtCore.Qt.transparent)
 
                 RenderPainter = QtGui.QPainter(ScreenshotImage)
