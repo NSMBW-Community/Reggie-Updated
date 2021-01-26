@@ -91,14 +91,14 @@ class AuxiliaryTrackObject(AuxiliaryItem):
 
         if self.direction == 1:
             lineY = self.height * 0.75
-            painter.drawLine(20, lineY, (self.width*1.5) - 20, lineY)
-            painter.drawEllipse(8, lineY - 4, 8, 8)
-            painter.drawEllipse((self.width*1.5) - 16, lineY - 4, 8, 8)
+            painter.drawLine(QtCore.QLineF(20, lineY, (self.width*1.5) - 20, lineY))
+            painter.drawEllipse(QtCore.QRectF(8, lineY - 4, 8, 8))
+            painter.drawEllipse(QtCore.QRectF((self.width*1.5) - 16, lineY - 4, 8, 8))
         elif self.direction == 2:
             lineX = self.width * 0.75
-            painter.drawLine(lineX, 20, lineX, (self.height*1.5) - 20)
-            painter.drawEllipse(lineX - 4, 8, 8, 8)
-            painter.drawEllipse(lineX - 4, (self.height*1.5) - 16, 8, 8)
+            painter.drawLine(QtCore.QLineF(lineX, 20, lineX, (self.height*1.5) - 20))
+            painter.drawEllipse(QtCore.QRectF(lineX - 4, 8, 8, 8))
+            painter.drawEllipse(QtCore.QRectF(lineX - 4, (self.height*1.5) - 16, 8, 8))
 
 
 class AuxiliaryCircleOutline(AuxiliaryItem):
@@ -135,8 +135,8 @@ class AuxiliaryRotationAreaOutline(AuxiliaryItem):
         self.spanAngle = 0
 
     def SetAngle(self, startAngle, spanAngle):
-        self.startAngle = startAngle * 16
-        self.spanAngle = spanAngle * 16
+        self.startAngle = int(startAngle * 16)
+        self.spanAngle = int(spanAngle * 16)
 
     def paint(self, painter, option, widget):
         painter.setClipRect(option.exposedRect)
@@ -2655,7 +2655,7 @@ def SizeKoopaTroopa(sprite): # 57
         sprite.yoffset = -15
         sprite.xsize = 24
         sprite.ysize = 32
-        sprite.setPos(int((sprite.objx+sprite.xoffset)*1.5),int((sprite.objy+sprite.yoffset)*1.5))
+        sprite.setPos((sprite.objx+sprite.xoffset)*1.5,(sprite.objy+sprite.yoffset)*1.5)
 
         if colour == 0:
             sprite.image = ImageCache['KoopaG']
@@ -2666,7 +2666,7 @@ def SizeKoopaTroopa(sprite): # 57
         sprite.yoffset = 0
         sprite.xsize = 16
         sprite.ysize = 16
-        sprite.setPos(int((sprite.objx+sprite.xoffset)*1.5),int((sprite.objy+sprite.yoffset)*1.5))
+        sprite.setPos((sprite.objx+sprite.xoffset)*1.5,(sprite.objy+sprite.yoffset)*1.5)
 
         if colour == 0:
             sprite.image = ImageCache['KoopaShellG']
@@ -2893,6 +2893,9 @@ def SizeFireSnake(sprite): # 158
     move = ord(sprite.spritedata[5]) & 15
 
     if move == 1:
+        sprite.xsize = 16
+        sprite.ysize = 16
+        sprite.yoffset = 0
         sprite.image = ImageCache['FireSnakeWait']
     else:
         sprite.xsize = 20
@@ -4066,16 +4069,16 @@ def PaintWoodenPlatform(sprite, painter):
         colour = 'Bone'
 
     if sprite.xsize > 32:
-        painter.drawTiledPixmap(27, 0, ((sprite.xsize * 1.5) - 51), 24, ImageCache[colour + 'PlatformM'])
+        painter.drawTiledPixmap(QtCore.QRectF(27, 0, ((sprite.xsize * 1.5) - 51), 24), ImageCache[colour + 'PlatformM'])
 
     if sprite.xsize == 24:
         # replicate glitch effect forced by sprite 50
-        painter.drawPixmap(0, 0, ImageCache[colour + 'PlatformR'])
-        painter.drawPixmap(8, 0, ImageCache[colour + 'PlatformL'])
+        painter.drawPixmap(QtCore.QPointF(0, 0), ImageCache[colour + 'PlatformR'])
+        painter.drawPixmap(QtCore.QPointF(8, 0), ImageCache[colour + 'PlatformL'])
     else:
         # normal rendering
-        painter.drawPixmap((sprite.xsize - 16) * 1.5, 0, ImageCache[colour + 'PlatformR'])
-        painter.drawPixmap(0, 0, ImageCache[colour + 'PlatformL'])
+        painter.drawPixmap(QtCore.QPointF((sprite.xsize - 16) * 1.5, 0), ImageCache[colour + 'PlatformR'])
+        painter.drawPixmap(QtCore.QPointF(0, 0), ImageCache[colour + 'PlatformL'])
 
 def PaintPlatformGenerator(sprite, painter):
     PaintWoodenPlatform(sprite, painter)
@@ -4087,16 +4090,16 @@ def PaintDSStoneBlock(sprite, painter):
     bottom_y = (sprite.ysize * 1.5) - 8
     right_x = (sprite.xsize - 16) * 1.5
 
-    painter.drawPixmap(0, 0, ImageCache['DSBlockTopLeft'])
-    painter.drawTiledPixmap(24, 0, middle_width, 8, ImageCache['DSBlockTop'])
-    painter.drawPixmap(right_x, 0, ImageCache['DSBlockTopRight'])
+    painter.drawPixmap(QtCore.QPointF(0, 0), ImageCache['DSBlockTopLeft'])
+    painter.drawTiledPixmap(QtCore.QRectF(24, 0, middle_width, 8), ImageCache['DSBlockTop'])
+    painter.drawPixmap(QtCore.QPointF(right_x, 0), ImageCache['DSBlockTopRight'])
 
-    painter.drawTiledPixmap(0, 8, 24, middle_height, ImageCache['DSBlockLeft'])
-    painter.drawTiledPixmap(right_x, 8, 24, middle_height, ImageCache['DSBlockRight'])
+    painter.drawTiledPixmap(QtCore.QRectF(0, 8, 24, middle_height), ImageCache['DSBlockLeft'])
+    painter.drawTiledPixmap(QtCore.QRectF(right_x, 8, 24, middle_height), ImageCache['DSBlockRight'])
 
-    painter.drawPixmap(0, bottom_y, ImageCache['DSBlockBottomLeft'])
-    painter.drawTiledPixmap(24, bottom_y, middle_width, 8, ImageCache['DSBlockBottom'])
-    painter.drawPixmap(right_x, bottom_y, ImageCache['DSBlockBottomRight'])
+    painter.drawPixmap(QtCore.QPointF(0, bottom_y), ImageCache['DSBlockBottomLeft'])
+    painter.drawTiledPixmap(QtCore.QRectF(24, bottom_y, middle_width, 8), ImageCache['DSBlockBottom'])
+    painter.drawPixmap(QtCore.QPointF(right_x, bottom_y), ImageCache['DSBlockBottomRight'])
 
 def PaintOldStoneBlock(sprite, painter):
     blockX = 0
@@ -4106,18 +4109,18 @@ def PaintOldStoneBlock(sprite, painter):
     height = sprite.ysize*1.5
 
     if type == 81 or type == 83: # left spikes
-        painter.drawTiledPixmap(0, 0, 24, height, ImageCache['SpikeL'])
+        painter.drawTiledPixmap(QtCore.QRectF(0, 0, 24, height), ImageCache['SpikeL'])
         blockX = 24
         width -= 24
     if type == 84 or type == 86: # top spikes
-        painter.drawTiledPixmap(0, 0, width, 24, ImageCache['SpikeU'])
+        painter.drawTiledPixmap(QtCore.QRectF(0, 0, width, 24), ImageCache['SpikeU'])
         blockY = 24
         height -= 24
     if type == 82 or type == 83: # right spikes
-        painter.drawTiledPixmap(blockX+width-24, 0, 24, height, ImageCache['SpikeR'])
+        painter.drawTiledPixmap(QtCore.QRectF(blockX+width-24, 0, 24, height), ImageCache['SpikeR'])
         width -= 24
     if type == 85 or type == 86: # bottom spikes
-        painter.drawTiledPixmap(0, blockY+height-24, width, 24, ImageCache['SpikeD'])
+        painter.drawTiledPixmap(QtCore.QRectF(0, blockY+height-24, width, 24), ImageCache['SpikeD'])
         height -= 24
 
     column2x = blockX + 24
@@ -4125,17 +4128,17 @@ def PaintOldStoneBlock(sprite, painter):
     row2y = blockY + 24
     row3y = blockY + height - 24
 
-    painter.drawPixmap(blockX, blockY, ImageCache['OldStoneTL'])
-    painter.drawTiledPixmap(column2x, blockY, width-48, 24, ImageCache['OldStoneT'])
-    painter.drawPixmap(column3x, blockY, ImageCache['OldStoneTR'])
+    painter.drawPixmap(QtCore.QPointF(blockX, blockY), ImageCache['OldStoneTL'])
+    painter.drawTiledPixmap(QtCore.QRectF(column2x, blockY, width-48, 24), ImageCache['OldStoneT'])
+    painter.drawPixmap(QtCore.QPointF(column3x, blockY), ImageCache['OldStoneTR'])
 
-    painter.drawTiledPixmap(blockX, row2y, 24, height-48, ImageCache['OldStoneL'])
-    painter.drawTiledPixmap(column2x, row2y, width-48, height-48, ImageCache['OldStoneM'])
-    painter.drawTiledPixmap(column3x, row2y, 24, height-48, ImageCache['OldStoneR'])
+    painter.drawTiledPixmap(QtCore.QRectF(blockX, row2y, 24, height-48), ImageCache['OldStoneL'])
+    painter.drawTiledPixmap(QtCore.QRectF(column2x, row2y, width-48, height-48), ImageCache['OldStoneM'])
+    painter.drawTiledPixmap(QtCore.QRectF(column3x, row2y, 24, height-48), ImageCache['OldStoneR'])
 
-    painter.drawPixmap(blockX, row3y, ImageCache['OldStoneBL'])
-    painter.drawTiledPixmap(column2x, row3y, width-48, 24, ImageCache['OldStoneB'])
-    painter.drawPixmap(column3x, row3y, ImageCache['OldStoneBR'])
+    painter.drawPixmap(QtCore.QPointF(blockX, row3y), ImageCache['OldStoneBL'])
+    painter.drawTiledPixmap(QtCore.QRectF(column2x, row3y, width-48, 24), ImageCache['OldStoneB'])
+    painter.drawPixmap(QtCore.QPointF(column3x, row3y), ImageCache['OldStoneBR'])
 
 def PaintMushroomPlatform(sprite, painter):
     tilesize = 24 + (sprite.shroomsize * 24)
@@ -4150,25 +4153,25 @@ def PaintMushroomPlatform(sprite, painter):
         else:
             colour = 'Green'
 
-    painter.drawPixmap(0, 0, ImageCache[colour + 'ShroomL'])
-    painter.drawTiledPixmap(tilesize, 0, (sprite.xsize*1.5) - (tilesize * 2), tilesize, ImageCache[colour + 'ShroomM'])
-    painter.drawPixmap((sprite.xsize*1.5) - tilesize, 0, ImageCache[colour + 'ShroomR'])
+    painter.drawPixmap(QtCore.QPointF(0, 0), ImageCache[colour + 'ShroomL'])
+    painter.drawTiledPixmap(QtCore.QRectF(tilesize, 0, (sprite.xsize*1.5) - (tilesize * 2), tilesize), ImageCache[colour + 'ShroomM'])
+    painter.drawPixmap(QtCore.QPointF((sprite.xsize*1.5) - tilesize, 0), ImageCache[colour + 'ShroomR'])
 
 def PaintPurplePole(sprite, painter):
-    painter.drawPixmap(0, 0, ImageCache['VertPoleTop'])
-    painter.drawTiledPixmap(0, 24, 24, sprite.ysize*1.5 - 48, ImageCache['VertPole'])
-    painter.drawPixmap(0, sprite.ysize*1.5 - 24, ImageCache['VertPoleBottom'])
+    painter.drawPixmap(QtCore.QPointF(0, 0), ImageCache['VertPoleTop'])
+    painter.drawTiledPixmap(QtCore.QRectF(0, 24, 24, sprite.ysize*1.5 - 48), ImageCache['VertPole'])
+    painter.drawPixmap(QtCore.QPointF(0, sprite.ysize*1.5 - 24), ImageCache['VertPoleBottom'])
 
 def PaintHorizontalRope(sprite, painter):
     endpiece = ImageCache['HorzRopeEnd']
-    painter.drawPixmap(0, 0, endpiece)
-    painter.drawTiledPixmap(24, 0, sprite.xsize*1.5 - 48, 24, ImageCache['HorzRope'])
-    painter.drawPixmap(sprite.xsize*1.5 - 24, 0, endpiece)
+    painter.drawPixmap(QtCore.QPointF(0, 0), endpiece)
+    painter.drawTiledPixmap(QtCore.QRectF(24, 0, sprite.xsize*1.5 - 48, 24), ImageCache['HorzRope'])
+    painter.drawPixmap(QtCore.QPointF(sprite.xsize*1.5 - 24, 0), endpiece)
 
 def PaintPokey(sprite, painter):
-    painter.drawPixmap(0, 0, ImageCache['PokeyTop'])
-    painter.drawTiledPixmap(0, 37, 36, sprite.ysize*1.5 - 61, ImageCache['PokeyMiddle'])
-    painter.drawPixmap(0, sprite.ysize*1.5 - 24, ImageCache['PokeyBottom'])
+    painter.drawPixmap(QtCore.QPointF(0, 0), ImageCache['PokeyTop'])
+    painter.drawTiledPixmap(QtCore.QRectF(0, 37, 36, sprite.ysize*1.5 - 61), ImageCache['PokeyMiddle'])
+    painter.drawPixmap(QtCore.QPointF(0, sprite.ysize*1.5 - 24), ImageCache['PokeyBottom'])
 
 def PaintMovingChainLink(sprite, painter):
     if sprite.direction == 0:
@@ -4180,46 +4183,46 @@ def PaintMovingChainLink(sprite, painter):
 
     painter.drawPixmap(0, 0, ImageCache['MovingChainLink%d' % sprite.shape])
     if sprite.shape == 0:
-        painter.drawPixmap(xsize / 2 - 8, ysize / 2 - 8, ImageCache['MovingChainArrow%s' % arrow])
+        painter.drawPixmap(QtCore.QPointF(xsize / 2 - 8, ysize / 2 - 8), ImageCache['MovingChainArrow%s' % arrow])
     elif sprite.shape == 1:
-        painter.drawPixmap(xsize / 2 - 8, ysize / 2 + 8, ImageCache['MovingChainArrow%s' % arrow])
+        painter.drawPixmap(QtCore.QPointF(xsize / 2 - 8, ysize / 2 + 8), ImageCache['MovingChainArrow%s' % arrow])
     elif sprite.shape == 2:
-        painter.drawPixmap(xsize / 2 - 8, ysize / 2 + 32, ImageCache['MovingChainArrow%s' % arrow])
+        painter.drawPixmap(QtCore.QPointF(xsize / 2 - 8, ysize / 2 + 32), ImageCache['MovingChainArrow%s' % arrow])
     elif sprite.shape == 3:
-        painter.drawPixmap(xsize / 2 + 24, ysize / 2 - 8, ImageCache['MovingChainArrow%s' % arrow])
+        painter.drawPixmap(QtCore.QPointF(xsize / 2 + 24, ysize / 2 - 8), ImageCache['MovingChainArrow%s' % arrow])
 
 def PaintColouredBox(sprite, painter):
     prefix = 'CBox%d' % sprite.colour
     xsize = sprite.xsize*1.5
     ysize = sprite.ysize*1.5
 
-    painter.drawPixmap(0, 0, ImageCache[prefix+'TL'])
-    painter.drawPixmap(xsize-25, 0, ImageCache[prefix+'TR'])
-    painter.drawPixmap(0, ysize-25, ImageCache[prefix+'BL'])
-    painter.drawPixmap(xsize-25, ysize-25, ImageCache[prefix+'BR'])
+    painter.drawPixmap(QtCore.QPointF(0, 0), ImageCache[prefix+'TL'])
+    painter.drawPixmap(QtCore.QPointF(xsize-25, 0), ImageCache[prefix+'TR'])
+    painter.drawPixmap(QtCore.QPointF(0, ysize-25), ImageCache[prefix+'BL'])
+    painter.drawPixmap(QtCore.QPointF(xsize-25, ysize-25), ImageCache[prefix+'BR'])
 
-    painter.drawTiledPixmap(25, 0, xsize-50, 25, ImageCache[prefix+'T'])
-    painter.drawTiledPixmap(25, ysize-25, xsize-50, 25, ImageCache[prefix+'B'])
-    painter.drawTiledPixmap(0, 25, 25, ysize-50, ImageCache[prefix+'L'])
-    painter.drawTiledPixmap(xsize-25, 25, 25, ysize-50, ImageCache[prefix+'R'])
+    painter.drawTiledPixmap(QtCore.QRectF(25, 0, xsize-50, 25), ImageCache[prefix+'T'])
+    painter.drawTiledPixmap(QtCore.QRectF(25, ysize-25, xsize-50, 25), ImageCache[prefix+'B'])
+    painter.drawTiledPixmap(QtCore.QRectF(0, 25, 25, ysize-50), ImageCache[prefix+'L'])
+    painter.drawTiledPixmap(QtCore.QRectF(xsize-25, 25, 25, ysize-50), ImageCache[prefix+'R'])
 
-    painter.drawTiledPixmap(25, 25, xsize-50, ysize-50, ImageCache[prefix+'M'])
+    painter.drawTiledPixmap(QtCore.QRectF(25, 25, xsize-50, ysize-50), ImageCache[prefix+'M'])
 
 def PaintBoltBox(sprite, painter):
     xsize = sprite.xsize*1.5
     ysize = sprite.ysize*1.5
 
-    painter.drawPixmap(0, 0, ImageCache['BoltBoxTL'])
-    painter.drawTiledPixmap(24, 0, xsize-48, 24, ImageCache['BoltBoxT'])
-    painter.drawPixmap(xsize-24, 0, ImageCache['BoltBoxTR'])
+    painter.drawPixmap(QtCore.QPointF(0, 0), ImageCache['BoltBoxTL'])
+    painter.drawTiledPixmap(QtCore.QRectF(24, 0, xsize-48, 24), ImageCache['BoltBoxT'])
+    painter.drawPixmap(QtCore.QPointF(xsize-24, 0), ImageCache['BoltBoxTR'])
 
-    painter.drawTiledPixmap(0, 24, 24, ysize-48, ImageCache['BoltBoxL'])
-    painter.drawTiledPixmap(24, 24, xsize-48, ysize-48, ImageCache['BoltBoxM'])
-    painter.drawTiledPixmap(xsize-24, 24, 24, ysize-48, ImageCache['BoltBoxR'])
+    painter.drawTiledPixmap(QtCore.QRectF(0, 24, 24, ysize-48), ImageCache['BoltBoxL'])
+    painter.drawTiledPixmap(QtCore.QRectF(24, 24, xsize-48, ysize-48), ImageCache['BoltBoxM'])
+    painter.drawTiledPixmap(QtCore.QRectF(xsize-24, 24, 24, ysize-48), ImageCache['BoltBoxR'])
 
-    painter.drawPixmap(0, ysize-24, ImageCache['BoltBoxBL'])
-    painter.drawTiledPixmap(24, ysize-24, xsize-48, 24, ImageCache['BoltBoxB'])
-    painter.drawPixmap(xsize-24, ysize-24, ImageCache['BoltBoxBR'])
+    painter.drawPixmap(QtCore.QPointF(0, ysize-24), ImageCache['BoltBoxBL'])
+    painter.drawTiledPixmap(QtCore.QRectF(24, ysize-24, xsize-48, 24), ImageCache['BoltBoxB'])
+    painter.drawPixmap(QtCore.QPointF(xsize-24, ysize-24), ImageCache['BoltBoxBR'])
 
 def PaintLiftDokan(sprite, painter):
     painter.drawPixmap(0, 0, ImageCache['LiftDokanT'])
@@ -4247,41 +4250,41 @@ def PaintScalePlatform(sprite, painter):
 
     ropeX = platformWidth / 2 - 4
 
-    painter.drawTiledPixmap(ropeX + 8, 0, ropeWidth - 16, 8, ImageCache['ScaleRopeH'])
+    painter.drawTiledPixmap(QtCore.QRectF(ropeX + 8, 0, ropeWidth - 16, 8), ImageCache['ScaleRopeH'])
 
     ropeVertImage = ImageCache['ScaleRopeV']
-    painter.drawTiledPixmap(ropeX, 8, 8, ropeLeft - 8, ropeVertImage)
-    painter.drawTiledPixmap(ropeX + ropeWidth - 8, 8, 8, ropeRight - 8, ropeVertImage)
+    painter.drawTiledPixmap(QtCore.QRectF(ropeX, 8, 8, ropeLeft - 8), ropeVertImage)
+    painter.drawTiledPixmap(QtCore.QRectF(ropeX + ropeWidth - 8, 8, 8, ropeRight - 8), ropeVertImage)
 
     pulleyImage = ImageCache['ScalePulley']
-    painter.drawPixmap(ropeX, 0, pulleyImage)
-    painter.drawPixmap(ropeX + ropeWidth - 20, 0, pulleyImage)
+    painter.drawPixmap(QtCore.QPointF(ropeX, 0), pulleyImage)
+    painter.drawPixmap(QtCore.QPointF(ropeX + ropeWidth - 20, 0), pulleyImage)
 
     platforms = [(0, ropeLeft), (ropeX+ropeWidth-(platformWidth/2)-4, ropeRight)]
     for x,y in platforms:
-        painter.drawPixmap(x, y, ImageCache['WoodenPlatformL'])
-        painter.drawTiledPixmap(x + 27, y, (platformWidth - 51), 24, ImageCache['WoodenPlatformM'])
-        painter.drawPixmap(x + platformWidth - 24, y, ImageCache['WoodenPlatformR'])
+        painter.drawPixmap(QtCore.QPointF(x, y), ImageCache['WoodenPlatformL'])
+        painter.drawTiledPixmap(QtCore.QRectF(x + 27, y, (platformWidth - 51), 24), ImageCache['WoodenPlatformM'])
+        painter.drawPixmap(QtCore.QPointF(x + platformWidth - 24, y), ImageCache['WoodenPlatformR'])
 
 def PaintBulletBillLauncher(sprite, painter):
     painter.drawPixmap(0, 0, ImageCache['BBLauncherT'])
-    painter.drawTiledPixmap(0, 48, 24, sprite.ysize*1.5 - 48, ImageCache['BBLauncherM'])
+    painter.drawTiledPixmap(QtCore.QRectF(0, 48, 24, sprite.ysize*1.5 - 48), ImageCache['BBLauncherM'])
 
 def PaintWiggleShroom(sprite, painter):
     xsize = sprite.xsize * 1.5
-    painter.drawPixmap(0, 0, ImageCache['WiggleShroomL'])
-    painter.drawTiledPixmap(18, 0, xsize-36, 24, ImageCache['WiggleShroomM'])
-    painter.drawPixmap(xsize-18, 0, ImageCache['WiggleShroomR'])
-    painter.drawTiledPixmap(xsize / 2 - 12, 24, 24, sprite.ysize * 1.5 - 24, ImageCache['WiggleShroomS'])
+    painter.drawPixmap(QtCore.QPointF(0, 0), ImageCache['WiggleShroomL'])
+    painter.drawTiledPixmap(QtCore.QRectF(18, 0, xsize-36, 24), ImageCache['WiggleShroomM'])
+    painter.drawPixmap(QtCore.QPointF(xsize-18, 0), ImageCache['WiggleShroomR'])
+    painter.drawTiledPixmap(QtCore.QRectF(xsize / 2 - 12, 24, 24, sprite.ysize * 1.5 - 24), ImageCache['WiggleShroomS'])
 
 def PaintExtendShroom(sprite, painter):
     painter.drawPixmap(0, 0, sprite.image)
-    painter.drawTiledPixmap((sprite.xsize * 1.5) / 2 - 14, 48, 28, sprite.ysize * 1.5 - 48, ImageCache['ExtendShroomStem'])
+    painter.drawTiledPixmap(QtCore.QRectF((sprite.xsize * 1.5) / 2 - 14, 48, 28, sprite.ysize * 1.5 - 48), ImageCache['ExtendShroomStem'])
 
 def PaintBoltPlatform(sprite, painter):
-    painter.drawPixmap(0, 0, ImageCache['BoltPlatformL'])
-    painter.drawTiledPixmap(24, 3, sprite.xsize*1.5 - 48, 24, ImageCache['BoltPlatformM'])
-    painter.drawPixmap(sprite.xsize*1.5 - 24, 0, ImageCache['BoltPlatformR'])
+    painter.drawPixmap(QtCore.QPointF(0, 0), ImageCache['BoltPlatformL'])
+    painter.drawTiledPixmap(QtCore.QRectF(24, 3, sprite.xsize*1.5 - 48, 24), ImageCache['BoltPlatformM'])
+    painter.drawPixmap(QtCore.QPointF(sprite.xsize*1.5 - 24, 0), ImageCache['BoltPlatformR'])
 
 def PaintBrownBlock(sprite, painter):
     blockX = 0
@@ -4295,17 +4298,17 @@ def PaintBrownBlock(sprite, painter):
     row2y = blockY + 24
     row3y = blockY + height - 24
 
-    painter.drawPixmap(blockX, blockY, ImageCache['BrownBlockTL'])
-    painter.drawTiledPixmap(column2x, blockY, width-48, 24, ImageCache['BrownBlockTM'])
-    painter.drawPixmap(column3x, blockY, ImageCache['BrownBlockTR'])
+    painter.drawPixmap(QtCore.QPointF(blockX, blockY), ImageCache['BrownBlockTL'])
+    painter.drawTiledPixmap(QtCore.QRectF(column2x, blockY, width-48, 24), ImageCache['BrownBlockTM'])
+    painter.drawPixmap(QtCore.QPointF(column3x, blockY), ImageCache['BrownBlockTR'])
 
-    painter.drawTiledPixmap(blockX, row2y, 24, height-48, ImageCache['BrownBlockML'])
-    painter.drawTiledPixmap(column2x, row2y, width-48, height-48, ImageCache['BrownBlockMM'])
-    painter.drawTiledPixmap(column3x, row2y, 24, height-48, ImageCache['BrownBlockMR'])
+    painter.drawTiledPixmap(QtCore.QRectF(blockX, row2y, 24, height-48), ImageCache['BrownBlockML'])
+    painter.drawTiledPixmap(QtCore.QRectF(column2x, row2y, width-48, height-48), ImageCache['BrownBlockMM'])
+    painter.drawTiledPixmap(QtCore.QRectF(column3x, row2y, 24, height-48), ImageCache['BrownBlockMR'])
 
-    painter.drawPixmap(blockX, row3y, ImageCache['BrownBlockBL'])
-    painter.drawTiledPixmap(column2x, row3y, width-48, 24, ImageCache['BrownBlockBM'])
-    painter.drawPixmap(column3x, row3y, ImageCache['BrownBlockBR'])
+    painter.drawPixmap(QtCore.QPointF(blockX, row3y), ImageCache['BrownBlockBL'])
+    painter.drawTiledPixmap(QtCore.QRectF(column2x, row3y, width-48, 24), ImageCache['BrownBlockBM'])
+    painter.drawPixmap(QtCore.QPointF(column3x, row3y), ImageCache['BrownBlockBR'])
 
 
 def PaintPipe(sprite, painter):
@@ -4317,18 +4320,18 @@ def PaintPipe(sprite, painter):
         # Static pipes
         if sprite.orientation == 'V': # vertical
             if sprite.direction == 'U':
-                painter.drawPixmap(0, 0, ImageCache['PipeTop%d' % colour])
-                painter.drawTiledPixmap(0, 24, 48, ysize-24, ImageCache['PipeMiddle%d' % colour])
+                painter.drawPixmap(QtCore.QPointF(0, 0), ImageCache['PipeTop%d' % colour])
+                painter.drawTiledPixmap(QtCore.QRectF(0, 24, 48, ysize-24), ImageCache['PipeMiddle%d' % colour])
             else:
-                painter.drawTiledPixmap(0, 0, 48, ysize-24, ImageCache['PipeMiddle%d' % colour])
-                painter.drawPixmap(0, ysize-24, ImageCache['PipeBottom%d' % colour])
+                painter.drawTiledPixmap(QtCore.QRectF(0, 0, 48, ysize-24), ImageCache['PipeMiddle%d' % colour])
+                painter.drawPixmap(QtCore.QPointF(0, ysize-24), ImageCache['PipeBottom%d' % colour])
         else: # horizontal
             if sprite.direction == 'L':
-                painter.drawPixmap(0, 0, ImageCache['PipeLeft%d' % colour])
-                painter.drawTiledPixmap(24, 0, xsize-24, 48, ImageCache['PipeCenter%d' % colour])
+                painter.drawPixmap(QtCore.QPointF(0, 0), ImageCache['PipeLeft%d' % colour])
+                painter.drawTiledPixmap(QtCore.QRectF(24, 0, xsize-24, 48), ImageCache['PipeCenter%d' % colour])
             else:
-                painter.drawTiledPixmap(0, 0, xsize-24, 48, ImageCache['PipeCenter%d' % colour])
-                painter.drawPixmap(xsize-24, 0, ImageCache['PipeRight%d' % colour])
+                painter.drawTiledPixmap(QtCore.QRectF(0, 0, xsize-24, 48), ImageCache['PipeCenter%d' % colour])
+                painter.drawPixmap(QtCore.QPointF(xsize-24, 0), ImageCache['PipeRight%d' % colour])
     else:
         # Moving pipes
         length1 = sprite.length1*1.5
@@ -4343,23 +4346,23 @@ def PaintPipe(sprite, painter):
             # draw semi transparent pipe
             painter.save()
             painter.setOpacity(0.5)
-            painter.drawPixmap(0, y2, ImageCache['PipeTop%d' % colour])
-            painter.drawTiledPixmap(0, y2+24, 48, high-24, ImageCache['PipeMiddle%d' % colour])
+            painter.drawPixmap(QtCore.QPointF(0, y2), ImageCache['PipeTop%d' % colour])
+            painter.drawTiledPixmap(QtCore.QRectF(0, y2+24, 48, high-24), ImageCache['PipeMiddle%d' % colour])
             painter.restore()
 
             # draw opaque pipe
-            painter.drawPixmap(0, y1, ImageCache['PipeTop%d' % colour])
-            painter.drawTiledPixmap(0, y1+24, 48, low-24, ImageCache['PipeMiddle%d' % colour])
+            painter.drawPixmap(QtCore.QPointF(0, y1), ImageCache['PipeTop%d' % colour])
+            painter.drawTiledPixmap(QtCore.QRectF(0, y1+24, 48, low-24), ImageCache['PipeMiddle%d' % colour])
 
         else:
             # draw semi transparent pipe
             painter.save()
             painter.setOpacity(0.5)
-            painter.drawTiledPixmap(0, 0, 48, high-24, ImageCache['PipeMiddle%d' % colour])
-            painter.drawPixmap(0, high-24, ImageCache['PipeBottom%d' % colour])
+            painter.drawTiledPixmap(QtCore.QRectF(0, 0, 48, high-24), ImageCache['PipeMiddle%d' % colour])
+            painter.drawPixmap(QtCore.QPointF(0, high-24), ImageCache['PipeBottom%d' % colour])
             painter.restore()
 
             # draw opaque pipe
-            painter.drawTiledPixmap(0, 0, 48, low-24, ImageCache['PipeMiddle%d' % colour])
-            painter.drawPixmap(0, low-24, ImageCache['PipeBottom%d' % colour])
+            painter.drawTiledPixmap(QtCore.QRectF(0, 0, 48, low-24), ImageCache['PipeMiddle%d' % colour])
+            painter.drawPixmap(QtCore.QPointF(0, low-24), ImageCache['PipeBottom%d' % colour])
 
