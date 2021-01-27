@@ -1542,6 +1542,7 @@ class LevelUnit():
         self.sprites = []
         self.zones = []
         self.locations = []
+        self.camprofiles = []
         self.pathdata = []
         self.paths = []
 
@@ -1631,12 +1632,13 @@ class LevelUnit():
 
         # load stuff from individual blocks
         self.LoadMetadata() # block 1
-        self.LoadOptions() #block 2
+        self.LoadOptions() # block 2
         self.LoadEntrances() # block 7
         self.LoadSprites() # block 8
         self.LoadZones() # block 10 (also blocks 3, 5, and 6)
         self.LoadLocations() # block 11
-        self.LoadPaths() # block 12 and 13
+        self.LoadCamProfiles() # block 12
+        self.LoadPaths() # blocks 13 and 14
 
         # load the editor metadata
         block1pos = getblock.unpack_from(course, 0)
@@ -1697,7 +1699,8 @@ class LevelUnit():
         self.SaveLoadedSprites() # block 9
         self.SaveZones() # block 10 (and 3, 5 and 6)
         self.SaveLocations() # block 11
-        self.SavePaths()
+        self.SaveCamProfiles() # block 12
+        self.SavePaths()  # blocks 13 and 14
         warnings.resetwarnings()
 
         rdata = self.SaveReggieInfo()
@@ -1849,6 +1852,20 @@ class LevelUnit():
             locations.append(LocationEditorItem(data[0], data[1], data[2], data[3], data[4]))
             offset += 12
         self.locations = locations
+
+    def LoadCamProfiles(self):
+        """Loads block 12, the camera profiles"""
+        profiledata = self.blocks[11]
+        profilestruct = struct.Struct('>xxxxxxxxxxxxBBBBxxBx')
+        count = len(profiledata) // 20
+        offset = 0
+        camprofiles = []
+        for i in range(count):
+            data = profilestruct.unpack_from(profiledata, offset)
+            if i > 0 or any(data):
+                camprofiles.append([data[4], data[1], data[2]])
+            offset += 20
+        self.camprofiles = camprofiles
 
 
     def LoadLayer(self, idx, layerdata):
@@ -2078,6 +2095,41 @@ class LevelUnit():
             offset += 12
 
         self.blocks[10] = buffer.raw
+
+
+    def SaveCamProfiles(self):
+        """Saves block 12, the camera profiles data"""
+        if not Level.camprofiles:
+            self.blocks[11] = b''
+            return
+
+        # Camera profiles include a bounding-block ID, but the game only
+        # uses it for one frame before reverting to the zone defaults.
+        # So it's not really useful for anything, but we also need to
+        # ensure we don't point the camera profiles to any invalid or
+        # otherwise terrible bounding settings for that one frame.
+        # So we make an extra, all-defaults bounding block and use it
+        # for every camera profile.
+
+        profilestruct = struct.Struct('>xxxxxxxxxxxxBBBBxxBx')
+        bdngstruct = struct.Struct('>4lHHhh')
+        offset = 20  # empty first profile to work around game bug
+        offset2 = len(self.blocks[2])
+        pcount = len(Level.camprofiles)
+        buffer = create_string_buffer(20 * (pcount + 1))
+        buffer2 = create_string_buffer(self.blocks[2] + bytes(24))
+
+        bdngid = len(buffer2) // 24
+        bdngstruct.pack_into(buffer2, offset2, 0, 0, 0, 0, bdngid, 15, 0, 0)
+
+        bdngid = offset2 // 20
+        for p in Level.camprofiles:
+            profilestruct.pack_into(buffer, offset, bdngid, p[1], p[2], 0, p[0])
+            offset += 20
+            offset2 += 24
+
+        self.blocks[11] = buffer.raw
+        self.blocks[2] = buffer2.raw
 
 
     def RemoveFromLayer(self, obj):
@@ -5884,22 +5936,15 @@ class TilesetsTab(QtWidgets.QWidget):
 
 class CameraModeZoomSettingsLayout(QtWidgets.QFormLayout):
     """Widget (actually layout) for editing cammode/camzoom"""
-    edited = QtCoreSignal(int, int, int, int)
+    edited = QtCoreSignal()
 
     updating = False
 
-    def __init__(self, eventControlledMode5, cammode, camzoom):
+    def __init__(self, showMode5):
         super(CameraModeZoomSettingsLayout, self).__init__()
         self.updating = True
 
         comboboxSizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.MinimumExpanding, QtWidgets.QSizePolicy.Fixed)
-
-        if eventControlledMode5:
-            mode5Name = 'Static Zoom, Event-Controlled'
-            mode5Desc = 'In this mode, the camera will not zoom out during multiplayer, and will use event-controlled camera settings from the Camera Profiles dialog.'
-        else:
-            mode5Name = 'Static Zoom'
-            mode5Desc = 'In this mode, the camera will not zoom out during multiplayer.'
 
         self.zm = -1
 
@@ -5909,7 +5954,7 @@ class CameraModeZoomSettingsLayout(QtWidgets.QFormLayout):
                     (0, 'Normal', 'The standard camera mode, appropriate for most situations.'),
                     (3, 'Static Zoom', 'In this mode, the camera will not zoom out during multiplayer.'),
                     (4, 'Static Zoom, Y Tracking Only', 'In this mode, the camera will not zoom out during multiplayer, and will be centered horizontally in the zone.'),
-                    (5, mode5Name, mode5Desc),
+                    (5, 'Static Zoom, Event-Controlled', 'In this mode, the camera will not zoom out during multiplayer, and will use event-controlled camera settings from the Camera Profiles dialog.'),
                     (6, 'X Tracking Only', 'In this mode, the camera will only move horizontally. It will be aligned to the bottom edge of the zone.'),
                     (7, 'X Expanding Only', 'In this mode, the camera will only zoom out during multiplayer if the players are far apart horizontally.'),
                     (1, 'Y Tracking Only', 'In this mode, the camera will only move vertically. It will be centered horizontally in the zone.'),
@@ -5921,17 +5966,15 @@ class CameraModeZoomSettingsLayout(QtWidgets.QFormLayout):
             self.modeButtonGroup.addButton(rb, i)
             modebuttons.append(rb)
 
-            if i == cammode:
-                rb.setChecked(True)
+            if i == 5 and not showMode5:
+                rb.setVisible(False)
 
-            rb.clicked.connect(self.ChangeCamModeList)
+            rb.clicked.connect(self.handleModeChanged)
 
         self.screenSizes = QtWidgets.QComboBox()
         self.screenSizes.setToolTip("<b>Screen Sizes:</b><br>Selects screen sizes the camera can use during multiplayer. The camera will zoom out if the players are too far apart, and zoom back in when they get closer together. Values represent screen heights, measured in tiles.<br><br>In single-player, only the smallest size will be used.<br><br>Options marked with * or ** are glitchy if zone bounds are set to 0; see the Upper/Lower Bounds tooltips for more info.<br>Options marked with ** are also unplayably glitchy in multiplayer.")
         self.screenSizes.setSizePolicy(comboboxSizePolicy)
-
-        self.ChangeCamModeList()
-        self.screenSizes.setCurrentIndex(camzoom)
+        self.screenSizes.currentIndexChanged.connect(self.handleScreenSizesChanged)
 
         ModesLayout = QtWidgets.QGridLayout()
         for i, b in enumerate(modebuttons):
@@ -5999,6 +6042,31 @@ class CameraModeZoomSettingsLayout(QtWidgets.QFormLayout):
             self.screenSizes.addItems(items)
             self.screenSizes.setCurrentIndex(0)
             self.zm = mode
+
+    def setValues(self, cammode, camzoom):
+        self.updating = True
+
+        if cammode < 0: cammode = 0
+        if cammode >= 8: cammode = 7
+
+        self.modeButtonGroup.button(cammode).setChecked(True)
+        self.ChangeCamModeList()
+
+        if camzoom < 0: camzoom = 0
+        if camzoom >= self.screenSizes.count(): camzoom = self.screenSizes.count() - 1
+
+        self.screenSizes.setCurrentIndex(camzoom)
+
+        self.updating = False
+
+    def handleModeChanged(self):
+        if self.updating: return
+        self.ChangeCamModeList()
+        self.edited.emit()
+
+    def handleScreenSizesChanged(self):
+        if self.updating: return
+        self.edited.emit()
 
 
 #Sets up the Zones Menu
@@ -6166,7 +6234,8 @@ class ZoneTab(QtWidgets.QWidget):
     def createCamera(self, z):
         self.Camera = QtWidgets.QGroupBox('Camera')
 
-        self.Zone_cammodezoom = CameraModeZoomSettingsLayout(True, z.cammode, z.camzoom)
+        self.Zone_cammodezoom = CameraModeZoomSettingsLayout(True)
+        self.Zone_cammodezoom.setValues(z.cammode, z.camzoom)
 
         self.Zone_yrestrict = QtWidgets.QCheckBox()
         self.Zone_yrestrict.setToolTip('<b>Only Scroll Upwards If Flying:</b><br>Prevents the screen from scrolling upwards unless the player uses a Propeller Suit or Block.<br><br>This feature looks rather glitchy and is not recommended.')
@@ -6792,6 +6861,122 @@ class BGTab(QtWidgets.QWidget):
 
 
 
+class CustomSortableListWidgetItem(QtWidgets.QListWidgetItem):
+    """ListWidgetItem subclass that allows sorting by arbitrary key"""
+    sortKey = 0
+
+    def __lt__(self, other):
+        if hasattr(self, 'sortKey') and hasattr(other, 'sortKey'):
+            return self.sortKey < other.sortKey
+        else:
+            return False
+
+
+class CameraProfilesDialog(QtWidgets.QDialog):
+    """Dialog for editing camera profiles"""
+    def __init__(self):
+        """Creates and initialises the dialog"""
+        super(CameraProfilesDialog, self).__init__()
+        self.setWindowTitle('Camera Profiles')
+        self.setWindowIcon(GetIcon('camprofile'))
+        self.setMinimumHeight(450)
+
+        self.list = QtWidgets.QListWidget()
+        self.list.itemSelectionChanged.connect(self.handleSelectionChanged)
+        self.list.setSortingEnabled(True)
+
+        self.addButton = QtWidgets.QPushButton('Add')
+        self.addButton.clicked.connect(self.handleAdd)
+        self.removeButton = QtWidgets.QPushButton('Remove')
+        self.removeButton.clicked.connect(self.handleRemove)
+        self.removeButton.setEnabled(False)
+
+        listLayout = QtWidgets.QGridLayout()
+        listLayout.addWidget(self.addButton, 0, 0)
+        listLayout.addWidget(self.removeButton, 0, 1)
+        listLayout.addWidget(self.list, 1, 0, 1, 2)
+
+        self.eventid = QtWidgets.QSpinBox()
+        self.eventid.setRange(0, 255)
+        self.eventid.setToolTip("<b>Triggering Event ID:</b><br>Sets the event ID that will trigger the camera profile. If switching away from a different profile, the previous profile's event ID will be automatically deactivated (so the game doesn't instantly switch back to it).")
+        self.eventid.valueChanged.connect(self.handleEventIDChanged)
+
+        self.camsettings = CameraModeZoomSettingsLayout(False)
+        self.camsettings.setValues(0, 0)
+        self.camsettings.edited.connect(self.handleCamSettingsChanged)
+
+        profileLayout = QtWidgets.QFormLayout()
+        profileLayout.addRow('Triggering Event ID:', self.eventid)
+        profileLayout.addRow(createHorzLine())
+        profileLayout.addRow(self.camsettings)
+
+        self.profileBox = QtWidgets.QGroupBox('Modify Selected Camera Profile Properties')
+        self.profileBox.setLayout(profileLayout)
+        self.profileBox.setEnabled(False)
+        self.profileBox.setToolTip('<b>Modify Selected Camera Profile Properties:</b><br>Camera Profiles can only be used with the "Event-Controlled" camera mode in the "Zones" dialog.<br><br>Transitions between zoom levels are instant, but can be hidden through careful use of zoom sprites (206).')
+
+        buttonBox = QtWidgets.QDialogButtonBox(QtWidgets.QDialogButtonBox.Ok | QtWidgets.QDialogButtonBox.Cancel)
+
+        buttonBox.accepted.connect(self.accept)
+        buttonBox.rejected.connect(self.reject)
+
+        Layout = QtWidgets.QGridLayout()
+        Layout.addLayout(listLayout, 0, 0)
+        Layout.addWidget(self.profileBox, 0, 1)
+        Layout.addWidget(buttonBox, 1, 0, 1, 2)
+        self.setLayout(Layout)
+
+        for profile in Level.camprofiles:
+            item = CustomSortableListWidgetItem()
+            item.setData(QtCore.Qt.UserRole, profile)
+            item.sortKey = profile[0]
+            self.updateItemTitle(item)
+            self.list.addItem(item)
+
+        self.list.sortItems()
+
+    def handleAdd(self, item=None):
+        item = CustomSortableListWidgetItem()
+        item.setData(QtCore.Qt.UserRole, [0, 0, 0])
+        self.updateItemTitle(item)
+        self.list.addItem(item)
+
+    def handleRemove(self):
+        self.list.takeItem(self.list.currentRow())
+
+    def handleSelectionChanged(self):
+        selItems = self.list.selectedItems()
+
+        self.removeButton.setEnabled(bool(selItems))
+        self.profileBox.setEnabled(bool(selItems))
+
+        if selItems:
+            selItem = selItems[0]
+            values = selItem.data(QtCore.Qt.UserRole)
+
+            self.eventid.setValue(values[0])
+            self.camsettings.setValues(values[1], values[2])
+
+    def handleEventIDChanged(self, eventid):
+        selItem = self.list.selectedItems()[0]
+        values = selItem.data(QtCore.Qt.UserRole)
+        values[0] = eventid
+        selItem.setData(QtCore.Qt.UserRole, values)
+        selItem.sortKey = eventid
+        self.updateItemTitle(selItem)
+
+    def handleCamSettingsChanged(self):
+        selItem = self.list.selectedItems()[0]
+        values = selItem.data(QtCore.Qt.UserRole)
+        values[1] = self.camsettings.modeButtonGroup.checkedId()
+        values[2] = self.camsettings.screenSizes.currentIndex()
+        selItem.setData(QtCore.Qt.UserRole, values)
+
+    def updateItemTitle(self, item):
+        item.setText('Camera Profile on Event %d' % item.data(QtCore.Qt.UserRole)[0])
+
+
+
 #Sets up the Screen Cap Choice Dialog
 class ScreenCapChoiceDialog(QtWidgets.QDialog):
     """Dialog which lets you choose which zone to take a pic of"""
@@ -7022,6 +7207,7 @@ class ReggieWindow(QtWidgets.QMainWindow):
         self.CreateAction('areaoptions', self.HandleAreaOptions, GetIcon('area'), 'Area Settings...', 'Controls tileset swapping, stage timer, entrance on load, and stage wrap', QtGui.QKeySequence('Ctrl+Alt+A'))
         self.CreateAction('zones', self.HandleZones, GetIcon('zones'), 'Zones...', 'Zone creation, deletion, and preference editing', QtGui.QKeySequence('Ctrl+Alt+Z'))
         self.CreateAction('backgrounds', self.HandleBG, GetIcon('background'), 'Backgrounds...', 'Apply backgrounds to individual zones in the current area', QtGui.QKeySequence('Ctrl+Alt+B'))
+        self.CreateAction('camprofiles', self.HandleCameraProfiles, GetIcon('camprofile'), 'Camera Profiles...', 'Edit event-activated camera settings', QtGui.QKeySequence('Ctrl+Alt+C'))
         self.CreateAction('metainfo', self.HandleInfo, None, 'Level Information...', 'Add title and author information to the metadata', QtGui.QKeySequence('Ctrl+Alt+I'))
 
         self.CreateAction('aboutqt', app.aboutQt, None, 'About PyQt...', 'About the Qt library Reggie! is based on', QtGui.QKeySequence('Ctrl+Shift+Y'))
@@ -7107,6 +7293,7 @@ class ReggieWindow(QtWidgets.QMainWindow):
         lmenu.addAction(self.actions['areaoptions'])
         lmenu.addAction(self.actions['zones'])
         lmenu.addAction(self.actions['backgrounds'])
+        lmenu.addAction(self.actions['camprofiles'])
         lmenu.addSeparator()
         lmenu.addAction(self.actions['addarea'])
         lmenu.addAction(self.actions['importarea'])
@@ -9242,6 +9429,20 @@ class ReggieWindow(QtWidgets.QMainWindow):
                     z.bg3B = 0x000A
 
                 i = i + 1
+
+    @QtCoreSlot()
+    def HandleCameraProfiles(self):
+        """Pops up the options for camera profiles"""
+        dlg = CameraProfilesDialog()
+        if dlg.exec_() == QtWidgets.QDialog.Accepted:
+            SetDirty()
+
+            camprofiles = []
+            for row in range(dlg.list.count()):
+                item = dlg.list.item(row)
+                camprofiles.append(item.data(QtCore.Qt.UserRole))
+
+            Level.camprofiles = camprofiles
 
     @QtCoreSlot()
     def HandleScreenshot(self):
