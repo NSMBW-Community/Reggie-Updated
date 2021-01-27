@@ -4716,6 +4716,32 @@ class LocationEditorWidget(QtWidgets.QWidget):
         self.setLocation(loc) # updates the fields
 
 
+class ItemEditorDockWidget(QtWidgets.QDockWidget):
+    """DockWidget subclass that switches between show/hide and
+    enable/disable depending on docking status"""
+    def __init__(self, *args, **kwargs):
+        super(ItemEditorDockWidget, self).__init__(*args, **kwargs)
+        self.topLevelChanged.connect(self.handleTopLevelChanged)
+
+    def handleTopLevelChanged(self, topLevel):
+        if not topLevel:
+            self.setVisible(True)
+
+    def setActive(self, active):
+        if self.isFloating():
+            self.setVisible(active)
+            self.setEnabled(True)
+        else:
+            self.setVisible(True)
+            self.setEnabled(active)
+
+    def isActive(self):
+        if self.isFloating():
+            return self.isVisible()
+        else:
+            return self.isEnabled()
+
+
 class LevelScene(QtWidgets.QGraphicsScene):
     """GraphicsScene subclass for the level scene"""
     def __init__(self, *args):
@@ -7131,8 +7157,8 @@ class ReggieWindow(QtWidgets.QMainWindow):
         self.vmenu.addAction(act)
 
         # create the sprite editor panel
-        dock = QtWidgets.QDockWidget('Modify Selected Sprite Properties', self)
-        dock.setVisible(False)
+        dock = ItemEditorDockWidget('Modify Selected Sprite Properties', self)
+        dock.setActive(False)
         dock.setFeatures(QtWidgets.QDockWidget.DockWidgetMovable | QtWidgets.QDockWidget.DockWidgetFloatable)
         dock.setAllowedAreas(QtCore.Qt.LeftDockWidgetArea | QtCore.Qt.RightDockWidgetArea)
         dock.setObjectName('spriteeditor') #needed for the state to save/restore correctly
@@ -7146,8 +7172,8 @@ class ReggieWindow(QtWidgets.QMainWindow):
         dock.setFloating(True)
 
         # create the entrance editor panel
-        dock = QtWidgets.QDockWidget('Modify Selected Entrance Properties', self)
-        dock.setVisible(False)
+        dock = ItemEditorDockWidget('Modify Selected Entrance Properties', self)
+        dock.setActive(False)
         dock.setFeatures(QtWidgets.QDockWidget.DockWidgetMovable | QtWidgets.QDockWidget.DockWidgetFloatable)
         dock.setAllowedAreas(QtCore.Qt.LeftDockWidgetArea | QtCore.Qt.RightDockWidgetArea)
         dock.setObjectName('entranceeditor') #needed for the state to save/restore correctly
@@ -7160,8 +7186,8 @@ class ReggieWindow(QtWidgets.QMainWindow):
         dock.setFloating(True)
 
         # create the path editor panel
-        dock = QtWidgets.QDockWidget('Modify Selected Path Node Properties', self)
-        dock.setVisible(False)
+        dock = ItemEditorDockWidget('Modify Selected Path Node Properties', self)
+        dock.setActive(False)
         dock.setFeatures(QtWidgets.QDockWidget.DockWidgetMovable | QtWidgets.QDockWidget.DockWidgetFloatable)
         dock.setAllowedAreas(QtCore.Qt.LeftDockWidgetArea | QtCore.Qt.RightDockWidgetArea)
         dock.setObjectName('pathnodeeditor') #needed for the state to save/restore correctly
@@ -7175,8 +7201,8 @@ class ReggieWindow(QtWidgets.QMainWindow):
         dock.setFloating(True)
 
         # create the location editor panel
-        dock = QtWidgets.QDockWidget('Modify Selected Location Properties', self)
-        dock.setVisible(False)
+        dock = ItemEditorDockWidget('Modify Selected Location Properties', self)
+        dock.setActive(False)
         dock.setFeatures(QtWidgets.QDockWidget.DockWidgetMovable | QtWidgets.QDockWidget.DockWidgetFloatable)
         dock.setAllowedAreas(QtCore.Qt.LeftDockWidgetArea | QtCore.Qt.RightDockWidgetArea)
         dock.setObjectName('locationeditor') #needed for the state to save/restore correctly
@@ -8338,10 +8364,10 @@ class ReggieWindow(QtWidgets.QMainWindow):
             event.ignore()
         else:
             # save our state
-            self.spriteEditorDock.setVisible(False)
-            self.entranceEditorDock.setVisible(False)
-            self.pathEditorDock.setVisible(False)
-            self.locationEditorDock.setVisible(False)
+            self.spriteEditorDock.setActive(False)
+            self.entranceEditorDock.setActive(False)
+            self.pathEditorDock.setActive(False)
+            self.locationEditorDock.setActive(False)
             self.defaultPropDock.setVisible(False)
 
             settings.setValue('MainWindowGeometry', self.saveGeometry())
@@ -8657,11 +8683,11 @@ class ReggieWindow(QtWidgets.QMainWindow):
 
         self.CurrentSelection = selitems
 
-        self.spriteEditorDock.setVisible(showSpritePanel)
-        self.entranceEditorDock.setVisible(showEntrancePanel)
+        self.spriteEditorDock.setActive(showSpritePanel)
+        self.entranceEditorDock.setActive(showEntrancePanel)
 
-        self.locationEditorDock.setVisible(showLocationPanel)
-        self.pathEditorDock.setVisible(showPathPanel)
+        self.locationEditorDock.setActive(showLocationPanel)
+        self.pathEditorDock.setActive(showPathPanel)
 
         if updateModeInfo: self.UpdateModeInfo()
 
@@ -8834,7 +8860,7 @@ class ReggieWindow(QtWidgets.QMainWindow):
     @QtCoreSlot(PyObject)
     def SpriteDataUpdated(self, data):
         """Handle the current sprite's data being updated"""
-        if self.spriteEditorDock.isVisible():
+        if self.spriteEditorDock.isActive():
             obj = self.selObj
             obj.spritedata = data
             SetDirty()
@@ -8918,16 +8944,16 @@ class ReggieWindow(QtWidgets.QMainWindow):
         """Change the info in the currently visible panel"""
         self.UpdateFlag = True
 
-        if self.spriteEditorDock.isVisible():
+        if self.spriteEditorDock.isActive():
             obj = self.selObj
             self.spriteDataEditor.setSprite(obj.type)
             self.spriteDataEditor.data = obj.spritedata
             self.spriteDataEditor.update()
-        elif self.entranceEditorDock.isVisible():
+        elif self.entranceEditorDock.isActive():
             self.entranceEditor.setEntrance(self.selObj)
-        elif self.pathEditorDock.isVisible():
+        elif self.pathEditorDock.isActive():
             self.pathEditor.setPath(self.selObj)
-        elif self.locationEditorDock.isVisible():
+        elif self.locationEditorDock.isActive():
             self.locationEditor.setLocation(self.selObj)
 
         self.UpdateFlag = False
