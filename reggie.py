@@ -3418,8 +3418,8 @@ class LevelOverviewWidget(QtWidgets.QWidget):
         painter.setRenderHint(QtGui.QPainter.Antialiasing, True)
 
         self.Rescale()
+        painter.fillRect(event.rect(), self.bgbrush)
         painter.scale(self.scale, self.scale)
-        painter.fillRect(0, 0, 1024, 512, self.bgbrush)
 
         maxX = self.maxX
         maxY = self.maxY
