@@ -11,13 +11,27 @@ jobs:
 
     strategy:
       matrix:
-        python-version: [3.9]  # Don't forget to also change the "manual-python-version" numbers below!
-        platform: [windows-latest, macos-latest, ubuntu-latest]
-        arch: ['x64']
-        include:  # Add 32-bit Windows build
+        include:
+          # 64-bit Windows 8.1+ build
+          - python-version: 3.9
+            platform: windows-latest
+            arch: 'x64'
+          # 32-bit Windows 8.1+ build
           - python-version: 3.9
             platform: windows-latest
             arch: 'x86'
+          # 32-bit Windows 7 build
+          - python-version: 3.8
+            platform: windows-latest
+            arch: 'x86'
+          # 64-bit macOS build
+          - python-version: 3.9
+            platform: macos-latest
+            arch: 'x64'
+          # 64-bit Ubuntu build
+          - python-version: 3.9
+            platform: ubuntu-latest
+            arch: 'x64'
     runs-on: ${{ matrix.platform }}
 
     env:
@@ -124,7 +138,7 @@ jobs:
       if: ${{ runner.os == 'Windows' }}
       uses: actions/upload-artifact@v2
       with:
-        name: build-${{ matrix.platform }}-${{ matrix.arch }}
+        name: build-${{ matrix.platform }}-${{ matrix.arch }}-${{ matrix.python-version }}
         path: distrib/*
     - name: Upload artifacts (macOS/Linux)
       if: ${{ runner.os == 'macOS' || runner.os == 'Linux' }}
