@@ -12,26 +12,29 @@ jobs:
     strategy:
       matrix:
         include:
-          # 64-bit Windows 8.1+ build
-          - python-version: 3.9
+          - build-name: 'Windows 8.1+, 64-bit'
+            python-version: 3.9
             platform: windows-latest
             arch: 'x64'
-          # 32-bit Windows 8.1+ build
-          - python-version: 3.9
+          - build-name: 'Windows 8.1+, 32-bit'
+            python-version: 3.9
             platform: windows-latest
             arch: 'x86'
-          # 32-bit Windows 7 build
-          - python-version: 3.8
+          - build-name: 'Windows 7, 32-bit'
+            python-version: 3.8
             platform: windows-latest
             arch: 'x86'
-          # 64-bit macOS build
-          - python-version: 3.9
+          - build-name: 'macOS'
+            python-version: 3.9
             platform: macos-latest
             arch: 'x64'
-          # 64-bit Ubuntu build
-          - python-version: 3.9
+          - build-name: 'Ubuntu'
+            python-version: 3.9
             platform: ubuntu-latest
             arch: 'x64'
+
+    name: ${{ matrix.build-name }}
+
     runs-on: ${{ matrix.platform }}
 
     env:
