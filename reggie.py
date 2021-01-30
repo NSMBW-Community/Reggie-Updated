@@ -5961,7 +5961,7 @@ class CameraModeZoomSettingsLayout(QtWidgets.QFormLayout):
                     (2, 'Y Expanding Only', 'In this mode, the camera will zoom out during multiplayer if the players are far apart vertically.'),
                 ]:
 
-            rb = QtWidgets.QRadioButton(name)
+            rb = QtWidgets.QRadioButton(str(i) + ': ' + name)
             rb.setToolTip('<b>' + name + ':</b><br>' + tooltip)
             self.modeButtonGroup.addButton(rb, i)
             modebuttons.append(rb)
@@ -5997,41 +5997,41 @@ class CameraModeZoomSettingsLayout(QtWidgets.QFormLayout):
 
             if newListChoice == 1:
                 items = [
-                    '14, 19',
-                    '14, 19, 24',
-                    '14, 19, 28',
-                    '20, 24',
-                    '19, 24, 28',
-                    '17, 24',
-                    '17, 24, 28',
-                    '17, 20',
-                    '7, 11, 28**',
-                    '17, 20.5, 24',
-                    '17, 20, 28',
+                    '0: 14, 19',
+                    '1: 14, 19, 24',
+                    '2: 14, 19, 28',
+                    '3: 20, 24',
+                    '4: 19, 24, 28',
+                    '5: 17, 24',
+                    '6: 17, 24, 28',
+                    '7: 17, 20',
+                    '8: 7, 11, 28**',
+                    '9: 17, 20.5, 24',
+                    '10: 17, 20, 28',
                 ]
             elif newListChoice == 2:
                 items = [
-                    '14, 19',
-                    '14, 19, 24',
-                    '14, 19, 28',
-                    '19, 19, 24',
-                    '19, 24, 28',
-                    '19, 24, 28',
-                    '17, 24, 28',
-                    '17, 20.5, 24',
+                    '0: 14, 19',
+                    '1: 14, 19, 24',
+                    '2: 14, 19, 28',
+                    '3: 19, 19, 24',
+                    '4: 19, 24, 28',
+                    '5: 19, 24, 28',
+                    '6: 17, 24, 28',
+                    '7: 17, 20.5, 24',
                 ]
             else:
                 items = [
-                    '14',
-                    '19',
-                    '24',
-                    '28',
-                    '17',
-                    '20',
-                    '16',
-                    '28',
-                    '7*',
-                    '10.5*',
+                    '0: 14',
+                    '1: 19',
+                    '2: 24',
+                    '3: 28',
+                    '4: 17',
+                    '5: 20',
+                    '6: 16',
+                    '7: 28',
+                    '8: 7*',
+                    '9: 10.5*',
                 ]
 
             self.screenSizes.clear()
