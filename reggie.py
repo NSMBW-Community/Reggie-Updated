@@ -1830,13 +1830,13 @@ class LevelUnit():
 
         """Loads block 10, the zone data"""
         zonedata = self.blocks[9]
-        zonestruct = struct.Struct('>HHHHHHBBBBxBBBBxBB')
+        zonestruct = struct.Struct('>HHHHHHBBBBBBBBBxBB')
         count = len(zonedata) // 24
         offset = 0
         zones = []
         for i in range(count):
             dataz = zonestruct.unpack_from(zonedata,offset)
-            zones.append(ZoneItem(dataz[0], dataz[1], dataz[2], dataz[3], dataz[4], dataz[5], dataz[6], dataz[7], dataz[8], dataz[9], dataz[10], dataz[11], dataz[12], dataz[13], dataz[14], dataz[15], bounding, bgA, bgB, i))
+            zones.append(ZoneItem(dataz[0], dataz[1], dataz[2], dataz[3], dataz[4], dataz[5], dataz[6], dataz[7], dataz[8], dataz[9], dataz[10], dataz[11], dataz[12], dataz[13], dataz[14], dataz[15], dataz[16], bounding, bgA, bgB, i))
             offset += 24
         self.zones = zones
 
@@ -1863,7 +1863,7 @@ class LevelUnit():
         for i in range(count):
             data = profilestruct.unpack_from(profiledata, offset)
             if i > 0 or any(data):
-                camprofiles.append([data[4], data[1], data[2]])
+                camprofiles.append([data[4], data[1], data[2], data[3]])
             offset += 20
         self.camprofiles = camprofiles
 
@@ -2059,7 +2059,7 @@ class LevelUnit():
         bdngstruct = struct.Struct('>4lHHhh')
         bgAstruct = struct.Struct('>xBhhhhHHHxxxBxxxx')
         bgBstruct = struct.Struct('>xBhhhhHHHxxxBxxxx')
-        zonestruct = struct.Struct('>HHHHHHBBBBxBBBBxBB')
+        zonestruct = struct.Struct('>HHHHHHBBBBBBBBBxBB')
         offset = 0
         i = 0
         zcount = len(Level.zones)
@@ -2073,7 +2073,7 @@ class LevelUnit():
             bdngstruct.pack_into(buffer2, offset, z.yupperbound, z.ylowerbound, z.yupperbound2, z.ylowerbound2, i, z.mpcamzoomadjust, z.yupperbound3, z.ylowerbound3)
             bgAstruct.pack_into(buffer4, offset, i, z.XscrollA, z.YscrollA, z.YpositionA, z.XpositionA, z.bg1A, z.bg2A, z.bg3A, z.ZoomA)
             bgBstruct.pack_into(buffer5, offset, i, z.XscrollB, z.YscrollB, z.YpositionB, z.XpositionB, z.bg1B, z.bg2B, z.bg3B, z.ZoomB)
-            zonestruct.pack_into(buffer9, offset, z.objx, z.objy, z.width, z.height, z.modeldark, z.terraindark, i, i, z.cammode, z.camzoom, z.visibility, i, i, z.direction, z.music, z.sfxmod)
+            zonestruct.pack_into(buffer9, offset, z.objx, z.objy, z.width, z.height, z.modeldark, z.terraindark, i, i, z.cammode, z.camzoom, z.camchange, z.visibility, i, i, z.direction, z.music, z.sfxmod)
             offset += 24
             i += 1
 
@@ -2124,7 +2124,7 @@ class LevelUnit():
 
         bdngid = offset2 // 20
         for p in Level.camprofiles:
-            profilestruct.pack_into(buffer, offset, bdngid, p[1], p[2], 0, p[0])
+            profilestruct.pack_into(buffer, offset, bdngid, p[1], p[2], p[3], p[0])
             offset += 20
             offset2 += 24
 
@@ -2463,7 +2463,7 @@ class LevelObjectEditorItem(LevelEditorItem):
 class ZoneItem(LevelEditorItem):
     """Level editor item that represents a zone"""
 
-    def __init__(self, a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, boundings, bgA, bgB, id):
+    def __init__(self, a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, boundings, bgA, bgB, id):
         """Creates a zone with specific data"""
         super(ZoneItem, self).__init__()
 
@@ -2482,12 +2482,13 @@ class ZoneItem(LevelEditorItem):
         self.block3id = h
         self.cammode = i
         self.camzoom = j
-        self.visibility = k
-        self.block5id = l
-        self.block6id = m
-        self.direction = n
-        self.music = o
-        self.sfxmod = p
+        self.camchange = k
+        self.visibility = l
+        self.block5id = m
+        self.block6id = n
+        self.direction = o
+        self.music = p
+        self.sfxmod = q
         self.UpdateRects()
 
         bounding = None
@@ -5976,12 +5977,18 @@ class CameraModeZoomSettingsLayout(QtWidgets.QFormLayout):
         self.screenSizes.setSizePolicy(comboboxSizePolicy)
         self.screenSizes.currentIndexChanged.connect(self.handleScreenSizesChanged)
 
+        self.zoomChange = QtWidgets.QSpinBox()
+        self.zoomChange.setToolTip('<b>"Zoom Change":</b><br>An unknown setting that doesn\'t seem to do anything. Nintendo calls it "Zoom Change."')
+        self.zoomChange.setRange(0, 255)
+        self.zoomChange.valueChanged.connect(self.handleZoomChangeChanged)
+
         ModesLayout = QtWidgets.QGridLayout()
         for i, b in enumerate(modebuttons):
             ModesLayout.addWidget(b, i % 4, i // 4)
 
         self.addRow(ModesLayout)
         self.addRow('Screen Sizes:', self.screenSizes)
+        self.addRow('"Zoom Change":', self.zoomChange)
 
         self.updating = False
 
@@ -6039,7 +6046,7 @@ class CameraModeZoomSettingsLayout(QtWidgets.QFormLayout):
             self.screenSizes.setCurrentIndex(0)
             self.zm = mode
 
-    def setValues(self, cammode, camzoom):
+    def setValues(self, cammode, camzoom, camchange):
         self.updating = True
 
         if cammode < 0: cammode = 0
@@ -6053,6 +6060,8 @@ class CameraModeZoomSettingsLayout(QtWidgets.QFormLayout):
 
         self.screenSizes.setCurrentIndex(camzoom)
 
+        self.zoomChange.setValue(camchange)
+
         self.updating = False
 
     def handleModeChanged(self):
@@ -6061,6 +6070,10 @@ class CameraModeZoomSettingsLayout(QtWidgets.QFormLayout):
         self.edited.emit()
 
     def handleScreenSizesChanged(self):
+        if self.updating: return
+        self.edited.emit()
+
+    def handleZoomChangeChanged(self):
         if self.updating: return
         self.edited.emit()
 
@@ -6122,7 +6135,7 @@ class ZonesDialog(QtWidgets.QDialog):
         a.append([0, 0, 0, 0, 0, 15, 0, 0])
         b.append([0, 0, 0, 0, 0, 10, 10, 10, 0])
         id = len(self.zoneTabs)
-        z = ZoneItem(16, 16, 448, 224, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, a, b, b, id)
+        z = ZoneItem(16, 16, 448, 224, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, a, b, b, id)
         ZoneTabName = 'Zone ' + str(id+1)
         tab = ZoneTab(z)
         self.zoneTabs.append(tab)
@@ -6231,7 +6244,7 @@ class ZoneTab(QtWidgets.QWidget):
         self.Camera = QtWidgets.QGroupBox('Camera')
 
         self.Zone_cammodezoom = CameraModeZoomSettingsLayout(True)
-        self.Zone_cammodezoom.setValues(z.cammode, z.camzoom)
+        self.Zone_cammodezoom.setValues(z.cammode, z.camzoom, z.camchange)
 
         self.Zone_direction = QtWidgets.QComboBox()
         self.Zone_direction.setToolTip('<b>Zone Direction:</b><br>Sets the general direction of progression through this zone. This is mainly used in multiplayer mode to help the camera decide which player is "in front of" the others.<br><br>"Bias" sets the camera\'s preferred movement direction perpendicular to the main one. The default bias is downward or rightward. Upward bias causes more bottom-of-screen deaths and is not recommended.')
@@ -6907,7 +6920,7 @@ class CameraProfilesDialog(QtWidgets.QDialog):
         self.eventid.valueChanged.connect(self.handleEventIDChanged)
 
         self.camsettings = CameraModeZoomSettingsLayout(False)
-        self.camsettings.setValues(0, 0)
+        self.camsettings.setValues(0, 0, 0)
         self.camsettings.edited.connect(self.handleCamSettingsChanged)
 
         profileLayout = QtWidgets.QFormLayout()
@@ -6942,7 +6955,7 @@ class CameraProfilesDialog(QtWidgets.QDialog):
 
     def handleAdd(self, item=None):
         item = CustomSortableListWidgetItem()
-        item.setData(QtCore.Qt.UserRole, [0, 0, 0])
+        item.setData(QtCore.Qt.UserRole, [0, 0, 0, 0])
         self.updateItemTitle(item)
         self.list.addItem(item)
 
@@ -6960,7 +6973,7 @@ class CameraProfilesDialog(QtWidgets.QDialog):
             values = selItem.data(QtCore.Qt.UserRole)
 
             self.eventid.setValue(values[0])
-            self.camsettings.setValues(values[1], values[2])
+            self.camsettings.setValues(values[1], values[2], values[3])
 
     def handleEventIDChanged(self, eventid):
         selItem = self.list.selectedItems()[0]
@@ -6975,6 +6988,7 @@ class CameraProfilesDialog(QtWidgets.QDialog):
         values = selItem.data(QtCore.Qt.UserRole)
         values[1] = self.camsettings.modeButtonGroup.checkedId()
         values[2] = self.camsettings.screenSizes.currentIndex()
+        values[3] = self.camsettings.zoomChange.value()
         selItem.setData(QtCore.Qt.UserRole, values)
 
     def updateItemTitle(self, item):
@@ -9347,6 +9361,7 @@ class ReggieWindow(QtWidgets.QMainWindow):
 
                 z.cammode = tab.Zone_cammodezoom.modeButtonGroup.checkedId()
                 z.camzoom = tab.Zone_cammodezoom.screenSizes.currentIndex()
+                z.camchange = tab.Zone_cammodezoom.zoomChange.value()
 
                 z.direction = tab.Zone_direction.currentIndex()
 
