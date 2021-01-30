@@ -6234,7 +6234,7 @@ class ZoneTab(QtWidgets.QWidget):
         self.Zone_cammodezoom.setValues(z.cammode, z.camzoom)
 
         self.Zone_direction = QtWidgets.QComboBox()
-        self.Zone_direction.setToolTip('<b>Zone Direction:</b><br>Sets the general direction of progression through this zone. This is mainly used in multiplayer mode to help the camera decide which player is "in front of" the others.')
+        self.Zone_direction.setToolTip('<b>Zone Direction:</b><br>Sets the general direction of progression through this zone. This is mainly used in multiplayer mode to help the camera decide which player is "in front of" the others.<br><br>"Bias" sets the camera\'s preferred movement direction perpendicular to the main one. The default bias is downward or rightward. Upward bias causes more bottom-of-screen deaths and is not recommended.')
         addList = ['0: Right', '1: Right (upward bias)', '2: Left', '3: Left (upward bias)', '4: Down', '5: Down (leftward bias)', '6: Up', '7: Up (leftward bias)']
         self.Zone_direction.addItems(addList)
         if z.direction < 0: z.direction = 0
