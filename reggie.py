@@ -3413,7 +3413,7 @@ class LevelOverviewWidget(QtWidgets.QWidget):
         super(LevelOverviewWidget, self).__init__()
         self.setSizePolicy(QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.MinimumExpanding, QtWidgets.QSizePolicy.MinimumExpanding))
 
-        self.bgbrush = QtGui.QBrush(QtGui.QColor.fromRgb(119,136,153))
+        self.bgbrush = QtGui.QBrush(QtGui.QColor.fromRgb(153,119,119))
         self.objbrush = QtGui.QBrush(QtGui.QColor.fromRgb(255,255,255))
         self.viewbrush = QtGui.QBrush(QtGui.QColor.fromRgb(47,79,79,120))
         self.view = QtCore.QRectF(0,0,0,0)
@@ -4798,7 +4798,7 @@ class ItemEditorDockWidget(QtWidgets.QDockWidget):
 class LevelScene(QtWidgets.QGraphicsScene):
     """GraphicsScene subclass for the level scene"""
     def __init__(self, *args):
-        self.bgbrush = QtGui.QBrush(QtGui.QColor.fromRgb(119,136,153))
+        self.bgbrush = QtGui.QBrush(QtGui.QColor.fromRgb(153,119,119))
         super(LevelScene, self).__init__(*args)
 
     def drawBackground(self, painter, rect):
