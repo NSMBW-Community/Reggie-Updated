@@ -6919,7 +6919,7 @@ class CameraProfilesDialog(QtWidgets.QDialog):
         self.eventid.setToolTip("<b>Triggering Event ID:</b><br>Sets the event ID that will trigger the camera profile. If switching away from a different profile, the previous profile's event ID will be automatically deactivated (so the game doesn't instantly switch back to it).")
         self.eventid.valueChanged.connect(self.handleEventIDChanged)
 
-        self.camsettings = CameraModeZoomSettingsLayout(False)
+        self.camsettings = CameraModeZoomSettingsLayout(True)
         self.camsettings.setValues(0, 0, 0)
         self.camsettings.edited.connect(self.handleCamSettingsChanged)
 
