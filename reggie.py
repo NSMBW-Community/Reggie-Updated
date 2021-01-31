@@ -2073,7 +2073,7 @@ class LevelUnit():
             bdngstruct.pack_into(buffer2, offset, z.yupperbound, z.ylowerbound, z.yupperbound2, z.ylowerbound2, i, z.mpcamzoomadjust, z.yupperbound3, z.ylowerbound3)
             bgAstruct.pack_into(buffer4, offset, i, z.XscrollA, z.YscrollA, z.YpositionA, z.XpositionA, z.bg1A, z.bg2A, z.bg3A, z.ZoomA)
             bgBstruct.pack_into(buffer5, offset, i, z.XscrollB, z.YscrollB, z.YpositionB, z.XpositionB, z.bg1B, z.bg2B, z.bg3B, z.ZoomB)
-            zonestruct.pack_into(buffer9, offset, z.objx, z.objy, z.width, z.height, z.modeldark, z.terraindark, i, i, z.cammode, z.camzoom, z.visibility, i, i, z.unknownz, z.music, z.sfxmod)
+            zonestruct.pack_into(buffer9, offset, z.objx, z.objy, z.width, z.height, z.modeldark, z.terraindark, i, i, z.cammode, z.camzoom, z.visibility, i, i, z.direction, z.music, z.sfxmod)
             offset += 24
             i += 1
 
@@ -2485,7 +2485,7 @@ class ZoneItem(LevelEditorItem):
         self.visibility = k
         self.block5id = l
         self.block6id = m
-        self.unknownz = n
+        self.direction = n
         self.music = o
         self.sfxmod = p
         self.UpdateRects()
@@ -6233,6 +6233,14 @@ class ZoneTab(QtWidgets.QWidget):
         self.Zone_cammodezoom = CameraModeZoomSettingsLayout(True)
         self.Zone_cammodezoom.setValues(z.cammode, z.camzoom)
 
+        self.Zone_direction = QtWidgets.QComboBox()
+        self.Zone_direction.setToolTip('<b>Zone Direction:</b><br>Sets the general direction of progression through this zone. This is mainly used in multiplayer mode to help the camera decide which player is "in front of" the others.<br><br>"Bias" sets the camera\'s preferred movement direction perpendicular to the main one. The default bias is downward or rightward. Upward bias causes more bottom-of-screen deaths and is not recommended.')
+        addList = ['Right', 'Right (upward bias)', 'Left', 'Left (upward bias)', 'Down', 'Down (leftward bias)', 'Up', 'Up (leftward bias)']
+        self.Zone_direction.addItems(addList)
+        if z.direction < 0: z.direction = 0
+        if z.direction >= len(addList): z.direction = len(addList) - 1
+        self.Zone_direction.setCurrentIndex(z.direction)
+
         self.Zone_yrestrict = QtWidgets.QCheckBox()
         self.Zone_yrestrict.setToolTip('<b>Only Scroll Upwards If Flying:</b><br>Prevents the screen from scrolling upwards unless the player uses a Propeller Suit or Block.<br><br>This feature looks rather glitchy and is not recommended.')
         self.Zone_yrestrict.setChecked(z.mpcamzoomadjust != 15)
@@ -6248,6 +6256,7 @@ class ZoneTab(QtWidgets.QWidget):
 
         ZoneCameraLayout = QtWidgets.QFormLayout()
         ZoneCameraLayout.addRow(self.Zone_cammodezoom)
+        ZoneCameraLayout.addRow('Zone Direction:', self.Zone_direction)
         ZoneCameraLayout.addRow('Only Scroll Upwards If Flying:', self.Zone_yrestrict)
         ZoneCameraLayout.addRow('Multiplayer Screen Size Adjust:', self.Zone_mpzoomadjust)
         self.Camera.setLayout(ZoneCameraLayout)
@@ -9338,6 +9347,8 @@ class ReggieWindow(QtWidgets.QMainWindow):
 
                 z.cammode = tab.Zone_cammodezoom.modeButtonGroup.checkedId()
                 z.camzoom = tab.Zone_cammodezoom.screenSizes.currentIndex()
+
+                z.direction = tab.Zone_direction.currentIndex()
 
                 if tab.Zone_yrestrict.isChecked():
                     z.mpcamzoomadjust = tab.Zone_mpzoomadjust.value()
