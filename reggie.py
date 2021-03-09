@@ -4775,9 +4775,23 @@ class ItemEditorDockWidget(QtWidgets.QDockWidget):
         super(ItemEditorDockWidget, self).__init__(*args, **kwargs)
         self.topLevelChanged.connect(self.handleTopLevelChanged)
 
+        # During the very first launch (empty QSettings), the following
+        # sequence of things happens:
+        # - initialization
+        # - .setActive(False), with self.isFloating() == False
+        # - .handleTopLevelChanged(True)
+        # Normally, we would leave the widget visible in that case,
+        # since it corresponds to the user undocking an item editor for
+        # an unselected type of object (and of course they'd want to
+        # continue to see it while they drag it somewhere). But during
+        # the first launch, all of the docks need to be hidden. So we
+        # special-case this using self.initialSetup.
+        self.initialSetup = (not settings.contains('MainWindowGeometry'))
+
     def handleTopLevelChanged(self, topLevel):
-        if not topLevel:
-            self.setVisible(True)
+        if self.initialSetup:
+            self.setVisible(False)
+            self.initialSetup = False
 
     def setActive(self, active):
         if self.isFloating():
