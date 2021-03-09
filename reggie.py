@@ -7237,7 +7237,7 @@ class ReggieWindow(QtWidgets.QMainWindow):
         self.CreateAction('camprofiles', self.HandleCameraProfiles, GetIcon('camprofile'), 'Camera Profiles...', 'Edit event-activated camera settings', QtGui.QKeySequence('Ctrl+Alt+C'))
         self.CreateAction('metainfo', self.HandleInfo, None, 'Level Information...', 'Add title and author information to the metadata', QtGui.QKeySequence('Ctrl+Alt+I'))
 
-        self.CreateAction('aboutqt', app.aboutQt, None, 'About PyQt...', 'About the Qt library Reggie! is based on', QtGui.QKeySequence('Ctrl+Shift+Y'))
+        self.CreateAction('aboutqt', app.aboutQt, None, 'About Qt...', 'About the Qt library Reggie! is based on', QtGui.QKeySequence('Ctrl+Shift+Y'))
         self.CreateAction('infobox', self.InfoBox, GetIcon('about'), 'About Reggie!', 'Info about the program, and the team behind it', QtGui.QKeySequence('Ctrl+Shift+I'))
         self.CreateAction('helpbox', self.HelpBox, GetIcon('help'), 'Reggie! Help...', 'Help Documentation for the needy newbie', QtGui.QKeySequence('Ctrl+Shift+H'))
         self.CreateAction('tipbox', self.TipBox, GetIcon('tips'), 'Reggie! Tips...', 'Tips and controls for beginners and power users', QtGui.QKeySequence('Ctrl+Shift+T'))
