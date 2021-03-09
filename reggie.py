@@ -34,37 +34,36 @@ from xml.dom import minidom
 
 def importQt():
     """
-    A function to find a supported Qt bindings library. Using a function
-    for this is helpful because it can return early and be imported by
-    other modules that also need access to Qt.
-    Returns QtCore, QtGui, QtWidgets, an int equivalent to PyQt's
-    QtCore.QT_VERSION, an int equivalent to PyQt's QtCore.PYQT_VERSION,
-    and the string name of the Qt bindings (e.g. "PyQt5").
+    Find a supported Qt bindings library. Return a tuple containing:
+    - QtCore
+    - QtGui
+    - QtWidgets
+    - The runtime Qt version: (a, b, c) for version a.b.c
+    - The runtime Qt bindings version: (a, b, c) for version a.b.c
+    - The human-friendly string name of the Qt bindings (e.g. "PyQt6")
     """
+    def parseQVersion(v):
+        return tuple([int(c) for c in v.split('.')])
+
+    def pyqtVersionToTuple(v):
+        return (v >> 16, (v >> 8) & 0xff, v & 0xff)
+
     try:
         from PyQt5 import QtCore, QtGui, QtWidgets
-        return QtCore, QtGui, QtWidgets, QtCore.QT_VERSION, QtCore.PYQT_VERSION, 'PyQt5'
+        return QtCore, QtGui, QtWidgets, parseQVersion(QtCore.qVersion()), pyqtVersionToTuple(QtCore.PYQT_VERSION), 'PyQt5'
     except ImportError:
         pass
 
     try:
         from PyQt4 import QtCore, QtGui
-        return QtCore, QtGui, QtGui, QtCore.QT_VERSION, QtCore.PYQT_VERSION, 'PyQt4'
+        return QtCore, QtGui, QtGui, parseQVersion(QtCore.qVersion()), pyqtVersionToTuple(QtCore.PYQT_VERSION), 'PyQt4'
     except ImportError:
         pass
 
     try:
         import PySide2
         from PySide2 import QtCore, QtGui, QtWidgets
-
-        qcv = QtCore.qVersion()
-        qcvi = [int(c) for c in qcv.split('.')]
-        QtCompatVersion = (qcvi[0] << 16) | (qcvi[1] << 8) | qcvi[2]
-
-        ps2vi = PySide2.__version_info__
-        QtBindingsVersion = (ps2vi[0] << 16) | (ps2vi[1] << 8) | ps2vi[2]
-
-        return QtCore, QtGui, QtWidgets, QtCompatVersion, QtBindingsVersion, 'PySide2'
+        return QtCore, QtGui, QtWidgets, parseQVersion(QtCore.qVersion()), PySide2.__version_info__, 'PySide2'
     except ImportError:
         pass
 
@@ -80,7 +79,7 @@ ReggieID = 'Reggie-Updated by Treeki, Tempus'
 ApplicationDisplayName = 'Reggie! Level Editor'
 
 
-if QtCompatVersion < 0x40600 or not hasattr(QtWidgets.QGraphicsItem, 'ItemSendsGeometryChanges'):
+if QtCompatVersion < (4,6,0) or not hasattr(QtWidgets.QGraphicsItem, 'ItemSendsGeometryChanges'):
     # enables itemChange being called on QGraphicsItem
     QtWidgets.QGraphicsItem.ItemSendsGeometryChanges = QtWidgets.QGraphicsItem.GraphicsItemFlag(0x800)
 
@@ -113,7 +112,7 @@ def keyInAttribs(key, node):
     return key in node.attributes
 
 def toPyObject(x):
-    if QtCompatVersion < 0x50000:
+    if QtCompatVersion < (5,0,0):
         return x.toPyObject()
     return x
 
@@ -130,18 +129,18 @@ def intsToBytes(L):
 
 def QFileDialog_getOpenFileName(*args, **kwargs):
     retVal = QtWidgets.QFileDialog.getOpenFileName(*args, **kwargs)
-    if QtCompatVersion < 0x50000:
+    if QtCompatVersion < (5,0,0):
         return retVal
     return retVal[0]
 
 def QFileDialog_getSaveFileName(*args, **kwargs):
     retVal = QtWidgets.QFileDialog.getSaveFileName(*args, **kwargs)
-    if QtCompatVersion < 0x50000:
+    if QtCompatVersion < (5,0,0):
         return retVal
     return retVal[0]
 
 def QValidatorValidateReturnValue(state, input, pos):
-    if QtCompatVersion < 0x50000:
+    if QtCompatVersion < (5,0,0):
         return state, pos
     return state, input, pos
 
@@ -3699,7 +3698,7 @@ class ObjectPickerWidget(QtWidgets.QListView):
             if ObjectDefinitions[idx] is None: return
 
             # begin/endResetModel are only in Qt 4.6...
-            if QtCompatVersion >= 0x40600:
+            if QtCompatVersion >= (4,6,0):
                 self.beginResetModel()
 
             self.items = []
@@ -3739,7 +3738,7 @@ class ObjectPickerWidget(QtWidgets.QListView):
                 else:
                     self.tooltips.append('Object %d' % i)
 
-            if QtCompatVersion >= 0x40600:
+            if QtCompatVersion >= (4,6,0):
                 self.endResetModel()
             else:
                 self.reset()
@@ -7138,7 +7137,7 @@ class ReggieWindow(QtWidgets.QMainWindow):
         appIcon = QtGui.QIcon('reggiedata/icon_reggie.png')
         appIcon.addPixmap(QtGui.QPixmap('reggiedata/icon_reggie_lg.png'))
         app.setWindowIcon(appIcon)
-        if QtCompatVersion >= 0x50000:
+        if QtCompatVersion >= (5,0,0):
             app.setApplicationDisplayName(ApplicationDisplayName)
 
         # create the actions
@@ -7337,11 +7336,9 @@ class ReggieWindow(QtWidgets.QMainWindow):
         hmenu.addSeparator()
         pyVerAct = hmenu.addAction('Using Python %d.%d.%d' % sys.version_info[:3])
         pyVerAct.setEnabled(False)
-        bindingsVer = (QtBindingsVersion >> 16, (QtBindingsVersion >> 8) & 0xff, QtBindingsVersion & 0xff)
-        bindingsVerAct = hmenu.addAction('Using %s %d.%d.%d' % (QtName, bindingsVer[0], bindingsVer[1], bindingsVer[2]))
+        bindingsVerAct = hmenu.addAction('Using %s %d.%d.%d' % (QtName, QtBindingsVersion[0], QtBindingsVersion[1], QtBindingsVersion[2]))
         bindingsVerAct.setEnabled(False)
-        qtVer = (QtCompatVersion >> 16, (QtCompatVersion >> 8) & 0xff, QtCompatVersion & 0xff)
-        qtVerAct = hmenu.addAction('Using Qt %d.%d.%d' % qtVer)
+        qtVerAct = hmenu.addAction('Using Qt %d.%d.%d' % QtCompatVersion)
         qtVerAct.setEnabled(False)
         nsmblibVerAct = hmenu.addAction(('Using NSMBLib %d' % nsmblib.getVersion()) if HaveNSMBLib else 'Not using NSMBLib')
         nsmblibVerAct.setEnabled(False)
@@ -7707,7 +7704,7 @@ class ReggieWindow(QtWidgets.QMainWindow):
     def UpdateTitle(self):
         """Sets the window title accordingly"""
         windowTitle = Level.filename + (' [unsaved]' if Dirty else '')
-        if QtCompatVersion < 0x50000:
+        if QtCompatVersion < (5,0,0):
             # On Qt 4, we can't use setApplicationDisplayName(), so
             # we have to append ApplicationDisplayName manually.
             # I'm also avoiding using unicode literals (u'') because
