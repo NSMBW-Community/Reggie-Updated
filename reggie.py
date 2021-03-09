@@ -37,32 +37,40 @@ def importQt():
     A function to find a supported Qt bindings library. Using a function
     for this is helpful because it can return early and be imported by
     other modules that also need access to Qt.
-    Returns QtCore, QtGui, QtWidgets, and an int equivalent to PyQt's
-    QtCore.QT_VERSION.
+    Returns QtCore, QtGui, QtWidgets, an int equivalent to PyQt's
+    QtCore.QT_VERSION, an int equivalent to PyQt's QtCore.PYQT_VERSION,
+    and the string name of the Qt bindings (e.g. "PyQt5").
     """
     try:
         from PyQt5 import QtCore, QtGui, QtWidgets
-        return QtCore, QtGui, QtWidgets, QtCore.QT_VERSION
+        return QtCore, QtGui, QtWidgets, QtCore.QT_VERSION, QtCore.PYQT_VERSION, 'PyQt5'
     except ImportError:
         pass
 
     try:
         from PyQt4 import QtCore, QtGui
-        return QtCore, QtGui, QtGui, QtCore.QT_VERSION
+        return QtCore, QtGui, QtGui, QtCore.QT_VERSION, QtCore.PYQT_VERSION, 'PyQt4'
     except ImportError:
         pass
 
     try:
+        import PySide2
         from PySide2 import QtCore, QtGui, QtWidgets
-        qcvi = QtCore.__version_info__
+
+        qcv = QtCore.qVersion()
+        qcvi = [int(c) for c in qcv.split('.')]
         QtCompatVersion = (qcvi[0] << 16) | (qcvi[1] << 8) | qcvi[2]
-        return QtCore, QtGui, QtWidgets, QtCompatVersion
+
+        ps2vi = PySide2.__version_info__
+        QtBindingsVersion = (ps2vi[0] << 16) | (ps2vi[1] << 8) | ps2vi[2]
+
+        return QtCore, QtGui, QtWidgets, QtCompatVersion, QtBindingsVersion, 'PySide2'
     except ImportError:
         pass
 
     raise RuntimeError('Could not find any supported Qt bindings. Please read the readme for more information.')
 
-QtCore, QtGui, QtWidgets, QtCompatVersion = importQt()
+QtCore, QtGui, QtWidgets, QtCompatVersion, QtBindingsVersion, QtName = importQt()
 
 import archive
 import lz77

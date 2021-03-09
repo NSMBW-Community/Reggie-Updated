@@ -20,7 +20,7 @@
 
 from reggie import importQt
 
-QtCore, QtGui, QtWidgets, QtCompatVersion = importQt()
+QtCore, QtGui, QtWidgets, QtCompatVersion, QtBindingsVersion, QtName = importQt()
 
 # Some Py2/Py3 compatibility helpers
 _ord = ord
