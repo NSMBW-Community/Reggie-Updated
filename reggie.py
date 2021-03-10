@@ -9566,6 +9566,9 @@ def main():
     # load the settings
     settings = QtCore.QSettings('Reggie', 'Reggie Level Editor')
 
+    if '-clear-settings' in sys.argv:
+        settings.clear()
+
     global EnableAlpha, GridEnabled
     global ObjectsNonFrozen, SpritesNonFrozen, EntrancesNonFrozen, LocationsNonFrozen, PathsNonFrozen
 
