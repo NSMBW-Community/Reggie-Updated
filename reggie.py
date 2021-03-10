@@ -99,17 +99,20 @@ except ImportError:
 
 # Some Py2/Py3 compatibility helpers
 
-if sys.version_info.major < 3:
-    _unicode = unicode
-def unicode(*args, **kwargs):
-    if sys.version_info.major < 3:
-        return _unicode(*args, **kwargs)
-    return str(*args, **kwargs)
+if sys.version_info.major >= 3:
+    unicode = str
+    intsToBytes = bytes
 
-def keyInAttribs(key, node):
-    if sys.version_info.major < 3:
+    def keyInAttribs(key, node):
+        return key in node.attributes
+
+else:
+
+    def intsToBytes(L):
+        return b''.join(chr(x) for x in L)
+
+    def keyInAttribs(key, node):
         return node.attributes.has_key(key)
-    return key in node.attributes
 
 def toPyObject(x):
     if QtCompatVersion < (5,0,0):
@@ -121,11 +124,6 @@ def ord(x):
     if isinstance(x, int):
         return x
     return _ord(x)
-
-def intsToBytes(L):
-    if sys.version_info.major < 3:
-        return b''.join(chr(x) for x in L)
-    return bytes(L)
 
 def QFileDialog_getOpenFileName(*args, **kwargs):
     retVal = QtWidgets.QFileDialog.getOpenFileName(*args, **kwargs)
