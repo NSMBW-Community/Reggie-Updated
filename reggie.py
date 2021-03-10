@@ -9579,6 +9579,11 @@ def main():
     PathsNonFrozen = (toPyObject(settings.value('FreezePaths', 'false')) == 'false')
     LocationsNonFrozen = (toPyObject(settings.value('FreezeLocations', 'false')) == 'false')
 
+    for arg in sys.argv:
+        if arg.startswith('-gamepath='):
+            settings.setValue('GamePath', arg[10:])
+            break
+
     if settings.contains('GamePath'):
         SetGamePath(toPyObject(settings.value('GamePath')))
 
