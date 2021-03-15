@@ -9541,7 +9541,7 @@ def main():
     # go to the script path
     path = module_path()
     if path is not None:
-        os.chdir(module_path())
+        os.chdir(path)
 
     # check if required files are missing
     if FilesAreMissing():
