@@ -7115,6 +7115,8 @@ class ReggieWindow(QtWidgets.QMainWindow):
         """Editor window constructor"""
         super(ReggieWindow, self).__init__(None)
 
+        self.setUnifiedTitleAndToolBarOnMac(True)
+
         # Reggie Version number goes below here. 64 char max (32 if non-ascii).
         self.ReggieInfo = ReggieID
 
