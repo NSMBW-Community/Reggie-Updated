@@ -9656,14 +9656,14 @@ def main():
     global EnableAlpha, GridEnabled, DarkMode
     global ObjectsNonFrozen, SpritesNonFrozen, EntrancesNonFrozen, LocationsNonFrozen, PathsNonFrozen
 
-    # note: the .lower() is required for macOS specifically
-    GridEnabled = (toPyObject(settings.value('GridEnabled', 'false')).lower() == 'true')
-    DarkMode = (toPyObject(settings.value('DarkMode', 'false')).lower() == 'true')
-    ObjectsNonFrozen = (toPyObject(settings.value('FreezeObjects', 'false')).lower() == 'false')
-    SpritesNonFrozen = (toPyObject(settings.value('FreezeSprites', 'false')).lower() == 'false')
-    EntrancesNonFrozen = (toPyObject(settings.value('FreezeEntrances', 'false')).lower() == 'false')
-    PathsNonFrozen = (toPyObject(settings.value('FreezePaths', 'false')).lower() == 'false')
-    LocationsNonFrozen = (toPyObject(settings.value('FreezeLocations', 'false')).lower() == 'false')
+    # note: the str().lower() is for macOS, where bools in settings aren't automatically stringified
+    GridEnabled = (str(toPyObject(settings.value('GridEnabled', 'false'))).lower() == 'true')
+    DarkMode = (str(toPyObject(settings.value('DarkMode', 'false'))).lower() == 'true')
+    ObjectsNonFrozen = (str(toPyObject(settings.value('FreezeObjects', 'false'))).lower() == 'false')
+    SpritesNonFrozen = (str(toPyObject(settings.value('FreezeSprites', 'false'))).lower() == 'false')
+    EntrancesNonFrozen = (str(toPyObject(settings.value('FreezeEntrances', 'false'))).lower() == 'false')
+    PathsNonFrozen = (str(toPyObject(settings.value('FreezePaths', 'false'))).lower() == 'false')
+    LocationsNonFrozen = (str(toPyObject(settings.value('FreezeLocations', 'false'))).lower() == 'false')
 
     if DarkMode:
         setupDarkMode()
