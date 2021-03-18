@@ -9562,7 +9562,10 @@ def main():
     sprites.Setup()
 
     # load the settings
-    settings = QtCore.QSettings('Reggie', 'Reggie Level Editor (%s)' % QtName)
+    if os.path.isfile('portable.txt'):
+        settings = QtCore.QSettings('settings_Reggie_%s.ini' % QtName, QtCore.QSettings.IniFormat)
+    else:
+        settings = QtCore.QSettings('Reggie', 'Reggie Level Editor (%s)' % QtName)
 
     if '-clear-settings' in sys.argv:
         settings.clear()
