@@ -114,6 +114,14 @@ except ImportError:
     nsmblib = None
     print('>>   [ ] NSMBLib is installed')
 
+# Darkdetect being installed
+try:
+    import darkdetect
+    print('>>   [X] Darkdetect is installed')
+except ImportError:
+    darkdetect = None
+    print('>>   [ ] Darkdetect is installed')
+
 # UPX being installed
 
 # There seems to be no reliable way to determine in this script if
@@ -131,6 +139,9 @@ if sys.flags.optimize < 2:
 
 if nsmblib is None:
     print_emphasis('>> WARNING: NSMBLib does not seem to be installed! Please consider installing it prior to building.')
+
+if darkdetect is None:
+    print_emphasis('>> WARNING: Darkdetect does not seem to be installed! Please consider installing it prior to building.')
 
 print_emphasis('>> NOTE: If the PyInstaller output below says "INFO: UPX is not available.", you should install UPX!')
 
