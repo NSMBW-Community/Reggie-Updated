@@ -109,7 +109,7 @@ jobs:
       run: |
         $PYTHON_CMD -m pip install --upgrade pip
         $PYTHON_CMD -m pip install wheel
-        $PYTHON_CMD -m pip install PyQt5 nsmblib darkdetect
+        $PYTHON_CMD -m pip install PyQt5 nsmblib
     - name: Install PyInstaller (Windows/Linux)
       if: ${{ runner.os == 'Windows' || runner.os == 'Linux' }}
       shell: bash

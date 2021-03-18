@@ -97,13 +97,6 @@ try:
 except ImportError:
     HaveNSMBLib = False
 
-# use darkdetect if possible
-try:
-    import darkdetect
-    HaveDarkDetect = True
-except ImportError:
-    HaveDarkDetect = False
-
 # Some Py2/Py3 compatibility helpers
 
 if sys.version_info.major >= 3:
@@ -259,10 +252,6 @@ def isValidGamePath(check='ug'):
 def setupDarkMode():
     """Sets up dark mode theming"""
     # Taken from https://gist.github.com/QuantumCD/6245215
-
-    if HaveDarkDetect and darkdetect.isDark():
-        # Already using system-wide dark theme -- don't apply our custom one
-        return
 
     app.setStyle(QtWidgets.QStyleFactory.create('Fusion'))
 
