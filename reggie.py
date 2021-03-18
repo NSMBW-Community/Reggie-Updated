@@ -1,5 +1,5 @@
-#!/usr/bin/env python
-# -*- coding: latin-1 -*-
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
 
 # Reggie! - New Super Mario Bros. Wii Level Editor
 # Copyright (C) 2009-2010 Treeki, Tempus
@@ -34,35 +34,42 @@ from xml.dom import minidom
 
 def importQt():
     """
-    A function to find a supported Qt bindings library. Using a function
-    for this is helpful because it can return early and be imported by
-    other modules that also need access to Qt.
-    Returns QtCore, QtGui, QtWidgets, and an int equivalent to PyQt's
-    QtCore.QT_VERSION.
+    Find a supported Qt bindings library. Return a tuple containing:
+    - QtCore
+    - QtGui
+    - QtWidgets
+    - The runtime Qt version: (a, b, c) for version a.b.c
+    - The runtime Qt bindings version: (a, b, c) for version a.b.c
+    - The human-friendly string name of the Qt bindings (e.g. "PyQt6")
     """
+    def parseQVersion(v):
+        return tuple([int(c) for c in v.split('.')])
+
+    def pyqtVersionToTuple(v):
+        return (v >> 16, (v >> 8) & 0xff, v & 0xff)
+
     try:
         from PyQt5 import QtCore, QtGui, QtWidgets
-        return QtCore, QtGui, QtWidgets, QtCore.QT_VERSION
+        return QtCore, QtGui, QtWidgets, parseQVersion(QtCore.qVersion()), pyqtVersionToTuple(QtCore.PYQT_VERSION), 'PyQt5'
     except ImportError:
         pass
 
     try:
         from PyQt4 import QtCore, QtGui
-        return QtCore, QtGui, QtGui, QtCore.QT_VERSION
+        return QtCore, QtGui, QtGui, parseQVersion(QtCore.qVersion()), pyqtVersionToTuple(QtCore.PYQT_VERSION), 'PyQt4'
     except ImportError:
         pass
 
     try:
+        import PySide2
         from PySide2 import QtCore, QtGui, QtWidgets
-        qcvi = QtCore.__version_info__
-        QtCompatVersion = (qcvi[0] << 16) | (qcvi[1] << 8) | qcvi[2]
-        return QtCore, QtGui, QtWidgets, QtCompatVersion
+        return QtCore, QtGui, QtWidgets, parseQVersion(QtCore.qVersion()), PySide2.__version_info__, 'PySide2'
     except ImportError:
         pass
 
     raise RuntimeError('Could not find any supported Qt bindings. Please read the readme for more information.')
 
-QtCore, QtGui, QtWidgets, QtCompatVersion = importQt()
+QtCore, QtGui, QtWidgets, QtCompatVersion, QtBindingsVersion, QtName = importQt()
 
 import archive
 import lz77
@@ -72,7 +79,7 @@ ReggieID = 'Reggie-Updated by Treeki, Tempus'
 ApplicationDisplayName = 'Reggie! Level Editor'
 
 
-if QtCompatVersion < 0x40600 or not hasattr(QtWidgets.QGraphicsItem, 'ItemSendsGeometryChanges'):
+if QtCompatVersion < (4,6,0) or not hasattr(QtWidgets.QGraphicsItem, 'ItemSendsGeometryChanges'):
     # enables itemChange being called on QGraphicsItem
     QtWidgets.QGraphicsItem.ItemSendsGeometryChanges = QtWidgets.QGraphicsItem.GraphicsItemFlag(0x800)
 
@@ -92,20 +99,23 @@ except ImportError:
 
 # Some Py2/Py3 compatibility helpers
 
-if sys.version_info.major < 3:
-    _unicode = unicode
-def unicode(*args, **kwargs):
-    if sys.version_info.major < 3:
-        return _unicode(*args, **kwargs)
-    return str(*args, **kwargs)
+if sys.version_info.major >= 3:
+    unicode = str
+    intsToBytes = bytes
 
-def keyInAttribs(key, node):
-    if sys.version_info.major < 3:
+    def keyInAttribs(key, node):
+        return key in node.attributes
+
+else:
+
+    def intsToBytes(L):
+        return b''.join(chr(x) for x in L)
+
+    def keyInAttribs(key, node):
         return node.attributes.has_key(key)
-    return key in node.attributes
 
 def toPyObject(x):
-    if QtCompatVersion < 0x50000:
+    if QtCompatVersion < (5,0,0):
         return x.toPyObject()
     return x
 
@@ -115,25 +125,20 @@ def ord(x):
         return x
     return _ord(x)
 
-def intsToBytes(L):
-    if sys.version_info.major < 3:
-        return b''.join(chr(x) for x in L)
-    return bytes(L)
-
 def QFileDialog_getOpenFileName(*args, **kwargs):
     retVal = QtWidgets.QFileDialog.getOpenFileName(*args, **kwargs)
-    if QtCompatVersion < 0x50000:
+    if QtCompatVersion < (5,0,0):
         return retVal
     return retVal[0]
 
 def QFileDialog_getSaveFileName(*args, **kwargs):
     retVal = QtWidgets.QFileDialog.getSaveFileName(*args, **kwargs)
-    if QtCompatVersion < 0x50000:
+    if QtCompatVersion < (5,0,0):
         return retVal
     return retVal[0]
 
 def QValidatorValidateReturnValue(state, input, pos):
-    if QtCompatVersion < 0x50000:
+    if QtCompatVersion < (5,0,0):
         return state, pos
     return state, input, pos
 
@@ -3692,7 +3697,7 @@ class ObjectPickerWidget(QtWidgets.QListView):
             if ObjectDefinitions[idx] is None: return
 
             # begin/endResetModel are only in Qt 4.6...
-            if QtCompatVersion >= 0x40600:
+            if QtCompatVersion >= (4,6,0):
                 self.beginResetModel()
 
             self.items = []
@@ -3732,7 +3737,7 @@ class ObjectPickerWidget(QtWidgets.QListView):
                 else:
                     self.tooltips.append('Object %d' % i)
 
-            if QtCompatVersion >= 0x40600:
+            if QtCompatVersion >= (4,6,0):
                 self.endResetModel()
             else:
                 self.reset()
@@ -4776,9 +4781,23 @@ class ItemEditorDockWidget(QtWidgets.QDockWidget):
         super(ItemEditorDockWidget, self).__init__(*args, **kwargs)
         self.topLevelChanged.connect(self.handleTopLevelChanged)
 
+        # During the very first launch (empty QSettings), the following
+        # sequence of things happens:
+        # - initialization
+        # - .setActive(False), with self.isFloating() == False
+        # - .handleTopLevelChanged(True)
+        # Normally, we would leave the widget visible in that case,
+        # since it corresponds to the user undocking an item editor for
+        # an unselected type of object (and of course they'd want to
+        # continue to see it while they drag it somewhere). But during
+        # the first launch, all of the docks need to be hidden. So we
+        # special-case this using self.initialSetup.
+        self.initialSetup = (not settings.contains('MainWindowGeometry'))
+
     def handleTopLevelChanged(self, topLevel):
-        if not topLevel:
-            self.setVisible(True)
+        if self.initialSetup:
+            self.setVisible(False)
+            self.initialSetup = False
 
     def setActive(self, active):
         if self.isFloating():
@@ -6254,6 +6273,14 @@ class ZoneTab(QtWidgets.QWidget):
         if z.direction >= len(addList): z.direction = len(addList) - 1
         self.Zone_direction.setCurrentIndex(z.direction)
 
+        self.Zone_direction = QtWidgets.QComboBox()
+        self.Zone_direction.setToolTip('<b>Zone Direction:</b><br>Sets the general direction of progression through this zone. This is mainly used in multiplayer mode to help the camera decide which player is "in front of" the others.<br><br>"Bias" sets the camera\'s preferred movement direction perpendicular to the main one. The default bias is downward or rightward. Upward bias causes more bottom-of-screen deaths and is not recommended.')
+        addList = ['Right', 'Right (upward bias)', 'Left', 'Left (upward bias)', 'Down', 'Down (leftward bias)', 'Up', 'Up (leftward bias)']
+        self.Zone_direction.addItems(addList)
+        if z.direction < 0: z.direction = 0
+        if z.direction >= len(addList): z.direction = len(addList) - 1
+        self.Zone_direction.setCurrentIndex(z.direction)
+
         self.Zone_yrestrict = QtWidgets.QCheckBox()
         self.Zone_yrestrict.setToolTip('<b>Only Scroll Upwards If Flying:</b><br>Prevents the screen from scrolling upwards unless the player uses a Propeller Suit or Block.<br><br>This feature looks rather glitchy and is not recommended.')
         self.Zone_yrestrict.setChecked(z.mpcamzoomadjust != 15)
@@ -7110,6 +7137,8 @@ class ReggieWindow(QtWidgets.QMainWindow):
         """Editor window constructor"""
         super(ReggieWindow, self).__init__(None)
 
+        self.setUnifiedTitleAndToolBarOnMac(True)
+
         # Reggie Version number goes below here. 64 char max (32 if non-ascii).
         self.ReggieInfo = ReggieID
 
@@ -7130,7 +7159,7 @@ class ReggieWindow(QtWidgets.QMainWindow):
         appIcon = QtGui.QIcon('reggiedata/icon_reggie.png')
         appIcon.addPixmap(QtGui.QPixmap('reggiedata/icon_reggie_lg.png'))
         app.setWindowIcon(appIcon)
-        if QtCompatVersion >= 0x50000:
+        if QtCompatVersion >= (5,0,0):
             app.setApplicationDisplayName(ApplicationDisplayName)
 
         # create the actions
@@ -7229,7 +7258,7 @@ class ReggieWindow(QtWidgets.QMainWindow):
         self.CreateAction('camprofiles', self.HandleCameraProfiles, GetIcon('camprofile'), 'Camera Profiles...', 'Edit event-activated camera settings', QtGui.QKeySequence('Ctrl+Alt+C'))
         self.CreateAction('metainfo', self.HandleInfo, None, 'Level Information...', 'Add title and author information to the metadata', QtGui.QKeySequence('Ctrl+Alt+I'))
 
-        self.CreateAction('aboutqt', app.aboutQt, None, 'About PyQt...', 'About the Qt library Reggie! is based on', QtGui.QKeySequence('Ctrl+Shift+Y'))
+        self.CreateAction('aboutqt', app.aboutQt, None, 'About Qt...', 'About the Qt library Reggie! is based on', QtGui.QKeySequence('Ctrl+Shift+Y'))
         self.CreateAction('infobox', self.InfoBox, GetIcon('about'), 'About Reggie!', 'Info about the program, and the team behind it', QtGui.QKeySequence('Ctrl+Shift+I'))
         self.CreateAction('helpbox', self.HelpBox, GetIcon('help'), 'Reggie! Help...', 'Help Documentation for the needy newbie', QtGui.QKeySequence('Ctrl+Shift+H'))
         self.CreateAction('tipbox', self.TipBox, GetIcon('tips'), 'Reggie! Tips...', 'Tips and controls for beginners and power users', QtGui.QKeySequence('Ctrl+Shift+T'))
@@ -7327,10 +7356,14 @@ class ReggieWindow(QtWidgets.QMainWindow):
         hmenu.addSeparator()
         hmenu.addAction(self.actions['aboutqt'])
         hmenu.addSeparator()
-        pyverAct = hmenu.addAction('Using Python %d.%d.%d' % sys.version_info[:3])
-        pyverAct.setEnabled(False)
-        nsmblibAct = hmenu.addAction(('Using NSMBLib %d' % nsmblib.getVersion()) if HaveNSMBLib else 'Not using NSMBLib')
-        nsmblibAct.setEnabled(False)
+        pyVerAct = hmenu.addAction('Using Python %d.%d.%d' % sys.version_info[:3])
+        pyVerAct.setEnabled(False)
+        bindingsVerAct = hmenu.addAction('Using %s %d.%d.%d' % (QtName, QtBindingsVersion[0], QtBindingsVersion[1], QtBindingsVersion[2]))
+        bindingsVerAct.setEnabled(False)
+        qtVerAct = hmenu.addAction('Using Qt %d.%d.%d' % QtCompatVersion)
+        qtVerAct.setEnabled(False)
+        nsmblibVerAct = hmenu.addAction(('Using NSMBLib %d' % nsmblib.getVersion()) if HaveNSMBLib else 'Not using NSMBLib')
+        nsmblibVerAct.setEnabled(False)
 
         # create a toolbar
         self.toolbar = self.addToolBar('Level Editor')
@@ -7486,9 +7519,13 @@ class ReggieWindow(QtWidgets.QMainWindow):
         self.objTS2Tab = QtWidgets.QWidget()
         self.objTS3Tab = QtWidgets.QWidget()
         tabs.addTab(self.objTS0Tab, tsicon, '1')
+        tabs.setTabToolTip(tabs.count() - 1, 'Tileset 1')
         tabs.addTab(self.objTS1Tab, tsicon, '2')
+        tabs.setTabToolTip(tabs.count() - 1, 'Tileset 2')
         tabs.addTab(self.objTS2Tab, tsicon, '3')
+        tabs.setTabToolTip(tabs.count() - 1, 'Tileset 3')
         tabs.addTab(self.objTS3Tab, tsicon, '4')
+        tabs.setTabToolTip(tabs.count() - 1, 'Tileset 4')
 
         oel = QtWidgets.QVBoxLayout(self.objTS0Tab)
         self.createObjectLayout = oel
@@ -7521,7 +7558,8 @@ class ReggieWindow(QtWidgets.QMainWindow):
 
         # sprite choosing tabs
         self.sprPickerTab = QtWidgets.QWidget()
-        tabs.addTab(self.sprPickerTab, GetIcon('sprites'), 'Sprites')
+        tabs.addTab(self.sprPickerTab, GetIcon('sprites'), '')
+        tabs.setTabToolTip(tabs.count() - 1, 'Sprites')
 
         spl = QtWidgets.QVBoxLayout(self.sprPickerTab)
         self.sprPickerLayout = spl
@@ -7558,6 +7596,8 @@ class ReggieWindow(QtWidgets.QMainWindow):
         self.sprPicker.SwitchView(SpriteCategories[0])
         spl.addWidget(self.sprPicker, 1)
 
+        viewpicker.setCurrentIndex(int(toPyObject(settings.value('SpriteView', 0))))
+
         self.defaultPropButton = QtWidgets.QPushButton('Set Default Properties')
         self.defaultPropButton.setEnabled(False)
         self.defaultPropButton.clicked.connect(self.ShowDefaultProps)
@@ -7585,7 +7625,8 @@ class ReggieWindow(QtWidgets.QMainWindow):
 
         # entrance tab
         self.entEditorTab = QtWidgets.QWidget()
-        tabs.addTab(self.entEditorTab, GetIcon('entrances'), 'Entrances')
+        tabs.addTab(self.entEditorTab, GetIcon('entrances'), '')
+        tabs.setTabToolTip(tabs.count() - 1, 'Entrances')
 
         eel = QtWidgets.QVBoxLayout(self.entEditorTab)
         self.entEditorLayout = eel
@@ -7600,7 +7641,8 @@ class ReggieWindow(QtWidgets.QMainWindow):
 
         # paths tab
         self.pathEditorTab = QtWidgets.QWidget()
-        tabs.addTab(self.pathEditorTab, GetIcon('paths'), 'Paths')
+        tabs.addTab(self.pathEditorTab, GetIcon('paths'), '')
+        tabs.setTabToolTip(tabs.count() - 1, 'Paths')
 
         pathel = QtWidgets.QVBoxLayout(self.pathEditorTab)
         self.pathEditorLayout = pathel
@@ -7693,7 +7735,7 @@ class ReggieWindow(QtWidgets.QMainWindow):
     def UpdateTitle(self):
         """Sets the window title accordingly"""
         windowTitle = Level.filename + (' [unsaved]' if Dirty else '')
-        if QtCompatVersion < 0x50000:
+        if QtCompatVersion < (5,0,0):
             # On Qt 4, we can't use setApplicationDisplayName(), so
             # we have to append ApplicationDisplayName manually.
             # I'm also avoiding using unicode literals (u'') because
@@ -9068,6 +9110,8 @@ class ReggieWindow(QtWidgets.QMainWindow):
         layout.itemAt(0).widget().setVisible(isSearch)
         layout.itemAt(1).widget().setVisible(isSearch)
 
+        settings.setValue('SpriteView', type)
+
 
     @QtCoreSlot(str)
     def NewSearchTerm(self, text):
@@ -9365,6 +9409,8 @@ class ReggieWindow(QtWidgets.QMainWindow):
 
                 z.direction = tab.Zone_direction.currentIndex()
 
+                z.direction = tab.Zone_direction.currentIndex()
+
                 if tab.Zone_yrestrict.isChecked():
                     z.mpcamzoomadjust = tab.Zone_mpzoomadjust.value()
                 else:
@@ -9533,7 +9579,7 @@ def main():
     # go to the script path
     path = module_path()
     if path is not None:
-        os.chdir(module_path())
+        os.chdir(path)
 
     # check if required files are missing
     if FilesAreMissing():
@@ -9554,17 +9600,29 @@ def main():
     sprites.Setup()
 
     # load the settings
-    settings = QtCore.QSettings('Reggie', 'Reggie Level Editor')
+    if os.path.isfile('portable.txt'):
+        settings = QtCore.QSettings('settings_Reggie_%s.ini' % QtName, QtCore.QSettings.IniFormat)
+    else:
+        settings = QtCore.QSettings('Reggie', 'Reggie Level Editor (%s)' % QtName)
+
+    if '-clear-settings' in sys.argv:
+        settings.clear()
 
     global EnableAlpha, GridEnabled
     global ObjectsNonFrozen, SpritesNonFrozen, EntrancesNonFrozen, LocationsNonFrozen, PathsNonFrozen
 
-    GridEnabled = (toPyObject(settings.value('GridEnabled', 'false')) == 'true')
-    ObjectsNonFrozen = (toPyObject(settings.value('FreezeObjects', 'false')) == 'false')
-    SpritesNonFrozen = (toPyObject(settings.value('FreezeSprites', 'false')) == 'false')
-    EntrancesNonFrozen = (toPyObject(settings.value('FreezeEntrances', 'false')) == 'false')
-    PathsNonFrozen = (toPyObject(settings.value('FreezePaths', 'false')) == 'false')
-    LocationsNonFrozen = (toPyObject(settings.value('FreezeLocations', 'false')) == 'false')
+    # note: the str().lower() is for macOS, where bools in settings aren't automatically stringified
+    GridEnabled = (str(toPyObject(settings.value('GridEnabled', 'false'))).lower() == 'true')
+    ObjectsNonFrozen = (str(toPyObject(settings.value('FreezeObjects', 'false'))).lower() == 'false')
+    SpritesNonFrozen = (str(toPyObject(settings.value('FreezeSprites', 'false'))).lower() == 'false')
+    EntrancesNonFrozen = (str(toPyObject(settings.value('FreezeEntrances', 'false'))).lower() == 'false')
+    PathsNonFrozen = (str(toPyObject(settings.value('FreezePaths', 'false'))).lower() == 'false')
+    LocationsNonFrozen = (str(toPyObject(settings.value('FreezeLocations', 'false'))).lower() == 'false')
+
+    for arg in sys.argv:
+        if arg.startswith('-gamepath='):
+            settings.setValue('GamePath', arg[10:])
+            break
 
     if settings.contains('GamePath'):
         SetGamePath(toPyObject(settings.value('GamePath')))

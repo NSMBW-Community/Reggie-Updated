@@ -1,5 +1,5 @@
-#!/usr/bin/python
-# -*- coding: latin-1 -*-
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
 
 # Reggie! - New Super Mario Bros. Wii Level Editor
 # Copyright (C) 2009-2010 Treeki, Tempus
