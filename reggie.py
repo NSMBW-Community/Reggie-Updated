@@ -288,7 +288,10 @@ def setupDarkMode():
 
     app.setPalette(darkPalette)
 
-    app.setStyleSheet('QToolTip { color: #ffffff; background-color: #2a82da; border: 1px solid white }')
+    app.setStyleSheet("""
+        QToolTip { color: #ffffff; background-color: #2a82da; border: 1px solid white }
+        #qt_toolbar_ext_button { background-color: #666; border: 1px solid #888; border-radius: 2px }
+    """)
 
 
 LevelNames = None
