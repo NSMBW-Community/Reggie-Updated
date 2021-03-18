@@ -249,6 +249,36 @@ def isValidGamePath(check='ug'):
     return True
 
 
+def setupDarkMode():
+    """Sets up dark mode theming"""
+    # Taken from https://gist.github.com/QuantumCD/6245215
+
+    app.setStyle(QtWidgets.QStyleFactory.create('Fusion'))
+
+    darkPalette = QtGui.QPalette()
+    darkPalette.setColor(QtGui.QPalette.Window, QtGui.QColor(53,53,53))
+    darkPalette.setColor(QtGui.QPalette.WindowText, QtCore.Qt.white)
+    darkPalette.setColor(QtGui.QPalette.Base, QtGui.QColor(25,25,25))
+    darkPalette.setColor(QtGui.QPalette.AlternateBase, QtGui.QColor(53,53,53))
+    darkPalette.setColor(QtGui.QPalette.ToolTipBase, QtCore.Qt.white)
+    darkPalette.setColor(QtGui.QPalette.ToolTipText, QtCore.Qt.white)
+    darkPalette.setColor(QtGui.QPalette.Text, QtCore.Qt.white)
+    darkPalette.setColor(QtGui.QPalette.Button, QtGui.QColor(53,53,53))
+    darkPalette.setColor(QtGui.QPalette.ButtonText, QtCore.Qt.white)
+    darkPalette.setColor(QtGui.QPalette.BrightText, QtCore.Qt.red)
+    darkPalette.setColor(QtGui.QPalette.Link, QtGui.QColor(42, 130, 218))
+
+    darkPalette.setColor(QtGui.QPalette.Highlight, QtGui.QColor(42, 130, 218))
+    darkPalette.setColor(QtGui.QPalette.HighlightedText, QtCore.Qt.black)
+
+    # fix for disabled menu options
+    darkPalette.setColor(QtGui.QPalette.Disabled, QtGui.QPalette.Text, QtGui.QColor(127,127,127))
+    darkPalette.setColor(QtGui.QPalette.Disabled, QtGui.QPalette.Light, QtGui.QColor(53,53,53))
+
+    app.setPalette(darkPalette)
+
+    app.setStyleSheet('QToolTip { color: #ffffff; background-color: #2a82da; border: 1px solid white }')
+
 
 LevelNames = None
 def LoadLevelNames():
@@ -2205,6 +2235,14 @@ class LevelUnit():
         return pickletools.optimize(pickle.dumps(info, 2))
 
 
+def itemBoxFillOpacities():
+    """Return opacities for selected and unselected states"""
+    if DarkMode:
+        return 255, 180
+    else:
+        return 240, 120
+
+
 class LevelEditorItem(QtWidgets.QGraphicsItem):
     """Class for any type of item that can show up in the level editor control"""
     positionChanged = None # Callback: positionChanged(LevelEditorItem obj, int oldx, int oldy, int x, int y)
@@ -2572,10 +2610,15 @@ class ZoneItem(LevelEditorItem):
         #painter.setClipRect(option.exposedRect)
         painter.setRenderHint(QtGui.QPainter.Antialiasing)
 
+        if DarkMode:
+            textColor = QtGui.QColor.fromRgba(0xFFCAE0F9)
+        else:
+            textColor = QtGui.QColor.fromRgba(0xFF2C4054)
+
         painter.setPen(QtGui.QPen(QtGui.QColor.fromRgba(0xB093C9FF), 3))
         painter.drawRect(self.DrawRect)
 
-        painter.setPen(QtGui.QPen(QtGui.QColor.fromRgba(0xFF2C4054), 3))
+        painter.setPen(QtGui.QPen(textColor, 3))
         painter.setFont(self.font)
         painter.drawText(self.TitlePos, self.title)
 
@@ -3024,6 +3067,12 @@ class SpriteEditorItem(LevelEditorItem):
         painter.setClipRect(option.exposedRect)
         painter.setRenderHint(QtGui.QPainter.Antialiasing)
 
+        selectedOpacity, unselectedOpacity = itemBoxFillOpacities()
+        if DarkMode:
+            fillR, fillG, fillB = 30, 110, 196
+        else:
+            fillR, fillG, fillB = 0, 92, 196
+
         if self.customPaint:
             self.customPainter(self, painter)
             if self.isSelected():
@@ -3032,10 +3081,10 @@ class SpriteEditorItem(LevelEditorItem):
                 painter.fillRect(self.SelectionRect, QtGui.QColor.fromRgb(255,255,255,64))
         else:
             if self.isSelected():
-                painter.setBrush(QtGui.QBrush(QtGui.QColor.fromRgb(0,92,196,240)))
+                painter.setBrush(QtGui.QBrush(QtGui.QColor.fromRgb(fillR,fillG,fillB,selectedOpacity)))
                 painter.setPen(QtGui.QPen(QtCore.Qt.white, 1))
             else:
-                painter.setBrush(QtGui.QBrush(QtGui.QColor.fromRgb(0,92,196,120)))
+                painter.setBrush(QtGui.QBrush(QtGui.QColor.fromRgb(fillR,fillG,fillB,unselectedOpacity)))
                 painter.setPen(QtGui.QPen(QtCore.Qt.black, 1))
             painter.drawRoundedRect(self.RoundedRect, 4, 4)
 
@@ -3125,11 +3174,18 @@ class EntranceEditorItem(LevelEditorItem):
         """Paints the object"""
         painter.setClipRect(option.exposedRect)
         painter.setRenderHint(QtGui.QPainter.Antialiasing)
+
+        selectedOpacity, unselectedOpacity = itemBoxFillOpacities()
+        if DarkMode:
+            fillR, fillG, fillB = 255, 50, 50
+        else:
+            fillR, fillG, fillB = 190, 0, 0
+
         if self.isSelected():
-            painter.setBrush(QtGui.QBrush(QtGui.QColor.fromRgb(190,0,0,240)))
+            painter.setBrush(QtGui.QBrush(QtGui.QColor.fromRgb(fillR,fillG,fillB,selectedOpacity)))
             painter.setPen(QtGui.QPen(QtCore.Qt.white, 1))
         else:
-            painter.setBrush(QtGui.QBrush(QtGui.QColor.fromRgb(190,0,0,120)))
+            painter.setBrush(QtGui.QBrush(QtGui.QColor.fromRgb(fillR,fillG,fillB,unselectedOpacity)))
             painter.setPen(QtGui.QPen(QtCore.Qt.black, 1))
         painter.drawRoundedRect(self.RoundedRect, 4, 4)
 
@@ -3264,11 +3320,13 @@ class PathEditorItem(LevelEditorItem):
         painter.setRenderHint(QtGui.QPainter.Antialiasing)
         painter.setClipRect(option.exposedRect)
 
+        selectedOpacity, unselectedOpacity = itemBoxFillOpacities()
+
         if self.isSelected():
-            painter.setBrush(QtGui.QBrush(QtGui.QColor.fromRgb(6,249,20,240)))
+            painter.setBrush(QtGui.QBrush(QtGui.QColor.fromRgb(6,249,20,selectedOpacity)))
             painter.setPen(QtGui.QPen(QtCore.Qt.white, 1))
         else:
-            painter.setBrush(QtGui.QBrush(QtGui.QColor.fromRgb(6,249,20,120)))
+            painter.setBrush(QtGui.QBrush(QtGui.QColor.fromRgb(6,249,20,unselectedOpacity)))
             painter.setPen(QtGui.QPen(QtCore.Qt.black, 1))
         painter.drawRoundedRect(self.RoundedRect, 4, 4)
 
@@ -3417,7 +3475,11 @@ class LevelOverviewWidget(QtWidgets.QWidget):
         super(LevelOverviewWidget, self).__init__()
         self.setSizePolicy(QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.MinimumExpanding, QtWidgets.QSizePolicy.MinimumExpanding))
 
-        self.bgbrush = QtGui.QBrush(QtGui.QColor.fromRgb(119,136,153))
+        if DarkMode:
+            bgcolor = QtGui.QColor.fromRgb(32, 32, 32)
+        else:
+            bgcolor = QtGui.QColor.fromRgb(119,136,153)
+        self.bgbrush = QtGui.QBrush(bgcolor)
         self.objbrush = QtGui.QBrush(QtGui.QColor.fromRgb(255,255,255))
         self.viewbrush = QtGui.QBrush(QtGui.QColor.fromRgb(47,79,79,120))
         self.view = QtCore.QRectF(0,0,0,0)
@@ -4816,7 +4878,11 @@ class ItemEditorDockWidget(QtWidgets.QDockWidget):
 class LevelScene(QtWidgets.QGraphicsScene):
     """GraphicsScene subclass for the level scene"""
     def __init__(self, *args):
-        self.bgbrush = QtGui.QBrush(QtGui.QColor.fromRgb(119,136,153))
+        if DarkMode:
+            bgcolor = QtGui.QColor.fromRgb(32, 32, 32)
+        else:
+            bgcolor = QtGui.QColor.fromRgb(119,136,153)
+        self.bgbrush = QtGui.QBrush(bgcolor)
         super(LevelScene, self).__init__(*args)
 
     def drawBackground(self, painter, rect):
@@ -5362,6 +5428,11 @@ class LevelViewWidget(QtWidgets.QGraphicsView):
         Zoom = mainWindow.ZoomLevel
         drawLine = painter.drawLine
 
+        if DarkMode:
+            opacity = 50
+        else:
+            opacity = 100
+
         if Zoom >= 50:
             startx = rect.x()
             startx -= (startx % 24)
@@ -5371,7 +5442,7 @@ class LevelViewWidget(QtWidgets.QGraphicsView):
             starty -= (starty % 24)
             endy = starty + rect.height() + 24
 
-            painter.setPen(QtGui.QPen(QtGui.QColor.fromRgb(255,255,255,100), 1, QtCore.Qt.DotLine))
+            painter.setPen(QtGui.QPen(QtGui.QColor.fromRgb(255,255,255,opacity), 1, QtCore.Qt.DotLine))
 
             x = startx
             y1 = rect.top()
@@ -5397,7 +5468,7 @@ class LevelViewWidget(QtWidgets.QGraphicsView):
             starty -= (starty % 96)
             endy = starty + rect.height() + 96
 
-            painter.setPen(QtGui.QPen(QtGui.QColor.fromRgb(255,255,255,100), 1, QtCore.Qt.DashLine))
+            painter.setPen(QtGui.QPen(QtGui.QColor.fromRgb(255,255,255,opacity), 1, QtCore.Qt.DashLine))
 
             x = startx
             y1 = rect.top()
@@ -5422,7 +5493,7 @@ class LevelViewWidget(QtWidgets.QGraphicsView):
         starty -= (starty % 192)
         endy = starty + rect.height() + 192
 
-        painter.setPen(QtGui.QPen(QtGui.QColor.fromRgb(255,255,255,100), 2, QtCore.Qt.DashLine))
+        painter.setPen(QtGui.QPen(QtGui.QColor.fromRgb(255,255,255,opacity), 2, QtCore.Qt.DashLine))
 
         x = startx
         y1 = rect.top()
@@ -7208,8 +7279,11 @@ class ReggieWindow(QtWidgets.QMainWindow):
         self.CreateAction('showlayer0', self.HandleUpdateLayer0, None, 'Layer 0', 'Toggle viewing of object layer 0', QtGui.QKeySequence('Ctrl+1'), True)
         self.CreateAction('showlayer1', self.HandleUpdateLayer1, None, 'Layer 1', 'Toggle viewing of object layer 1', QtGui.QKeySequence('Ctrl+2'), True)
         self.CreateAction('showlayer2', self.HandleUpdateLayer2, None, 'Layer 2', 'Toggle viewing of object layer 2', QtGui.QKeySequence('Ctrl+3'), True)
-        self.CreateAction('grid', self.HandleShowGrid, GetIcon('grid'), 'Show Grid', 'Show a grid over the level view', QtGui.QKeySequence('Ctrl+G'), True)
+        self.CreateAction('grid', self.HandleShowGrid, GetIcon('grid_white' if DarkMode else 'grid'), 'Show Grid', 'Show a grid over the level view', QtGui.QKeySequence('Ctrl+G'), True)
         self.actions['grid'].setChecked(GridEnabled)
+
+        self.CreateAction('darkmode', self.HandleDarkMode, GetIcon('darkmode'), 'Dark Mode', 'Turn dark mode on or off', None, True)
+        self.actions['darkmode'].setChecked(DarkMode)
 
         self.CreateAction('freezeobjects', self.HandleObjectsFreeze, None, 'Freeze Objects', 'Make objects non-selectable', QtGui.QKeySequence('Ctrl+Shift+1'), True)
         self.actions['freezeobjects'].setChecked(not ObjectsNonFrozen)
@@ -7309,6 +7383,9 @@ class ReggieWindow(QtWidgets.QMainWindow):
         vmenu.addAction(self.actions['zoomactual'])
         vmenu.addAction(self.actions['zoomout'])
         vmenu.addAction(self.actions['zoommin'])
+        vmenu.addSeparator()
+        vmenu.addAction(self.actions['darkmode'])
+        vmenu.addSeparator()
         # self.levelOverviewDock.toggleViewAction() is added here later
         # so we assign it to self.vmenu
         self.vmenu = vmenu
@@ -8536,6 +8613,15 @@ class ReggieWindow(QtWidgets.QMainWindow):
         self.scene.update()
 
 
+    @QtCoreSlot(bool)
+    def HandleDarkMode(self, checked):
+        """Handle toggling of dark mode"""
+        settings.setValue('DarkMode', checked)
+
+        if checked != DarkMode:
+            QtWidgets.QMessageBox.information(None, 'Dark Mode', 'This change will take effect when you restart Reggie!.')
+
+
     @QtCoreSlot()
     def HandleZoomIn(self):
         """Handle zooming in"""
@@ -9567,15 +9653,19 @@ def main():
     if '-clear-settings' in sys.argv:
         settings.clear()
 
-    global EnableAlpha, GridEnabled
+    global EnableAlpha, GridEnabled, DarkMode
     global ObjectsNonFrozen, SpritesNonFrozen, EntrancesNonFrozen, LocationsNonFrozen, PathsNonFrozen
 
     GridEnabled = (toPyObject(settings.value('GridEnabled', 'false')) == 'true')
+    DarkMode = (toPyObject(settings.value('DarkMode', 'false')) == 'true')
     ObjectsNonFrozen = (toPyObject(settings.value('FreezeObjects', 'false')) == 'false')
     SpritesNonFrozen = (toPyObject(settings.value('FreezeSprites', 'false')) == 'false')
     EntrancesNonFrozen = (toPyObject(settings.value('FreezeEntrances', 'false')) == 'false')
     PathsNonFrozen = (toPyObject(settings.value('FreezePaths', 'false')) == 'false')
     LocationsNonFrozen = (toPyObject(settings.value('FreezeLocations', 'false')) == 'false')
+
+    if DarkMode:
+        setupDarkMode()
 
     for arg in sys.argv:
         if arg.startswith('-gamepath='):
@@ -9632,6 +9722,8 @@ if '-alpha' in sys.argv:
     # nsmblib doesn't support -alpha so if it's enabled
     # then don't use it
     HaveNSMBLib = False
+
+DarkMode = False
 
 # check version
 if HaveNSMBLib:
