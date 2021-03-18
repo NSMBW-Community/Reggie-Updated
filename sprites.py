@@ -1858,17 +1858,6 @@ def InitCloudBlock(sprite): # 370
     sprite.image = ImageCache['CloudBlock']
     return (-4,-8,24,24)
 
-def InitMovingChainLink(sprite): #376
-    global ImageCache
-    if 'MovingChainLink0' not in ImageCache:
-        LoadMovingChainLink()
-
-    sprite.dynamicSize = True
-    sprite.dynSizer = SizeMovingChainLink
-    sprite.customPaint = True
-    sprite.customPainter = PaintMovingChainLink
-    return (-32,-32,64,64)
-
 def InitIceBlock(sprite): # 385
     global ImageCache
     if 'IceBlock00' not in ImageCache:
@@ -2428,7 +2417,6 @@ Initialisers = {
     369: InitSlidingPenguin,
     370: InitCloudBlock,
     371: InitSpecialCoin,
-    376: InitMovingChainLink,
     377: InitPipe,
     378: InitPipe,
     379: InitPipe,
@@ -3610,27 +3598,6 @@ def SizeSlidingPenguin(sprite): # 369
     else:
         sprite.image = ImageCache['PenguinR']
 
-def SizeMovingChainLink(sprite): #376
-    sprite.shape = ord(sprite.spritedata[4]) >> 4
-    sprite.direction = ord(sprite.spritedata[5]) & 15
-    arrow = None
-
-    if sprite.shape == 0:
-        sprite.xsize = 64
-        sprite.ysize = 64
-    elif sprite.shape == 1:
-        sprite.xsize = 64
-        sprite.ysize = 128
-    elif sprite.shape == 2:
-        sprite.xsize = 64
-        sprite.ysize = 224
-    elif sprite.shape == 3:
-        sprite.xsize = 192
-        sprite.ysize = 64
-
-    sprite.xoffset = sprite.xsize / 2 * -1
-    sprite.yoffset = sprite.ysize / 2 * -1
-
 def SizeIceBlock(sprite): # 385
     size = ord(sprite.spritedata[5])
     height = (size & 0x30) >> 4
@@ -3979,12 +3946,6 @@ def LoadPipeCannon():
         originalImg = QtGui.QImage('reggiedata/sprites/pipe_cannon_%d.png' % i)
         ImageCache['PipeCannonFlipped%d' % i] = QtGui.QPixmap.fromImage(originalImg.mirrored(True, False))
 
-def LoadMovingChainLink():
-    for shape in range(4):
-        ImageCache['MovingChainLink%d' % shape] = QtGui.QPixmap('reggiedata/sprites/moving_chain_link_%d.png' % shape)
-    for arrow in ['ud', 'lr']:
-        ImageCache['MovingChainArrow%s' % arrow] = QtGui.QPixmap('reggiedata/sprites/arrow_%s.png' % arrow)
-
 def LoadIceStuff():
     global ImageCache
     ImageCache['IcicleSmall'] = QtGui.QPixmap('reggiedata/sprites/icicle_small.png')
@@ -4171,24 +4132,6 @@ def PaintPokey(sprite, painter):
     painter.drawPixmap(QtCore.QPointF(0, 0), ImageCache['PokeyTop'])
     painter.drawTiledPixmap(QtCore.QRectF(0, 37, 36, sprite.ysize*1.5 - 61), ImageCache['PokeyMiddle'])
     painter.drawPixmap(QtCore.QPointF(0, sprite.ysize*1.5 - 24), ImageCache['PokeyBottom'])
-
-def PaintMovingChainLink(sprite, painter):
-    if sprite.direction == 0:
-        arrow = 'ud'
-    else:
-        arrow = 'lr'
-    xsize = sprite.xsize
-    ysize = sprite.ysize
-
-    painter.drawPixmap(0, 0, ImageCache['MovingChainLink%d' % sprite.shape])
-    if sprite.shape == 0:
-        painter.drawPixmap(QtCore.QPointF(xsize / 2 - 8, ysize / 2 - 8), ImageCache['MovingChainArrow%s' % arrow])
-    elif sprite.shape == 1:
-        painter.drawPixmap(QtCore.QPointF(xsize / 2 - 8, ysize / 2 + 8), ImageCache['MovingChainArrow%s' % arrow])
-    elif sprite.shape == 2:
-        painter.drawPixmap(QtCore.QPointF(xsize / 2 - 8, ysize / 2 + 32), ImageCache['MovingChainArrow%s' % arrow])
-    elif sprite.shape == 3:
-        painter.drawPixmap(QtCore.QPointF(xsize / 2 + 24, ysize / 2 - 8), ImageCache['MovingChainArrow%s' % arrow])
 
 def PaintColouredBox(sprite, painter):
     prefix = 'CBox%d' % sprite.colour

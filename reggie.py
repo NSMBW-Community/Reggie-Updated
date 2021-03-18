@@ -7190,6 +7190,8 @@ class ReggieWindow(QtWidgets.QMainWindow):
         """Editor window constructor"""
         super(ReggieWindow, self).__init__(None)
 
+        self.setUnifiedTitleAndToolBarOnMac(True)
+
         # Reggie Version number goes below here. 64 char max (32 if non-ascii).
         self.ReggieInfo = ReggieID
 
@@ -7576,9 +7578,13 @@ class ReggieWindow(QtWidgets.QMainWindow):
         self.objTS2Tab = QtWidgets.QWidget()
         self.objTS3Tab = QtWidgets.QWidget()
         tabs.addTab(self.objTS0Tab, tsicon, '1')
+        tabs.setTabToolTip(tabs.count() - 1, 'Tileset 1')
         tabs.addTab(self.objTS1Tab, tsicon, '2')
+        tabs.setTabToolTip(tabs.count() - 1, 'Tileset 2')
         tabs.addTab(self.objTS2Tab, tsicon, '3')
+        tabs.setTabToolTip(tabs.count() - 1, 'Tileset 3')
         tabs.addTab(self.objTS3Tab, tsicon, '4')
+        tabs.setTabToolTip(tabs.count() - 1, 'Tileset 4')
 
         oel = QtWidgets.QVBoxLayout(self.objTS0Tab)
         self.createObjectLayout = oel
@@ -7611,7 +7617,8 @@ class ReggieWindow(QtWidgets.QMainWindow):
 
         # sprite choosing tabs
         self.sprPickerTab = QtWidgets.QWidget()
-        tabs.addTab(self.sprPickerTab, GetIcon('sprites'), 'Sprites')
+        tabs.addTab(self.sprPickerTab, GetIcon('sprites'), '')
+        tabs.setTabToolTip(tabs.count() - 1, 'Sprites')
 
         spl = QtWidgets.QVBoxLayout(self.sprPickerTab)
         self.sprPickerLayout = spl
@@ -7648,6 +7655,8 @@ class ReggieWindow(QtWidgets.QMainWindow):
         self.sprPicker.SwitchView(SpriteCategories[0])
         spl.addWidget(self.sprPicker, 1)
 
+        viewpicker.setCurrentIndex(int(toPyObject(settings.value('SpriteView', 0))))
+
         self.defaultPropButton = QtWidgets.QPushButton('Set Default Properties')
         self.defaultPropButton.setEnabled(False)
         self.defaultPropButton.clicked.connect(self.ShowDefaultProps)
@@ -7675,7 +7684,8 @@ class ReggieWindow(QtWidgets.QMainWindow):
 
         # entrance tab
         self.entEditorTab = QtWidgets.QWidget()
-        tabs.addTab(self.entEditorTab, GetIcon('entrances'), 'Entrances')
+        tabs.addTab(self.entEditorTab, GetIcon('entrances'), '')
+        tabs.setTabToolTip(tabs.count() - 1, 'Entrances')
 
         eel = QtWidgets.QVBoxLayout(self.entEditorTab)
         self.entEditorLayout = eel
@@ -7690,7 +7700,8 @@ class ReggieWindow(QtWidgets.QMainWindow):
 
         # paths tab
         self.pathEditorTab = QtWidgets.QWidget()
-        tabs.addTab(self.pathEditorTab, GetIcon('paths'), 'Paths')
+        tabs.addTab(self.pathEditorTab, GetIcon('paths'), '')
+        tabs.setTabToolTip(tabs.count() - 1, 'Paths')
 
         pathel = QtWidgets.QVBoxLayout(self.pathEditorTab)
         self.pathEditorLayout = pathel
@@ -9167,6 +9178,8 @@ class ReggieWindow(QtWidgets.QMainWindow):
         layout.itemAt(0).widget().setVisible(isSearch)
         layout.itemAt(1).widget().setVisible(isSearch)
 
+        settings.setValue('SpriteView', type)
+
 
     @QtCoreSlot(str)
     def NewSearchTerm(self, text):
@@ -9652,7 +9665,10 @@ def main():
     sprites.Setup()
 
     # load the settings
-    settings = QtCore.QSettings('Reggie', 'Reggie Level Editor (%s)' % QtName)
+    if os.path.isfile('portable.txt'):
+        settings = QtCore.QSettings('settings_Reggie_%s.ini' % QtName, QtCore.QSettings.IniFormat)
+    else:
+        settings = QtCore.QSettings('Reggie', 'Reggie Level Editor (%s)' % QtName)
 
     if '-clear-settings' in sys.argv:
         settings.clear()
