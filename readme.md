@@ -214,6 +214,7 @@ If you are using the source release:
     - PyQt 5.11 (or newer) **(RECOMMENDED)** — `pip install PyQt5`
     - Qt for Python 5.12 (or newer) (NOT RECOMMENDED) — `pip install PySide2`
 - NSMBLib 0.4 (or newer) — `pip install nsmblib` (optional)
+- Darkdetect 0.1.0 (or newer) — `pip install darkdetect` (optional)
 
 If you have a prebuilt/frozen release (for Windows, macOS or Ubuntu)
 you don't need to install anything — all the required libraries are included.
