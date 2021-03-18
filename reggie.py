@@ -7574,6 +7574,8 @@ class ReggieWindow(QtWidgets.QMainWindow):
         self.sprPicker.SwitchView(SpriteCategories[0])
         spl.addWidget(self.sprPicker, 1)
 
+        viewpicker.setCurrentIndex(int(toPyObject(settings.value('SpriteView', 0))))
+
         self.defaultPropButton = QtWidgets.QPushButton('Set Default Properties')
         self.defaultPropButton.setEnabled(False)
         self.defaultPropButton.clicked.connect(self.ShowDefaultProps)
@@ -9085,6 +9087,8 @@ class ReggieWindow(QtWidgets.QMainWindow):
         layout = self.spriteSearchLayout
         layout.itemAt(0).widget().setVisible(isSearch)
         layout.itemAt(1).widget().setVisible(isSearch)
+
+        settings.setValue('SpriteView', type)
 
 
     @QtCoreSlot(str)
