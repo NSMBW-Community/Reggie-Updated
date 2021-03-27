@@ -2903,13 +2903,13 @@ class SpriteEditorItem(LevelEditorItem):
         self.setPos(int((x+self.xoffset)*1.5),int((y+self.yoffset)*1.5))
         DirtyOverride -= 1
 
-        sname = Sprites[type].name
+        sname = Sprites[type].name if type < len(Sprites) else 'UNKNOWN'
         self.name = sname
         self.setToolTip('<b>Sprite %d:</b><br>%s' % (type,sname))
 
     def SetType(self, type):
         """Sets the type of the sprite"""
-        self.name = Sprites[type].name
+        self.name = Sprites[type].name if type < len(Sprites) else 'UNKNOWN'
         self.setToolTip('<b>Sprite %d:</b><br>%s' % (type, self.name))
         self.type = type
 
@@ -4148,7 +4148,7 @@ class SpriteEditorWidget(QtWidgets.QWidget):
         if self.spritetype == type: return
 
         self.spritetype = type
-        if type != 1000:
+        if type != 1000 and type < len(Sprites):
             sprite = Sprites[type]
         else:
             sprite = None
