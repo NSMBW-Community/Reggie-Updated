@@ -2762,7 +2762,7 @@ class LocationEditorItem(LevelEditorItem):
         super(LocationEditorItem, self).__init__()
 
         self.font = NumberFontBold
-        self.TitlePos = QtCore.QPointF(4,12)
+        self.TitleRect = QtCore.QRectF(4,4,26,20)
         self.objx = x
         self.objy = y
         self.width = width
@@ -2791,11 +2791,26 @@ class LocationEditorItem(LevelEditorItem):
     def UpdateRects(self):
         """Updates the location's bounding rectangle"""
         self.prepareGeometryChange()
-        self.BoundingRect = QtCore.QRectF(0,0,self.width*1.5,self.height*1.5)
+        self.BoundingRectWithoutTitleRect = QtCore.QRectF(0,0,self.width*1.5,self.height*1.5)
+        self.BoundingRect = self.BoundingRectWithoutTitleRect | self.TitleRect
         self.SelectionRect = QtCore.QRectF(self.objx*1.5,self.objy*1.5,self.width*1.5,self.height*1.5)
         self.ZoneRect = QtCore.QRectF(self.objx,self.objy,self.width,self.height)
         self.DrawRect = QtCore.QRectF(1,1,self.width*1.5-2,self.height*1.5-2)
         self.GrabberRect = QtCore.QRectF(1.5*self.width-6,1.5*self.height-6,5,5)
+
+
+    def shape(self):
+        """
+        self.BoundingRect is big enough to include self.TitleRect (so
+        the ID text can be painted), but that makes the hit-detection
+        region too large if the rect is small.
+        """
+        # We basically make a vertically-flipped "L" shape if the location
+        # is small, so that you can click on the ID number to select the location
+        qpp = QtGui.QPainterPath()
+        qpp.addRect(self.BoundingRectWithoutTitleRect)
+        qpp.addRect(self.TitleRect)
+        return qpp
 
 
     def paint(self, painter, option, widget):
@@ -2809,7 +2824,7 @@ class LocationEditorItem(LevelEditorItem):
 
         painter.setPen(QtGui.QPen(QtCore.Qt.white, 1))
         painter.setFont(self.font)
-        painter.drawText(self.TitlePos, self.title)
+        painter.drawText(self.TitleRect, self.title)
 
         if self.isSelected():
             painter.setPen(QtGui.QPen(QtCore.Qt.white, 1, QtCore.Qt.DotLine))
