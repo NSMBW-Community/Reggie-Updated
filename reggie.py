@@ -2462,7 +2462,7 @@ class LevelObjectEditorItem(LevelEditorItem):
 
     def mouseMoveEvent(self, event):
         """Overrides mouse movement events if needed for resizing"""
-        if event.buttons() != QtCore.Qt.NoButton and self.dragging:
+        if event.buttons() & QtCore.Qt.LeftButton and self.dragging:
             # resize it
             dsx = self.dragstartx
             dsy = self.dragstarty
@@ -2666,8 +2666,7 @@ class ZoneItem(LevelEditorItem):
 
     def mouseMoveEvent(self, event):
         """Overrides mouse movement events if needed for resizing"""
-
-        if event.buttons() != QtCore.Qt.NoButton and self.dragging:
+        if event.buttons() & QtCore.Qt.LeftButton and self.dragging:
             # resize it
             clickedx = int(event.scenePos().x() / 1.5)
             clickedy = int(event.scenePos().y() / 1.5)
@@ -2828,7 +2827,7 @@ class LocationEditorItem(LevelEditorItem):
 
     def mouseMoveEvent(self, event):
         """Overrides mouse movement events if needed for resizing"""
-        if event.buttons() != QtCore.Qt.NoButton and self.dragging:
+        if event.buttons() & QtCore.Qt.LeftButton and self.dragging:
             # resize it
             dsx = self.dragstartx
             dsy = self.dragstarty
@@ -4990,233 +4989,240 @@ class LevelViewWidget(QtWidgets.QGraphicsView):
     def mousePressEvent(self, event):
         """Overrides mouse pressing events if needed"""
         if event.button() == QtCore.Qt.RightButton:
-            if CurrentPaintType <= 3 and CurrentObject != -1:
-                # paint an object
-                clicked = mainWindow.view.mapToScene(event.x(), event.y())
-                if clicked.x() < 0: clicked.setX(0)
-                if clicked.y() < 0: clicked.setY(0)
-                clickedx = int(clicked.x() / 24)
-                clickedy = int(clicked.y() / 24)
+            draggingAnything = False
+            for thing in self.scene().selectedItems():
+                if hasattr(thing, 'dragging') and thing.dragging:
+                    draggingAnything = True
+                    break
 
-                ln = CurrentLayer
-                layer = Level.layers[CurrentLayer]
-                if len(layer) == 0:
-                    z = (2 - ln) * 8192
-                else:
-                    z = layer[-1].zValue() + 1
+            if not draggingAnything:
+                if CurrentPaintType <= 3 and CurrentObject != -1:
+                    # paint an object
+                    clicked = mainWindow.view.mapToScene(event.x(), event.y())
+                    if clicked.x() < 0: clicked.setX(0)
+                    if clicked.y() < 0: clicked.setY(0)
+                    clickedx = int(clicked.x() / 24)
+                    clickedy = int(clicked.y() / 24)
 
-                obj = LevelObjectEditorItem(CurrentPaintType, CurrentObject, ln, clickedx, clickedy, 1, 1, z)
-                layer.append(obj)
-                mw = mainWindow
-                obj.positionChanged = mw.HandleObjPosChange
-                mw.scene.addItem(obj)
+                    ln = CurrentLayer
+                    layer = Level.layers[CurrentLayer]
+                    if len(layer) == 0:
+                        z = (2 - ln) * 8192
+                    else:
+                        z = layer[-1].zValue() + 1
 
-                self.currentobj = obj
-                self.dragstartx = clickedx
-                self.dragstarty = clickedy
-                SetDirty()
-
-            elif CurrentPaintType == 4 and CurrentSprite != -1:
-                # common stuff
-                clicked = mainWindow.view.mapToScene(event.x(), event.y())
-                if clicked.x() < 0: clicked.setX(0)
-                if clicked.y() < 0: clicked.setY(0)
-
-                if CurrentSprite == 1000:
-                    # paint a location
-                    clickedx = int(clicked.x() / 1.5)
-                    clickedy = int(clicked.y() / 1.5)
-
-                    allID = []
-                    newID = 1
-                    for i in Level.locations:
-                        allID.append(i.id)
-
-                    allID = set(allID) # faster "x in y" lookups for sets
-
-                    while newID <= 255:
-                        if newID not in allID:
-                            break
-                        newID += 1
-
-                    global OverrideSnapping
-                    OverrideSnapping = True
-                    loc = LocationEditorItem(clickedx, clickedy, 4, 4, newID)
-                    OverrideSnapping = False
-
+                    obj = LevelObjectEditorItem(CurrentPaintType, CurrentObject, ln, clickedx, clickedy, 1, 1, z)
+                    layer.append(obj)
                     mw = mainWindow
-                    loc.positionChanged = mw.HandleLocPosChange
-                    loc.sizeChanged = mw.HandleLocSizeChange
-                    mw.scene.addItem(loc)
+                    obj.positionChanged = mw.HandleObjPosChange
+                    mw.scene.addItem(obj)
 
-                    Level.locations.append(loc)
-
-                    self.currentobj = loc
+                    self.currentobj = obj
                     self.dragstartx = clickedx
                     self.dragstarty = clickedy
+                    SetDirty()
 
-                elif CurrentSprite >= 0: # fixes a bug -Treeki
-                    #[18:15:36]  Angel-SL: I found a bug in Reggie
-                    #[18:15:42]  Angel-SL: you can paint a "No sprites found"
-                    #[18:15:47]  Angel-SL: results in a sprite -2
+                elif CurrentPaintType == 4 and CurrentSprite != -1:
+                    # common stuff
+                    clicked = mainWindow.view.mapToScene(event.x(), event.y())
+                    if clicked.x() < 0: clicked.setX(0)
+                    if clicked.y() < 0: clicked.setY(0)
 
-                    # paint a sprite
-                    #clickedx = int((clicked.x()) / 1.5)
-                    #clickedy = int((clicked.y()) / 1.5)
-                    #print('clicked on %d,%d divided to %d,%d' % (clicked.x(),clicked.y(),clickedx,clickedy))
+                    if CurrentSprite == 1000:
+                        # paint a location
+                        clickedx = int(clicked.x() / 1.5)
+                        clickedy = int(clicked.y() / 1.5)
 
-                    clickedx = int((clicked.x() - 12) / 12) * 8
-                    clickedy = int((clicked.y() - 12) / 12) * 8
+                        allID = []
+                        newID = 1
+                        for i in Level.locations:
+                            allID.append(i.id)
 
-                    data = mainWindow.defaultDataEditor.data
-                    spr = SpriteEditorItem(CurrentSprite, clickedx, clickedy, data)
+                        allID = set(allID) # faster "x in y" lookups for sets
 
-                    #clickedx -= int(spr.xsize / 2)
-                    #clickedy -= int(spr.ysize / 2)
-                    #print('subtracted %d,%d for %d,%d' % (int(spr.xsize/2),int(spr.ysize/2),clickedx,clickedy))
-                    #newX = int((int(clickedx / 8) * 12) + (spr.xoffset * 1.5))
-                    #newY = int((int(clickedy / 8) * 12) + (spr.yoffset * 1.5))
-                    #print('offset is %d,%d' % (spr.xoffset,spr.yoffset))
-                    #print('moving to %d,%d' % (newX,newY))
-                    #spr.setPos(newX, newY)
-                    #print('ended up at %d,%d' % (spr.x(),spr.y()))
+                        while newID <= 255:
+                            if newID not in allID:
+                                break
+                            newID += 1
 
-                    mw = mainWindow
-                    spr.positionChanged = mw.HandleSprPosChange
-                    mw.scene.addItem(spr)
+                        global OverrideSnapping
+                        OverrideSnapping = True
+                        loc = LocationEditorItem(clickedx, clickedy, 4, 4, newID)
+                        OverrideSnapping = False
 
-                    Level.sprites.append(spr)
+                        mw = mainWindow
+                        loc.positionChanged = mw.HandleLocPosChange
+                        loc.sizeChanged = mw.HandleLocSizeChange
+                        mw.scene.addItem(loc)
 
-                    self.currentobj = spr
-                    self.dragstartx = clickedx
-                    self.dragstarty = clickedy
+                        Level.locations.append(loc)
+
+                        self.currentobj = loc
+                        self.dragstartx = clickedx
+                        self.dragstarty = clickedy
+
+                    elif CurrentSprite >= 0: # fixes a bug -Treeki
+                        #[18:15:36]  Angel-SL: I found a bug in Reggie
+                        #[18:15:42]  Angel-SL: you can paint a "No sprites found"
+                        #[18:15:47]  Angel-SL: results in a sprite -2
+
+                        # paint a sprite
+                        #clickedx = int((clicked.x()) / 1.5)
+                        #clickedy = int((clicked.y()) / 1.5)
+                        #print('clicked on %d,%d divided to %d,%d' % (clicked.x(),clicked.y(),clickedx,clickedy))
+
+                        clickedx = int((clicked.x() - 12) / 12) * 8
+                        clickedy = int((clicked.y() - 12) / 12) * 8
+
+                        data = mainWindow.defaultDataEditor.data
+                        spr = SpriteEditorItem(CurrentSprite, clickedx, clickedy, data)
+
+                        #clickedx -= int(spr.xsize / 2)
+                        #clickedy -= int(spr.ysize / 2)
+                        #print('subtracted %d,%d for %d,%d' % (int(spr.xsize/2),int(spr.ysize/2),clickedx,clickedy))
+                        #newX = int((int(clickedx / 8) * 12) + (spr.xoffset * 1.5))
+                        #newY = int((int(clickedy / 8) * 12) + (spr.yoffset * 1.5))
+                        #print('offset is %d,%d' % (spr.xoffset,spr.yoffset))
+                        #print('moving to %d,%d' % (newX,newY))
+                        #spr.setPos(newX, newY)
+                        #print('ended up at %d,%d' % (spr.x(),spr.y()))
+
+                        mw = mainWindow
+                        spr.positionChanged = mw.HandleSprPosChange
+                        mw.scene.addItem(spr)
+
+                        Level.sprites.append(spr)
+
+                        self.currentobj = spr
+                        self.dragstartx = clickedx
+                        self.dragstarty = clickedy
 
 
-                SetDirty()
+                    SetDirty()
 
-            elif CurrentPaintType == 5:
-                # paint an entrance
-                clicked = mainWindow.view.mapToScene(event.x(), event.y())
-                if clicked.x() < 0: clicked.setX(0)
-                if clicked.y() < 0: clicked.setY(0)
-                clickedx = int((clicked.x() - 12) / 1.5)
-                clickedy = int((clicked.y() - 12) / 1.5)
-                #print('%d,%d %d,%d' % (clicked.x(), clicked.y(), clickedx, clickedy))
+                elif CurrentPaintType == 5:
+                    # paint an entrance
+                    clicked = mainWindow.view.mapToScene(event.x(), event.y())
+                    if clicked.x() < 0: clicked.setX(0)
+                    if clicked.y() < 0: clicked.setY(0)
+                    clickedx = int((clicked.x() - 12) / 1.5)
+                    clickedy = int((clicked.y() - 12) / 1.5)
+                    #print('%d,%d %d,%d' % (clicked.x(), clicked.y(), clickedx, clickedy))
 
-                getids = [False for x in range(256)]
-                for ent in Level.entrances: getids[ent.entid] = True
-                minimumID = getids.index(False)
-
-                ent = EntranceEditorItem(clickedx, clickedy, minimumID, 0, 0, 0, 0, 0, 0, 0)
-                mw = mainWindow
-                ent.positionChanged = mw.HandleEntPosChange
-                mw.scene.addItem(ent)
-
-                elist = mw.entranceList
-                # if it's the first available ID, all the other indexes should match right?
-                # so I can just use the ID to insert
-                ent.listitem = QtWidgets.QListWidgetItem(ent.ListString())
-                elist.insertItem(minimumID, ent.listitem)
-
-                global PaintingEntrance, PaintingEntranceListIndex
-                PaintingEntrance = ent
-                PaintingEntranceListIndex = minimumID
-
-                Level.entrances.insert(minimumID, ent)
-
-                self.currentobj = ent
-                self.dragstartx = clickedx
-                self.dragstarty = clickedy
-                SetDirty()
-            elif CurrentPaintType == 6:
-                # paint a pathnode
-                clicked = mainWindow.view.mapToScene(event.x(), event.y())
-                if clicked.x() < 0: clicked.setX(0)
-                if clicked.y() < 0: clicked.setY(0)
-                clickedx = int((clicked.x() - 12) / 1.5)
-                clickedy = int((clicked.y() - 12) / 1.5)
-                #print('%d,%d %d,%d' % (clicked.x(), clicked.y(), clickedx, clickedy))
-                mw = mainWindow
-                plist = mw.pathList
-                selectedpn = None if len(plist.selectedItems()) < 1 else plist.selectedItems()[0]
-                #if selectedpn is None:
-                #    QtWidgets.QMessageBox.warning(None, 'Error', 'No pathnode selected. Select a pathnode of the path you want to create a new node in.')
-                if selectedpn is None:
                     getids = [False for x in range(256)]
-                    getids[0] = True
-                    for pathdatax in Level.pathdata:
-                        #if len(pathdatax['nodes']) > 0:
-                        getids[int(pathdatax['id'])] = True
+                    for ent in Level.entrances: getids[ent.entid] = True
+                    minimumID = getids.index(False)
 
-                    newpathid = getids.index(False)
-                    newpathdata = { 'id': newpathid,
-                                   'nodes': [{'x':clickedx, 'y':clickedy, 'speed':0.5, 'accel':0.00498, 'delay':0}],
-                                   'loops': False
-                    }
-                    Level.pathdata.append(newpathdata)
-                    newnode = PathEditorItem(clickedx, clickedy, None, None, newpathdata, newpathdata['nodes'][0])
-                    newnode.positionChanged = mw.HandlePathPosChange
+                    ent = EntranceEditorItem(clickedx, clickedy, minimumID, 0, 0, 0, 0, 0, 0, 0)
+                    mw = mainWindow
+                    ent.positionChanged = mw.HandleEntPosChange
+                    mw.scene.addItem(ent)
 
-                    mw.scene.addItem(newnode)
+                    elist = mw.entranceList
+                    # if it's the first available ID, all the other indexes should match right?
+                    # so I can just use the ID to insert
+                    ent.listitem = QtWidgets.QListWidgetItem(ent.ListString())
+                    elist.insertItem(minimumID, ent.listitem)
 
-                    peline = PathEditorLineItem(newpathdata['nodes'])
-                    newpathdata['peline'] = peline
-                    mw.scene.addItem(peline)
+                    global PaintingEntrance, PaintingEntranceListIndex
+                    PaintingEntrance = ent
+                    PaintingEntranceListIndex = minimumID
 
-                    Level.pathdata.sort(key=lambda path: int(path['id']))
+                    Level.entrances.insert(minimumID, ent)
 
-
-
-                    newnode.listitem = QtWidgets.QListWidgetItem(newnode.ListString())
-                    plist.clear()
-                    for fpath in Level.pathdata:
-                        for fpnode in fpath['nodes']:
-                            fpnode['graphicsitem'].listitem = QtWidgets.QListWidgetItem(fpnode['graphicsitem'].ListString())
-                            plist.addItem(fpnode['graphicsitem'].listitem)
-                            fpnode['graphicsitem'].updateId()
-                    newnode.listitem.setSelected(True)
-                    Level.paths.append(newnode)
-                    self.currentobj = newnode
+                    self.currentobj = ent
                     self.dragstartx = clickedx
                     self.dragstarty = clickedy
                     SetDirty()
-                else:
-                    pathd = None
-                    for pathnode in Level.paths:
-                        if pathnode.listitem == selectedpn:
-                            pathd = pathnode.pathinfo
+                elif CurrentPaintType == 6:
+                    # paint a pathnode
+                    clicked = mainWindow.view.mapToScene(event.x(), event.y())
+                    if clicked.x() < 0: clicked.setX(0)
+                    if clicked.y() < 0: clicked.setY(0)
+                    clickedx = int((clicked.x() - 12) / 1.5)
+                    clickedy = int((clicked.y() - 12) / 1.5)
+                    #print('%d,%d %d,%d' % (clicked.x(), clicked.y(), clickedx, clickedy))
+                    mw = mainWindow
+                    plist = mw.pathList
+                    selectedpn = None if len(plist.selectedItems()) < 1 else plist.selectedItems()[0]
+                    #if selectedpn is None:
+                    #    QtWidgets.QMessageBox.warning(None, 'Error', 'No pathnode selected. Select a pathnode of the path you want to create a new node in.')
+                    if selectedpn is None:
+                        getids = [False for x in range(256)]
+                        getids[0] = True
+                        for pathdatax in Level.pathdata:
+                            #if len(pathdatax['nodes']) > 0:
+                            getids[int(pathdatax['id'])] = True
 
-                    if pathd is None: return # shouldn't happen
+                        newpathid = getids.index(False)
+                        newpathdata = { 'id': newpathid,
+                                       'nodes': [{'x':clickedx, 'y':clickedy, 'speed':0.5, 'accel':0.00498, 'delay':0}],
+                                       'loops': False
+                        }
+                        Level.pathdata.append(newpathdata)
+                        newnode = PathEditorItem(clickedx, clickedy, None, None, newpathdata, newpathdata['nodes'][0])
+                        newnode.positionChanged = mw.HandlePathPosChange
 
-                    pathid = pathd['id']
-                    newnodedata = {'x':clickedx, 'y':clickedy, 'speed':0.5, 'accel':0.00498,'delay':0}
-                    pathd['nodes'].append(newnodedata)
-                    nodeid = pathd['nodes'].index(newnodedata)
+                        mw.scene.addItem(newnode)
+
+                        peline = PathEditorLineItem(newpathdata['nodes'])
+                        newpathdata['peline'] = peline
+                        mw.scene.addItem(peline)
+
+                        Level.pathdata.sort(key=lambda path: int(path['id']))
 
 
-                    newnode = PathEditorItem(clickedx, clickedy, None, None, pathd, newnodedata)
 
-                    newnode.positionChanged = mw.HandlePathPosChange
-                    mw.scene.addItem(newnode)
+                        newnode.listitem = QtWidgets.QListWidgetItem(newnode.ListString())
+                        plist.clear()
+                        for fpath in Level.pathdata:
+                            for fpnode in fpath['nodes']:
+                                fpnode['graphicsitem'].listitem = QtWidgets.QListWidgetItem(fpnode['graphicsitem'].ListString())
+                                plist.addItem(fpnode['graphicsitem'].listitem)
+                                fpnode['graphicsitem'].updateId()
+                        newnode.listitem.setSelected(True)
+                        Level.paths.append(newnode)
+                        self.currentobj = newnode
+                        self.dragstartx = clickedx
+                        self.dragstarty = clickedy
+                        SetDirty()
+                    else:
+                        pathd = None
+                        for pathnode in Level.paths:
+                            if pathnode.listitem == selectedpn:
+                                pathd = pathnode.pathinfo
 
-                    newnode.listitem = QtWidgets.QListWidgetItem(newnode.ListString())
-                    plist.clear()
-                    for fpath in Level.pathdata:
-                        for fpnode in fpath['nodes']:
-                            fpnode['graphicsitem'].listitem = QtWidgets.QListWidgetItem(fpnode['graphicsitem'].ListString())
-                            plist.addItem(fpnode['graphicsitem'].listitem)
-                            fpnode['graphicsitem'].updateId()
-                    newnode.listitem.setSelected(True)
-                    #global PaintingEntrance, PaintingEntranceListIndex
-                    #PaintingEntrance = ent
-                    #PaintingEntranceListIndex = minimumID
+                        if pathd is None: return # shouldn't happen
 
-                    Level.paths.append(newnode)
-                    pathd['peline'].nodePosChanged()
-                    self.currentobj = newnode
-                    self.dragstartx = clickedx
-                    self.dragstarty = clickedy
-                    SetDirty()
+                        pathid = pathd['id']
+                        newnodedata = {'x':clickedx, 'y':clickedy, 'speed':0.5, 'accel':0.00498,'delay':0}
+                        pathd['nodes'].append(newnodedata)
+                        nodeid = pathd['nodes'].index(newnodedata)
+
+
+                        newnode = PathEditorItem(clickedx, clickedy, None, None, pathd, newnodedata)
+
+                        newnode.positionChanged = mw.HandlePathPosChange
+                        mw.scene.addItem(newnode)
+
+                        newnode.listitem = QtWidgets.QListWidgetItem(newnode.ListString())
+                        plist.clear()
+                        for fpath in Level.pathdata:
+                            for fpnode in fpath['nodes']:
+                                fpnode['graphicsitem'].listitem = QtWidgets.QListWidgetItem(fpnode['graphicsitem'].ListString())
+                                plist.addItem(fpnode['graphicsitem'].listitem)
+                                fpnode['graphicsitem'].updateId()
+                        newnode.listitem.setSelected(True)
+                        #global PaintingEntrance, PaintingEntranceListIndex
+                        #PaintingEntrance = ent
+                        #PaintingEntranceListIndex = minimumID
+
+                        Level.paths.append(newnode)
+                        pathd['peline'].nodePosChanged()
+                        self.currentobj = newnode
+                        self.dragstartx = clickedx
+                        self.dragstarty = clickedy
+                        SetDirty()
 
             event.accept()
 
