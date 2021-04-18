@@ -4986,6 +4986,7 @@ class LevelViewWidget(QtWidgets.QGraphicsView):
         self.currentobj = None
         self.lastCursorPosForMidButtonScroll = None
 
+
     def mousePressEvent(self, event):
         """Overrides mouse pressing events if needed"""
         if event.button() == QtCore.Qt.RightButton:
@@ -5237,6 +5238,7 @@ class LevelViewWidget(QtWidgets.QGraphicsView):
                     break
 
         elif event.button() == QtCore.Qt.MidButton:
+            self.setDragMode(QtWidgets.QGraphicsView.NoDrag)
             self.lastCursorPosForMidButtonScroll = event.pos()
             QtWidgets.QGraphicsView.mousePressEvent(self, event)
 
@@ -5428,6 +5430,8 @@ class LevelViewWidget(QtWidgets.QGraphicsView):
         """Overrides mouse release events if needed"""
         if event.button() == QtCore.Qt.RightButton:
             self.currentobj = None
+        elif event.button() == QtCore.Qt.MidButton:
+            self.setDragMode(QtWidgets.QGraphicsView.RubberBandDrag)
         QtWidgets.QGraphicsView.mouseReleaseEvent(self, event)
 
 
