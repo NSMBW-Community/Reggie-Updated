@@ -2150,22 +2150,29 @@ class LevelUnit():
         # So we make an extra, all-defaults bounding block and use it
         # for every camera profile.
 
+        # We also make an empty (all 00s) first profile to work around a
+        # game bug: the game initially thinks that the first profile is
+        # active (rather than "no profile"), and thus will refuse to
+        # activate it until you switch to some other profile first. So
+        # we just make a dummy first profile to avoid triggering this
+        # confusing behavior. (It can never be activated because it's
+        # tied to "event 0," which doesn't exist.)
+
         profilestruct = struct.Struct('>xxxxxxxxxxxxBBBBxxBx')
         bdngstruct = struct.Struct('>4lHHhh')
-        offset = 20  # empty first profile to work around game bug
-        offset2 = len(self.blocks[2])
-        pcount = len(Level.camprofiles)
-        buffer = create_string_buffer(20 * (pcount + 1))
+
+        buffer = create_string_buffer(20 * (len(Level.camprofiles) + 1))
         buffer2 = create_string_buffer(self.blocks[2] + bytes(24))
 
-        bdngid = len(buffer2) // 24
-        bdngstruct.pack_into(buffer2, offset2, 0, 0, 0, 0, bdngid, 15, 0, 0)
-
+        offset2 = len(self.blocks[2])
         bdngid = offset2 // 20
+
+        offset = 20  # empty first profile to work around game bug
         for p in Level.camprofiles:
             profilestruct.pack_into(buffer, offset, bdngid, p[1], p[2], 0, p[0])
             offset += 20
-            offset2 += 24
+
+        bdngstruct.pack_into(buffer2, offset2, 0, 0, 0, 0, bdngid, 15, 0, 0)
 
         self.blocks[11] = buffer.raw
         self.blocks[2] = buffer2.raw
