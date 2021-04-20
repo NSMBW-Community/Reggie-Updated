@@ -401,7 +401,7 @@ BgScrollRateStrings = ['None', '0.125x', '0.25x', '0.375x', '0.5x', '0.625x', '0
 
 ZoneThemeValues = [
     'Overworld', 'Underground', 'Underwater', 'Lava/Volcano [reddish]',
-    'Desert', 'Beach*', 'Forest*', 'Snow Overworld*',
+    'Desert', 'Beach*', 'Forest', 'Snow Overworld*',
     'Sky/Bonus*', 'Mountains*', 'Tower', 'Castle',
     'Ghost House', 'River Cave', 'Ghost House Exit', 'Underwater Cave',
     'Desert Cave', 'Icy Cave*', 'Lava/Volcano', 'Final Battle',
