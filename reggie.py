@@ -400,16 +400,16 @@ BgScrollRates = [0.0, 0.125, 0.25, 0.375, 0.5, 0.625, 0.75, 0.875, 1.0, 0.0, 1.2
 BgScrollRateStrings = ['None', '0.125x', '0.25x', '0.375x', '0.5x', '0.625x', '0.75x', '0.875x', '1x', 'None', '1.2x', '1.5x', '2x', '4x']
 
 ZoneThemeValues = [
-    'Overworld', 'Underground', 'Underwater', 'Lava/Volcano [reddish]',
-    'Desert', 'Beach*', 'Forest', 'Snow Overworld*',
-    'Sky/Bonus*', 'Mountains*', 'Tower', 'Castle',
+    'Overworld', 'Underground', 'Underwater', 'Lava Underground',
+    'Desert', 'Beach', 'Forest', 'Snow Overworld',
+    'Sky/Bonus*', 'Mountains', 'Tower', 'Castle',
     'Ghost House', 'River Cave', 'Ghost House Exit', 'Underwater Cave',
-    'Desert Cave', 'Icy Cave*', 'Lava/Volcano', 'Final Battle',
-    'World 8 Castle', 'World 8 Doomship*', 'Lit Tower'
+    'Desert Cave', 'Icy Cave*', 'Lava', 'Final Battle',
+    'World 8 Tower/Castle', 'World 8 Doomship*', 'World 7 Tower Indoors',
 ]
 
 ZoneTerrainThemeValues = [
-    'Normal/Overworld', 'Underground', 'Underwater', 'Lava/Volcano',
+    'Normal/Overworld', 'Underground', 'Underwater', 'Lava',
 ]
 
 Sprites = None
