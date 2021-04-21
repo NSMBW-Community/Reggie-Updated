@@ -668,7 +668,7 @@
   <sprite id="76" name="Giant Grounded Venus Fire Trap">
     <checkbox nybble="12" title="Upside Down" comment="Plant will hang from the ceiling if checked."/>
   </sprite>
-  <sprite id="77" name="Doomship Key" notes="No visible change on any value, and it does not seem to be event related in any manner. Collecting this key brings it to your inventory like a Star Coin, but nothing changes. May relate to another unused sprite, but likely is useless without mods."/>
+  <sprite id="77" name="Airship Key" notes="No visible change on any value, and it does not seem to be event related in any manner. Collecting this key brings it to your inventory like a Star Coin, but nothing changes. May relate to another unused sprite, but likely is useless without mods."/>
   <sprite id="78" name="Cloud Trampoline">
     <checkbox nybble="9" title="Bigger Cloud" comment="If checked, the cloud will be bigger. "/>
   </sprite>

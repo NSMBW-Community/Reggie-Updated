@@ -405,7 +405,7 @@ ZoneThemeValues = [
     'Sky/Bonus*', 'Mountains', 'Tower', 'Castle',
     'Ghost House', 'River Cave', 'Ghost House Exit', 'Underwater Cave',
     'Desert Cave', 'Icy Cave*', 'Lava', 'Final Battle',
-    'World 8 Tower/Castle', 'World 8 Doomship*', 'World 7 Tower Indoors',
+    'World 8 Tower/Castle', 'World 8 Airship*', 'World 7 Tower Indoors',
 ]
 
 ZoneTerrainThemeValues = [

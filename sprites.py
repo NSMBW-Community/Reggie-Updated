@@ -2211,7 +2211,7 @@ def InitLiftDokan(sprite): # 471
 
 def InitFlyingWrench(sprite): # 476
     if 'Wrench' not in ImageCache:
-        LoadDoomshipStuff()
+        LoadAirshipStuff()
 
     sprite.customPaint = True
     sprite.customPainter = PaintGenericObject
@@ -3981,7 +3981,7 @@ def LoadFlagpole():
     ImageCache['SnowCastle'] = QtGui.QPixmap('reggiedata/sprites/snow_castle.png')
     ImageCache['SnowCastleSecret'] = QtGui.QPixmap('reggiedata/sprites/snow_castle_secret.png')
 
-def LoadDoomshipStuff():
+def LoadAirshipStuff():
     global ImageCache
     ImageCache['Wrench'] = QtGui.QPixmap('reggiedata/sprites/wrench.png')
 

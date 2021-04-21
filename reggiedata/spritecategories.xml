@@ -109,7 +109,7 @@
       <attach sprite="271"/> <!-- Mouser -->
 	<attach sprite="451"/> <!-- Mouser Despawn -->
     </category>
-    <category name="Doomship">
+    <category name="Airship">
       <attach sprite="232"/> <!-- Mecha -->
       <attach sprite="101"/> <!-- BobOmb -->
       <attach sprite="269-270"/> <!-- ParaOmb -->
