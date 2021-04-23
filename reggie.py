@@ -452,27 +452,75 @@ class SpriteDefinition():
 
         for field in elem.childNodes:
             if field.nodeType != field.ELEMENT_NODE: continue
+            if field.nodeName in ['dependency', 'suggested']: continue  # Reggie Next compatibility
 
             attribs = field.attributes
+            if field.nodeName in ['dualbox', 'multidualbox']:  # Reggie Next compatibility
+                title = attribs['title2'].nodeValue
+            else:
+                title = attribs['title'].nodeValue
 
+            commentParts = []
             if keyInAttribs('comment', field):
-                comment = '<b>%s</b>:<br>%s' % (attribs['title'].nodeValue, attribs['comment'].nodeValue)
+                commentParts.append(field.attributes['comment'].nodeValue)
+            if keyInAttribs('comment2', field):  # Reggie Next compatibility
+                commentParts.append(field.attributes['comment2'].nodeValue)
+            if keyInAttribs('advancedcomment', field):  # Reggie Next compatibility
+                commentParts.append(field.attributes['advancedcomment'].nodeValue)
+            if commentParts:
+                comment = '<b>%s</b>:<br>%s' % (title, '<br/><br/>'.join(commentParts))
             else:
                 comment = None
 
-            if field.nodeName == 'checkbox':
-                # parameters: title, nybble, mask, comment
+
+            maskHint = None
+            if keyInAttribs('nybble', field):
                 snybble = attribs['nybble'].nodeValue
+            elif keyInAttribs('bit', field):  # Reggie Next compatibility
+                bit = attribs['bit'].nodeValue
+                if ',' in bit:  # just take the least significant part -- close enough
+                    bit = bit.split(',')[-1]
+                bit = bit.strip()
+                if bit.count('-') == 0:  # one bit -- we can infer a mask from this for checkboxes, too
+                    bit = int(bit)
+                    snybble = str(((bit - 1) // 4) + 1)
+                    maskHint = 1 << (3 - ((bit - 1) % 4))
+                elif bit.count('-') == 1:  # multiple bits; hopefully it aligns to a nybble
+                    startbit, endbit = bit.split('-')
+                    startbit, endbit = int(startbit), int(endbit)
+                    if endbit % 4 != 0:
+                        # We're going to seriously lose precision here -- possibly
+                        # catastrophically -- but maybe the code for the individual
+                        # nodeName can use the maskHint to produce some reasonable behavior
+                        maskHint = 1 << (3 - ((endbit - 1) % 4))
+                    startnyb, endnyb = ((startbit - 1) // 4) + 1, ((endbit - 1) // 4) + 1
+                    if startnyb == endnyb:
+                        snybble = str(startnyb)
+                    else:
+                        snybble = '%d-%d' % (startnyb, endnyb)
+                else:
+                    raise ValueError('Invalid "bit" field')
+
+            if keyInAttribs('mask', field):
+                mask = int(attribs['mask'].nodeValue)
+            elif maskHint is not None:
+                mask = maskHint
+            else:
+                mask = 1
+
+            if field.nodeName in ['checkbox', 'dualbox']:
+                # parameters: title, nybble, mask, comment
                 if '-' not in snybble:
                     nybble = int(snybble) - 1
                 else:
                     getit = snybble.split('-')
                     nybble = (int(getit[0]) - 1, int(getit[1]))
 
-                fields.append((0, attribs['title'].nodeValue, nybble, int(attribs['mask'].nodeValue) if keyInAttribs('mask', field) else 1, comment))
+                fields.append((0, title, nybble, mask, comment))
+
             elif field.nodeName == 'list':
                 # parameters: title, nybble, model, comment
-                snybble = attribs['nybble'].nodeValue
+
                 if '-' not in snybble:
                     nybble = int(snybble) - 1
                     max = 16
@@ -488,13 +536,27 @@ class SpriteDefinition():
                     if e.nodeName != 'entry': continue
 
                     i = int(e.attributes['value'].nodeValue)
-                    entries.append((i, e.childNodes[0].nodeValue))
-                    existing[i] = True
+                    if e.childNodes:
+                        name = e.childNodes[0].nodeValue
+                    else:  # Reggie Next compatibility
+                        name = str(i)
 
-                fields.append((1, attribs['title'].nodeValue, nybble, SpriteDefinition.ListPropertyModel(entries, existing, max), comment))
-            elif field.nodeName == 'value':
+                    if maskHint:
+                        # Reggie Next compatibility
+                        valuesToAdd = []
+                        for j in range(maskHint):
+                            valuesToAdd.append(i * maskHint + j)
+                    else:
+                        valuesToAdd = [i]
+
+                    for v in valuesToAdd:
+                        entries.append((v, name))
+                        existing[v] = True
+
+                fields.append((1, title, nybble, SpriteDefinition.ListPropertyModel(entries, existing, max), comment))
+
+            elif field.nodeName in ['value', 'multidualbox']:
                 # parameters: title, nybble, max, comment
-                snybble = attribs['nybble'].nodeValue
 
                 # if it's 5-12 skip it
                 # fixes tobias's crashy "unknown values"
@@ -508,7 +570,10 @@ class SpriteDefinition():
                     nybble = (int(getit[0]) - 1, int(getit[1]))
                     max = (16 << ((nybble[1] - nybble[0] - 1) * 4))
 
-                fields.append((2, attribs['title'].nodeValue, nybble, max, comment))
+                fields.append((2, title, nybble, max, comment))
+
+            else:
+                raise ValueError(field.nodeName)
 
 
 def LoadSpriteData():
@@ -529,10 +594,16 @@ def LoadSpriteData():
 
         spriteid = int(sprite.attributes['id'].nodeValue)
         spritename = unicode(sprite.attributes['name'].nodeValue)
-        notes = None
 
+        notesParts = []
         if keyInAttribs('notes', sprite):
-            notes = '<b>Sprite Notes:</b> ' + sprite.attributes['notes'].nodeValue
+            notesParts.append(sprite.attributes['notes'].nodeValue)
+        if keyInAttribs('advancednotes', sprite):  # Reggie Next compatibility
+            notesParts.append(sprite.attributes['advancednotes'].nodeValue)
+        if notesParts:
+            notes = '<b>Sprite Notes:</b> ' + '<br/><br/>'.join(notesParts)
+        else:
+            notes = None
 
         sdef = SpriteDefinition()
         sdef.id = spriteid
