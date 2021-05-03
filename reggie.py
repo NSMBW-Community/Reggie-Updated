@@ -1624,9 +1624,6 @@ class LevelUnit():
         self.areanum = 1
         self.areacount = 1
 
-        mainWindow.levelOverview.maxX = 100
-        mainWindow.levelOverview.maxY = 40
-
         # we don't parse blocks 4, 11, 12, 13, 14
         # we can create the rest manually
         self.blocks = [None]*14
@@ -3586,9 +3583,6 @@ class LevelOverviewWidget(QtWidgets.QWidget):
         self.entrancebrush = QtGui.QBrush(QtGui.QColor.fromRgb(255,0,0))
         self.locationbrush = QtGui.QBrush(QtGui.QColor.fromRgb(114,42,188,50))
 
-        self.scale = 0.375
-        self.maxX = 1
-        self.maxY = 1
         self.CalcSize()
         self.Rescale()
 
@@ -3601,14 +3595,8 @@ class LevelOverviewWidget(QtWidgets.QWidget):
     def Reset(self):
         """Resets the max and scale variables"""
         self.scale = 0.375
-        self.maxX = 1
-        self.maxY = 1
         self.CalcSize()
         self.Rescale()
-
-    def CalcSize(self):
-        """Calculates all the required sizes for this scale"""
-        self.posmult = 24.0 / self.scale
 
     def mouseMoveEvent(self, event):
         """Handles mouse movement over the widget"""
@@ -3635,17 +3623,13 @@ class LevelOverviewWidget(QtWidgets.QWidget):
         painter = QtGui.QPainter(self)
         painter.setRenderHint(QtGui.QPainter.Antialiasing, True)
 
+        self.CalcSize()
         self.Rescale()
         painter.fillRect(event.rect(), self.bgbrush)
         painter.scale(self.scale, self.scale)
 
-        maxX = self.maxX
-        maxY = self.maxY
         dr = painter.drawRect
         fr = painter.fillRect
-
-        maxX = 0
-        maxY = 0
 
 
         b = self.viewbrush
@@ -3658,40 +3642,24 @@ class LevelOverviewWidget(QtWidgets.QWidget):
             height = zone.height / 16
             fr(QtCore.QRectF(x, y, width, height), b)
             dr(QtCore.QRectF(x, y, width, height))
-            if x+width > maxX:
-                maxX = x+width
-            if y+height > maxY:
-                maxY = y+height
 
         b = self.objbrush
 
         for layer in Level.layers:
             for obj in layer:
                 fr(obj.LevelRect, b)
-                if obj.objx > maxX:
-                    maxX = obj.objx
-                if obj.objy > maxY:
-                    maxY = obj.objy
 
 
         b = self.spritebrush
 
         for sprite in Level.sprites:
             fr(sprite.LevelRect, b)
-            if sprite.objx/16 > maxX:
-                maxX = sprite.objx/16
-            if sprite.objy/16 > maxY:
-                maxY = sprite.objy/16
 
 
         b = self.entrancebrush
 
         for ent in Level.entrances:
             fr(ent.LevelRect, b)
-            if ent.objx/16 > maxX:
-                maxX = ent.objx/16
-            if ent.objy/16 > maxY:
-                maxY = ent.objy/16
 
 
         b = self.locationbrush
@@ -3704,13 +3672,6 @@ class LevelOverviewWidget(QtWidgets.QWidget):
             height = location.height / 16
             fr(QtCore.QRectF(x, y, width, height), b)
             dr(QtCore.QRectF(x, y, width, height))
-            if x+width > maxX:
-                maxX = x+width
-            if y+height > maxY:
-                maxY = y+height
-
-        self.maxX = maxX
-        self.maxY = maxY
 
         b = self.locationbrush
         painter.setPen(QtGui.QPen(QtCore.Qt.blue, 1))
@@ -3720,7 +3681,63 @@ class LevelOverviewWidget(QtWidgets.QWidget):
                                        self.Hlocator/24/self.mainWindowScale))
 
 
+    def CalcSize(self):
+        """Calculates self.maxX and self.maxY"""
+        if Level is None:
+            # fixes race condition where this widget's size is calculated
+            # after the level is created, but before it's loaded
+            self.maxX = 100
+            self.maxY = 40
+            return
+
+        maxX = 0
+        maxY = 0
+
+        for zone in Level.zones:
+            x = zone.objx / 16
+            y = zone.objy / 16
+            width = zone.width / 16
+            height = zone.height / 16
+            if x+width > maxX:
+                maxX = x+width
+            if y+height > maxY:
+                maxY = y+height
+
+        for layer in Level.layers:
+            for obj in layer:
+                if obj.objx > maxX:
+                    maxX = obj.objx
+                if obj.objy > maxY:
+                    maxY = obj.objy
+
+        for sprite in Level.sprites:
+            if sprite.objx/16 > maxX:
+                maxX = sprite.objx/16
+            if sprite.objy/16 > maxY:
+                maxY = sprite.objy/16
+
+        for ent in Level.entrances:
+            if ent.objx/16 > maxX:
+                maxX = ent.objx/16
+            if ent.objy/16 > maxY:
+                maxY = ent.objy/16
+
+        for location in Level.locations:
+            x = location.objx / 16
+            y = location.objy / 16
+            width = location.width / 16
+            height = location.height / 16
+            if x+width > maxX:
+                maxX = x+width
+            if y+height > maxY:
+                maxY = y+height
+
+        self.maxX = maxX
+        self.maxY = maxY
+
+
     def Rescale(self):
+        """Calculates self.scale and self.posmult"""
         self.Xscale = (float(self.width())/float(self.maxX+45))
         self.Yscale = (float(self.height())/float(self.maxY+25))
 
@@ -3731,8 +3748,7 @@ class LevelOverviewWidget(QtWidgets.QWidget):
 
         if self.scale == 0: self.scale = 1
 
-        self.CalcSize()
-
+        self.posmult = 24.0 / self.scale
 
 
 
