@@ -3627,6 +3627,7 @@ class LevelOverviewWidget(QtWidgets.QWidget):
         self.Rescale()
         painter.fillRect(event.rect(), self.bgbrush)
         painter.scale(self.scale, self.scale)
+        transform = QtGui.QTransform() / 24
 
         dr = painter.drawRect
         fr = painter.fillRect
@@ -3636,12 +3637,9 @@ class LevelOverviewWidget(QtWidgets.QWidget):
         painter.setPen(QtGui.QPen(QtGui.QColor.fromRgb(0,255,255), 1))
 
         for zone in Level.zones:
-            x = zone.objx / 16
-            y = zone.objy / 16
-            width = zone.width / 16
-            height = zone.height / 16
-            fr(QtCore.QRectF(x, y, width, height), b)
-            dr(QtCore.QRectF(x, y, width, height))
+            rect = transform.mapRect(zone.sceneBoundingRect())
+            fr(rect, b)
+            dr(rect)
 
         b = self.objbrush
 
@@ -3666,12 +3664,9 @@ class LevelOverviewWidget(QtWidgets.QWidget):
         painter.setPen(QtGui.QPen(QtCore.Qt.black, 1))
 
         for location in Level.locations:
-            x = location.objx / 16
-            y = location.objy / 16
-            width = location.width / 16
-            height = location.height / 16
-            fr(QtCore.QRectF(x, y, width, height), b)
-            dr(QtCore.QRectF(x, y, width, height))
+            rect = transform.mapRect(location.sceneBoundingRect())
+            fr(rect, b)
+            dr(rect)
 
         b = self.locationbrush
         painter.setPen(QtGui.QPen(QtCore.Qt.blue, 1))
