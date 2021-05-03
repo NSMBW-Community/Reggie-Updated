@@ -3690,50 +3690,27 @@ class LevelOverviewWidget(QtWidgets.QWidget):
             self.maxY = 40
             return
 
-        maxX = 0
-        maxY = 0
+        transform = QtGui.QTransform() / 24
+        rect = QtCore.QRectF()
 
         for zone in Level.zones:
-            x = zone.objx / 16
-            y = zone.objy / 16
-            width = zone.width / 16
-            height = zone.height / 16
-            if x+width > maxX:
-                maxX = x+width
-            if y+height > maxY:
-                maxY = y+height
+            rect |= transform.mapRect(zone.sceneBoundingRect())
 
         for layer in Level.layers:
             for obj in layer:
-                if obj.objx > maxX:
-                    maxX = obj.objx
-                if obj.objy > maxY:
-                    maxY = obj.objy
+                rect |= obj.LevelRect
 
         for sprite in Level.sprites:
-            if sprite.objx/16 > maxX:
-                maxX = sprite.objx/16
-            if sprite.objy/16 > maxY:
-                maxY = sprite.objy/16
+            rect |= sprite.LevelRect
 
         for ent in Level.entrances:
-            if ent.objx/16 > maxX:
-                maxX = ent.objx/16
-            if ent.objy/16 > maxY:
-                maxY = ent.objy/16
+            rect |= ent.LevelRect
 
         for location in Level.locations:
-            x = location.objx / 16
-            y = location.objy / 16
-            width = location.width / 16
-            height = location.height / 16
-            if x+width > maxX:
-                maxX = x+width
-            if y+height > maxY:
-                maxY = y+height
+            rect |= transform.mapRect(location.sceneBoundingRect())
 
-        self.maxX = maxX
-        self.maxY = maxY
+        self.maxX = rect.right()
+        self.maxY = rect.bottom()
 
 
     def Rescale(self):
