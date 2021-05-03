@@ -730,7 +730,8 @@ def DecodeReggieInfo(data, validKeys):
 
     # Filter out uninteresting strings and check that the length is right
     strings = [s for s in stack if s not in {'PyQt4.QtCore', 'QString', None}]
-    assert len(strings) == 12
+    if len(strings) != 12:
+        raise ValueError('Wrong number of strings in level metadata (%d)' % len(strings))
 
     # Convert e.g. [a, b, c, d, e, f] -> {a: b, c: d, e: f}
     # https://stackoverflow.com/a/12739974
@@ -738,7 +739,9 @@ def DecodeReggieInfo(data, validKeys):
     levelinfo = dict(zip(it, it))
 
     # Double-check that the keys are as expected, and return
-    assert set(levelinfo) == validKeys
+    if set(levelinfo) != validKeys:
+        raise ValueError('Wrong keys in level metadata: ' + str(set(levelinfo)))
+
     return levelinfo
 
 
