@@ -7127,8 +7127,15 @@ class CameraProfilesDialog(QtWidgets.QDialog):
         self.list.sortItems()
 
     def handleAdd(self, item=None):
+        newId = 1
+        for row in range(self.list.count()):
+            item = self.list.item(row)
+            values = item.data(QtCore.Qt.UserRole)
+            newId = max(newId, values[0] + 1)
+
         item = CustomSortableListWidgetItem()
-        item.setData(QtCore.Qt.UserRole, [0, 0, 0])
+        item.setData(QtCore.Qt.UserRole, [newId, 0, 0])
+        item.sortKey = newId
         self.updateItemTitle(item)
         self.list.addItem(item)
 
