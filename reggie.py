@@ -6144,7 +6144,7 @@ class CameraModeZoomSettingsLayout(QtWidgets.QFormLayout):
                     (6, 'X Tracking Only', 'In this mode, the camera will only move horizontally. It will be aligned to the bottom edge of the zone.'),
                     (7, 'X Expanding Only', 'In this mode, the camera will only zoom out during multiplayer if the players are far apart horizontally.'),
                     (1, 'Y Tracking Only', 'In this mode, the camera will only move vertically. It will be centered horizontally in the zone.'),
-                    (2, 'Y Expanding Only', 'In this mode, the camera will zoom out during multiplayer if the players are far apart vertically.'),
+                    (2, 'Y Expanding Only', 'In this mode, the camera will zoom out during multiplayer if the players are far apart vertically. The largest screen size will only be used if a player is flying with a Propeller Suit or Block.'),
                 ]:
 
             rb = QtWidgets.QRadioButton(name)
