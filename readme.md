@@ -25,6 +25,31 @@ Original Reggie! Homepage: http://www.rvlution.net/reggie/
 Changelog
 =========
 
+Reggie-Updated 2021.05.18.0:
+----------------------------
+- Reggie Updated now supports spritedata.xml's from Reggie Next! ...Kind of. It
+  tries its best to map all of Next's new field formats onto the existing ones,
+  and it's not perfect, but it works pretty well in most cases.
+- The "Layer 0 Spotlight" and "Full Darkness" options have been converted to
+  checkboxes, to support a combined mode with both effects which has been
+  discovered. (Thanks to Abood and Ninji for both independently finding this.)
+- The "Full Screen" layer 0 spotlight mode has been renamed to "Extremely
+  Large", as it turns out that the circle can still be seen at high zoom
+  levels. (Thanks to Ninji for discovering this in the code, and to Zementblock
+  for testing it.)
+- You can now always see the ID of a location, even when the location isn't
+  wide enough to fit the text. You can also now drag such a location by its ID,
+  too. (Thanks to Grop for pointing this issue out, and suggesting a fix.)
+- The "Add" button in the Camera Profiles dialog now adds a new profile with
+  (highest event ID) + 1, instead of one with event ID 0. (Thanks to Skawo for
+  the suggestion.)
+- Renamed a few zone themes to be more clear.
+- Fixed a few tooltips that had inaccurate information.
+- Replaced the term "Doomship" with "Airship" everywhere, for consistency and
+  accuracy.
+- Other smaller changes and bugfixes.
+
+
 Reggie-Updated 2021.03.21.0:
 ----------------------------
 - Added support for "Zone Direction" setting in the Zones dialog.
