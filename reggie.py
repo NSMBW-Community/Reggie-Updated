@@ -6477,33 +6477,21 @@ class ZoneTab(QtWidgets.QWidget):
         if z.terraindark >= len(ZoneTerrainThemeValues): z.terraindark = len(ZoneTerrainThemeValues) - 1
         self.Zone_terraindark.setCurrentIndex(z.terraindark)
 
-
-        self.Zone_vnormal = QtWidgets.QRadioButton('Normal')
-        self.Zone_vnormal.setToolTip('<b>Normal:</b><br>Sets the visibility mode to normal.')
-
-        self.Zone_vspotlight = QtWidgets.QRadioButton('Layer 0 Spotlight')
+        self.Zone_vspotlight = QtWidgets.QCheckBox('Layer 0 Spotlight')
         self.Zone_vspotlight.setToolTip('<b>Layer 0 Spotlight:</b><br>Sets the visibility mode to spotlight. In spotlight mode, moving behind layer 0 objects enables a spotlight that follows Mario around.')
 
-        self.Zone_vfulldark = QtWidgets.QRadioButton('Full Darkness')
+        self.Zone_vfulldark = QtWidgets.QCheckBox('Full Darkness')
         self.Zone_vfulldark.setToolTip('<b>Full Darkness:</b><br>Sets the visibility mode to full darkness. In full darkness mode, the screen is completely black and visibility is only provided by the available spotlight effect. Stars and some sprites can enhance the default visibility.')
 
         self.Zone_visibility = QtWidgets.QComboBox()
 
         self.zv = z.visibility
-        VRadioDiv = self.zv // 16
 
-        if VRadioDiv == 0:
-            self.Zone_vnormal.setChecked(True)
-        elif VRadioDiv == 1:
-            self.Zone_vspotlight.setChecked(True)
-        elif VRadioDiv == 2:
-            self.Zone_vfulldark.setChecked(True)
-        elif VRadioDiv == 3:
-            self.Zone_vfulldark.setChecked(True)
+        self.Zone_vspotlight.setChecked(self.zv & 0x10)
+        self.Zone_vfulldark.setChecked(self.zv & 0x20)
 
 
         self.ChangeVisibilityList()
-        self.Zone_vnormal.clicked.connect(self.ChangeVisibilityList)
         self.Zone_vspotlight.clicked.connect(self.ChangeVisibilityList)
         self.Zone_vfulldark.clicked.connect(self.ChangeVisibilityList)
 
@@ -6512,7 +6500,6 @@ class ZoneTab(QtWidgets.QWidget):
         ZoneRenderingLayout.addRow('Terrain Lighting:', self.Zone_terraindark)
 
         ZoneVisibilityLayout = QtWidgets.QHBoxLayout()
-        ZoneVisibilityLayout.addWidget(self.Zone_vnormal)
         ZoneVisibilityLayout.addWidget(self.Zone_vspotlight)
         ZoneVisibilityLayout.addWidget(self.Zone_vfulldark)
 
@@ -6525,29 +6512,31 @@ class ZoneTab(QtWidgets.QWidget):
 
     @QtCoreSlot(bool)
     def ChangeVisibilityList(self):
-        VRadioMod = self.zv % 16
+        VChoice = self.zv % 16
 
-        if self.Zone_vnormal.isChecked():
+        addList = toolTip = None
+        if not self.Zone_vfulldark.isChecked():
+            if not self.Zone_vspotlight.isChecked():
+                addList = ['Layer 0: Hidden', 'Layer 0: On Top']
+                toolTip = '<b>Hidden</b> - Mario is hidden when moving behind objects on Layer 0<br><b>On Top</b> - Mario is displayed above Layer 0 at all times<br><br>Note: Entities behind layer 0 other than Mario are never visible'
+            else:
+                addList = ['Spotlight: Small', 'Spotlight: Large', 'Spotlight: Full Screen']
+                toolTip = '<b>Small</b> - A small, centered spotlight affords visibility through layer 0.<br><b>Large</b> - A large, centered spotlight affords visibility through layer 0<br><b>Full Screen</b> - the entire screen is revealed whenever Mario walks behind layer 0'
+        else:
+            if not self.Zone_vspotlight.isChecked():
+                addList = ['Darkness: Large Foglight', 'Darkness: Lightbeam', 'Darkness: Large Focus Light', 'Darkness: Small Foglight', 'Darkness: Small Focus Light', 'Darkness: Absolute Black']
+                toolTip = '<b>Large Foglight</b> - A large, organic light source surrounds Mario<br><b>Lightbeam</b> - Mario is able to aim a conical lightbeam through use of the Wiimote<br><b>Large Focus Light</b> - A large spotlight which changes size based upon player movement<br><b>Small Foglight</b> - A small, organic light source surrounds Mario<br><b>Small Focus Light</b> - A small spotlight which changes size based on player movement<br><b>Absolute Black</b> - Visibility is provided only by fireballs, stars, and certain sprites'
+            else:
+                addList = ['Small Spotlight and Small Focus Light']
+                toolTip = '<b>Small Spotlight and Small Focus Light</b> - A small, centered spotlight affords visibility through layer 0, and a small spotlight which changes size based on player movement provides visibility through darkness'
+
+        if addList is not None and toolTip is not None:
             self.Zone_visibility.clear()
-            addList = ['Hidden', 'On Top']
             self.Zone_visibility.addItems(addList)
-            self.Zone_visibility.setToolTip('<b>Hidden</b> - Mario is hidden when moving behind objects on Layer 0<br><b>On Top</b> - Mario is displayed above Layer 0 at all times.<br><br>Note: Entities behind layer 0 other than Mario are never visible')
-            if VRadioMod >= len(addList): VRadioMod = len(addList) - 1
-            self.Zone_visibility.setCurrentIndex(VRadioMod)
-        elif self.Zone_vspotlight.isChecked():
-            self.Zone_visibility.clear()
-            addList = ['Small', 'Large', 'Full Screen']
-            self.Zone_visibility.addItems(addList)
-            self.Zone_visibility.setToolTip('<b>Small</b> - A small, centered spotlight affords visibility through layer 0.<br><b>Large</b> - A large, centered spotlight affords visibility through layer 0<br><b>Full Screen</b> - the entire screen is revealed whenever Mario walks behind layer 0')
-            if VRadioMod >= len(addList): VRadioMod = len(addList) - 1
-            self.Zone_visibility.setCurrentIndex(VRadioMod)
-        elif self.Zone_vfulldark.isChecked():
-            self.Zone_visibility.clear()
-            addList = ['Large Foglight', 'Lightbeam', 'Large Focus Light', 'Small Foglight', 'Small Focus Light', 'Absolute Black']
-            self.Zone_visibility.addItems(addList)
-            self.Zone_visibility.setToolTip('<b>Large Foglight</b> - A large, organic light source surrounds Mario<br><b>Lightbeam</b> - Mario is able to aim a conical lightbeam through use of the Wiimote<br><b>Large Focus Light</b> - A large spotlight which changes size based upon player movement<br><b>Small Foglight</b> - A small, organic light source surrounds Mario<br><b>Small Focuslight</b> - A small spotlight which changes size based on player movement<br><b>Absolute Black</b> - Visibility is provided only by fireballs, stars, and certain sprites')
-            if VRadioMod >= len(addList): VRadioMod = len(addList) - 1
-            self.Zone_visibility.setCurrentIndex(VRadioMod)
+            self.Zone_visibility.setToolTip(toolTip)
+
+            if VChoice >= len(addList): VChoice = len(addList) - 1
+            self.Zone_visibility.setCurrentIndex(VChoice)
 
 
     def createBounds(self, z):
@@ -9584,15 +9573,11 @@ class ReggieWindow(QtWidgets.QMainWindow):
                 z.modeldark = tab.Zone_modeldark.currentIndex()
                 z.terraindark = tab.Zone_terraindark.currentIndex()
 
-                if tab.Zone_vnormal.isChecked():
-                    z.visibility = 0
-                    z.visibility = z.visibility + tab.Zone_visibility.currentIndex()
+                z.visibility = tab.Zone_visibility.currentIndex()
                 if tab.Zone_vspotlight.isChecked():
-                    z.visibility = 16
-                    z.visibility = z.visibility + tab.Zone_visibility.currentIndex()
+                    z.visibility += 16
                 if tab.Zone_vfulldark.isChecked():
-                    z.visibility = 32
-                    z.visibility = z.visibility + tab.Zone_visibility.currentIndex()
+                    z.visibility += 32
 
 
                 z.yupperbound = tab.Zone_yboundup.value()
