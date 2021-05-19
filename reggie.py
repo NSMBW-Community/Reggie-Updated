@@ -6520,8 +6520,8 @@ class ZoneTab(QtWidgets.QWidget):
                 addList = ['Layer 0: Hidden', 'Layer 0: On Top']
                 toolTip = '<b>Hidden</b> - Mario is hidden when moving behind objects on Layer 0<br><b>On Top</b> - Mario is displayed above Layer 0 at all times<br><br>Note: Entities behind layer 0 other than Mario are never visible'
             else:
-                addList = ['Spotlight: Small', 'Spotlight: Large', 'Spotlight: Full Screen']
-                toolTip = '<b>Small</b> - A small, centered spotlight affords visibility through layer 0.<br><b>Large</b> - A large, centered spotlight affords visibility through layer 0<br><b>Full Screen</b> - the entire screen is revealed whenever Mario walks behind layer 0'
+                addList = ['Spotlight: Small', 'Spotlight: Large', 'Spotlight: Extremely Large']
+                toolTip = '<b>Small</b> - A small, centered spotlight affords visibility through layer 0<br><b>Large</b> - A large, centered spotlight affords visibility through layer 0<br><b>Extremely Large</b> - An extremely large, centered spotlight, which spans the whole screen at all but the largest zoom levels, affords visibility through layer 0'
         else:
             if not self.Zone_vspotlight.isChecked():
                 addList = ['Darkness: Large Foglight', 'Darkness: Lightbeam', 'Darkness: Large Focus Light', 'Darkness: Small Foglight', 'Darkness: Small Focus Light', 'Darkness: Absolute Black']
