@@ -6297,8 +6297,8 @@ class ZonesDialog(QtWidgets.QDialog):
 
     @QtCoreSlot()
     def NewZone(self):
-        if len(self.zoneTabs) >= 8:
-            result = QtWidgets.QMessageBox.warning(self, 'Warning', 'You are trying to add more than 8 zones to a level - keep in mind that without the proper fix to the game, this will cause your level to <b>crash</b> or have other strange issues!<br><br>Are you sure you want to do this?', QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.No)
+        if len(self.zoneTabs) >= 6:
+            result = QtWidgets.QMessageBox.warning(self, 'Warning', 'You are trying to add more than 6 zones to a level - keep in mind that without the proper fix to the game, this will cause your level to <b>crash</b> or have other strange issues!<br><br>Are you sure you want to do this?', QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.No)
             if result == QtWidgets.QMessageBox.No:
                 return
 
