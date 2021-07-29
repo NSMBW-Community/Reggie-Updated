@@ -133,12 +133,11 @@ jobs:
         ../.././python3 ./waf all
         cd ..
         .././python3 -m pip install .
-    - name: Build (PyQt5)
+    - name: Configure PyQt5 build
       if: ${{ matrix.pyqt-version == 5 }}
       shell: bash
-      run: $PYTHON_CMD -OO build_release.py --pyqt5
-    - name: Build (PyQt6)
-      if: ${{ matrix.pyqt-version == 6 }}
+      run: echo "PYQT_VERSION=PyQt5" >> $GITHUB_ENV
+    - name: Build
       shell: bash
       run: $PYTHON_CMD -OO build_release.py
     - name: Tar (macOS/Linux)

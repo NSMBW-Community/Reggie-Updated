@@ -123,7 +123,7 @@ if sys.platform == 'nt':
 unneededQtModules = ['Designer', 'Network', 'OpenGL', 'Qml', 'Script', 'Sql', 'Test', 'WebKit', 'Xml']
 neededQtModules = ['Core', 'Gui', 'Widgets']
 
-targetQtVer = 5 if '--pyqt5' in sys.argv else 6
+targetQtVer = 5 if os.environ.get('PYQT_VERSION') == 'PyQt5' else 6
 targetQt = f'PyQt{targetQtVer}'
 print('>> Targeting ' + targetQt)
 
