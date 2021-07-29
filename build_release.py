@@ -123,10 +123,11 @@ if sys.platform == 'nt':
 unneededQtModules = ['Designer', 'Network', 'OpenGL', 'Qml', 'Script', 'Sql', 'Test', 'WebKit', 'Xml']
 neededQtModules = ['Core', 'Gui', 'Widgets']
 
-targetQt = 'PyQt' + str(4 if sys.version_info.major < 3 else 5)
+targetQtVer = 5 if '--pyqt5' in sys.argv else 6
+targetQt = f'PyQt{targetQtVer}'
 print('>> Targeting ' + targetQt)
 
-for qt in ['PySide2', 'PyQt4', 'PyQt5']:
+for qt in ['PySide2', 'PySide6', 'PyQt4', 'PyQt5', 'PyQt6']:
     # Exclude all the stuff we don't use
     for m in unneededQtModules:
         excludes.append(qt + '.Qt' + m)
@@ -147,8 +148,9 @@ excludes_binaries = []
 if sys.platform == 'win32':
     excludes_binaries = [
         # Qt stuff
-        'Qt5Network.dll', 'Qt5Qml.dll', 'Qt5QmlModels.dll',
-        'Qt5Quick.dll', 'Qt5WebSockets.dll',
+        f'Qt{targetQtVer}Network.dll', f'Qt{targetQtVer}Qml.dll',
+        f'Qt{targetQtVer}QmlModels.dll', f'Qt{targetQtVer}Quick.dll',
+        f'Qt{targetQtVer}WebSockets.dll',
         # Other stuff
         'opengl32sw.dll',
         'd3dcompiler_',  # currently (2020-09-25) "d3dcompiler_47.dll",
@@ -173,8 +175,9 @@ elif sys.platform == 'linux':
         # Currently (2020-09-25) these all end with ".so.5", but that
         # may change, so we exclude anything that starts with these
         # substrings
-        'libQt5Network.so', 'libQt5Qml.so', 'libQt5QmlModels.so',
-        'libQt5Quick.so', 'libQt5WebSockets.so',
+        f'libQt{targetQtVer}Network.so', f'libQt{targetQtVer}Qml.so',
+        f'libQt{targetQtVer}QmlModels.so', f'libQt{targetQtVer}Quick.so',
+        f'libQt{targetQtVer}WebSockets.so',
         # Other stuff
         'libgtk-3.so',
     ]
