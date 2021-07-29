@@ -32,56 +32,17 @@ import time
 import warnings
 from xml.dom import minidom
 
-def importQt():
-    """
-    Find a supported Qt bindings library. Return a tuple containing:
-    - QtCore
-    - QtGui
-    - QtWidgets
-    - The runtime Qt version: (a, b, c) for version a.b.c
-    - The runtime Qt bindings version: (a, b, c) for version a.b.c
-    - The human-friendly string name of the Qt bindings (e.g. "PyQt6")
-    """
-    def parseQVersion(v):
-        return tuple([int(c) for c in v.split('.')])
-
-    def pyqtVersionToTuple(v):
-        return (v >> 16, (v >> 8) & 0xff, v & 0xff)
-
-    try:
-        from PyQt5 import QtCore, QtGui, QtWidgets
-        return QtCore, QtGui, QtWidgets, parseQVersion(QtCore.qVersion()), pyqtVersionToTuple(QtCore.PYQT_VERSION), 'PyQt5'
-    except ImportError:
-        pass
-
-    try:
-        from PyQt4 import QtCore, QtGui
-        return QtCore, QtGui, QtGui, parseQVersion(QtCore.qVersion()), pyqtVersionToTuple(QtCore.PYQT_VERSION), 'PyQt4'
-    except ImportError:
-        pass
-
-    try:
-        import PySide2
-        from PySide2 import QtCore, QtGui, QtWidgets
-        return QtCore, QtGui, QtWidgets, parseQVersion(QtCore.qVersion()), PySide2.__version_info__, 'PySide2'
-    except ImportError:
-        pass
-
-    raise RuntimeError('Could not find any supported Qt bindings. Please read the readme for more information.')
-
-QtCore, QtGui, QtWidgets, QtCompatVersion, QtBindingsVersion, QtName = importQt()
-
 import archive
 import lz77
 import sprites
+from qt_compat import (qm, execQtObject, importQt,
+    QValidatorValidateCompat, QtCoreSignal, QtCoreSlot, PyObject)
+
+QtCore, QtGui, QtWidgets, QtCompatVersion, QtBindingsVersion, QtName = importQt()
 
 ReggieID = 'Reggie-Updated by Treeki, Tempus'
 ApplicationDisplayName = 'Reggie! Level Editor'
 
-
-if QtCompatVersion < (4,6,0) or not hasattr(QtWidgets.QGraphicsItem, 'ItemSendsGeometryChanges'):
-    # enables itemChange being called on QGraphicsItem
-    QtWidgets.QGraphicsItem.ItemSendsGeometryChanges = QtWidgets.QGraphicsItem.GraphicsItemFlag(0x800)
 
 # use psyco for optimisation if available
 try:
@@ -114,42 +75,11 @@ else:
     def keyInAttribs(key, node):
         return node.attributes.has_key(key)
 
-def toPyObject(x):
-    if QtCompatVersion < (5,0,0):
-        return x.toPyObject()
-    return x
-
 _ord = ord
 def ord(x):
     if isinstance(x, int):
         return x
     return _ord(x)
-
-def QFileDialog_getOpenFileName(*args, **kwargs):
-    retVal = QtWidgets.QFileDialog.getOpenFileName(*args, **kwargs)
-    if QtCompatVersion < (5,0,0):
-        return retVal
-    return retVal[0]
-
-def QFileDialog_getSaveFileName(*args, **kwargs):
-    retVal = QtWidgets.QFileDialog.getSaveFileName(*args, **kwargs)
-    if QtCompatVersion < (5,0,0):
-        return retVal
-    return retVal[0]
-
-def QValidatorValidateReturnValue(state, input, pos):
-    if QtCompatVersion < (5,0,0):
-        return state, pos
-    return state, input, pos
-
-if hasattr(QtCore, 'pyqtSlot'): # PyQt
-    QtCoreSlot = QtCore.pyqtSlot
-    QtCoreSignal = QtCore.pyqtSignal
-    PyObject = 'PyQt_PyObject'
-else: # PySide2
-    QtCoreSlot = QtCore.Slot
-    QtCoreSignal = QtCore.Signal
-    PyObject = 'object'
 
 
 app = None
@@ -256,24 +186,24 @@ def setupDarkMode():
     app.setStyle(QtWidgets.QStyleFactory.create('Fusion'))
 
     darkPalette = QtGui.QPalette()
-    darkPalette.setColor(QtGui.QPalette.Window, QtGui.QColor(53,53,53))
-    darkPalette.setColor(QtGui.QPalette.WindowText, QtCore.Qt.white)
-    darkPalette.setColor(QtGui.QPalette.Base, QtGui.QColor(25,25,25))
-    darkPalette.setColor(QtGui.QPalette.AlternateBase, QtGui.QColor(53,53,53))
-    darkPalette.setColor(QtGui.QPalette.ToolTipBase, QtCore.Qt.white)
-    darkPalette.setColor(QtGui.QPalette.ToolTipText, QtCore.Qt.white)
-    darkPalette.setColor(QtGui.QPalette.Text, QtCore.Qt.white)
-    darkPalette.setColor(QtGui.QPalette.Button, QtGui.QColor(53,53,53))
-    darkPalette.setColor(QtGui.QPalette.ButtonText, QtCore.Qt.white)
-    darkPalette.setColor(QtGui.QPalette.BrightText, QtCore.Qt.red)
-    darkPalette.setColor(QtGui.QPalette.Link, QtGui.QColor(42, 130, 218))
+    darkPalette.setColor(QtGui.QPalette.ColorRole.Window, QtGui.QColor(53,53,53))
+    darkPalette.setColor(QtGui.QPalette.ColorRole.WindowText, QtCore.Qt.GlobalColor.white)
+    darkPalette.setColor(QtGui.QPalette.ColorRole.Base, QtGui.QColor(25,25,25))
+    darkPalette.setColor(QtGui.QPalette.ColorRole.AlternateBase, QtGui.QColor(53,53,53))
+    darkPalette.setColor(QtGui.QPalette.ColorRole.ToolTipBase, QtCore.Qt.GlobalColor.white)
+    darkPalette.setColor(QtGui.QPalette.ColorRole.ToolTipText, QtCore.Qt.GlobalColor.white)
+    darkPalette.setColor(QtGui.QPalette.ColorRole.Text, QtCore.Qt.GlobalColor.white)
+    darkPalette.setColor(QtGui.QPalette.ColorRole.Button, QtGui.QColor(53,53,53))
+    darkPalette.setColor(QtGui.QPalette.ColorRole.ButtonText, QtCore.Qt.GlobalColor.white)
+    darkPalette.setColor(QtGui.QPalette.ColorRole.BrightText, QtCore.Qt.GlobalColor.red)
+    darkPalette.setColor(QtGui.QPalette.ColorRole.Link, QtGui.QColor(42, 130, 218))
 
-    darkPalette.setColor(QtGui.QPalette.Highlight, QtGui.QColor(42, 130, 218))
-    darkPalette.setColor(QtGui.QPalette.HighlightedText, QtCore.Qt.black)
+    darkPalette.setColor(QtGui.QPalette.ColorRole.Highlight, QtGui.QColor(42, 130, 218))
+    darkPalette.setColor(QtGui.QPalette.ColorRole.HighlightedText, QtCore.Qt.GlobalColor.black)
 
     # fix for disabled menu options
-    darkPalette.setColor(QtGui.QPalette.Disabled, QtGui.QPalette.Text, QtGui.QColor(127,127,127))
-    darkPalette.setColor(QtGui.QPalette.Disabled, QtGui.QPalette.Light, QtGui.QColor(53,53,53))
+    darkPalette.setColor(QtGui.QPalette.ColorGroup.Disabled, QtGui.QPalette.ColorRole.Text, QtGui.QColor(127,127,127))
+    darkPalette.setColor(QtGui.QPalette.ColorGroup.Disabled, QtGui.QPalette.ColorRole.Light, QtGui.QColor(53,53,53))
 
     app.setPalette(darkPalette)
 
@@ -432,14 +362,14 @@ class SpriteDefinition():
             """Required by Qt"""
             return len(self.entries)
 
-        def data(self, index, role=QtCore.Qt.DisplayRole):
+        def data(self, index, role=QtCore.Qt.ItemDataRole.DisplayRole):
             """Get what we have for a specific row"""
             if not index.isValid(): return None
             n = index.row()
             if n < 0: return None
             if n >= len(self.entries): return None
 
-            if role == QtCore.Qt.DisplayRole:
+            if role == QtCore.Qt.ItemDataRole.DisplayRole:
                 return '%d: %s' % self.entries[n]
 
             return None
@@ -620,7 +550,7 @@ def LoadSpriteData():
     sd.unlink()
 
     if len(errors) > 0:
-        QtWidgets.QMessageBox.warning(None, 'Warning',  "The sprite data file didn't load correctly. The following sprites have incorrect and/or broken data in them, and may not be editable correctly in the editor: " + (', '.join(errors)), QtWidgets.QMessageBox.Ok)
+        QtWidgets.QMessageBox.warning(None, 'Warning',  "The sprite data file didn't load correctly. The following sprites have incorrect and/or broken data in them, and may not be editable correctly in the editor: " + (', '.join(errors)), QtWidgets.QMessageBox.StandardButton.Ok)
         QtWidgets.QMessageBox.warning(None, 'Errors', repr(errortext))
 
 
@@ -770,7 +700,7 @@ class ChooseLevelNameDialog(QtWidgets.QDialog):
             for levelname, level in world:
                 lnode = QtWidgets.QTreeWidgetItem()
                 lnode.setText(0, levelname)
-                lnode.setData(0, QtCore.Qt.UserRole, level)
+                lnode.setData(0, QtCore.Qt.ItemDataRole.UserRole, level)
                 lnode.setToolTip(0, level + '.arc')
                 wnode.addChild(lnode)
 
@@ -779,8 +709,8 @@ class ChooseLevelNameDialog(QtWidgets.QDialog):
         self.leveltree = tree
 
         # create the buttons
-        self.buttonBox = QtWidgets.QDialogButtonBox(QtWidgets.QDialogButtonBox.Ok | QtWidgets.QDialogButtonBox.Cancel)
-        self.buttonBox.button(QtWidgets.QDialogButtonBox.Ok).setEnabled(False)
+        self.buttonBox = QtWidgets.QDialogButtonBox(QtWidgets.QDialogButtonBox.StandardButton.Ok | QtWidgets.QDialogButtonBox.StandardButton.Cancel)
+        self.buttonBox.button(QtWidgets.QDialogButtonBox.StandardButton.Ok).setEnabled(False)
 
         self.buttonBox.accepted.connect(self.accept)
         self.buttonBox.rejected.connect(self.reject)
@@ -796,20 +726,20 @@ class ChooseLevelNameDialog(QtWidgets.QDialog):
     @QtCoreSlot(QtWidgets.QTreeWidgetItem, QtWidgets.QTreeWidgetItem)
     def HandleItemChange(self, current, previous):
         """Catch the selected level and enable/disable OK button as needed"""
-        self.currentlevel = current.data(0, QtCore.Qt.UserRole)
+        self.currentlevel = current.data(0, QtCore.Qt.ItemDataRole.UserRole)
         if self.currentlevel is None:
-            self.buttonBox.button(QtWidgets.QDialogButtonBox.Ok).setEnabled(False)
+            self.buttonBox.button(QtWidgets.QDialogButtonBox.StandardButton.Ok).setEnabled(False)
         else:
-            self.buttonBox.button(QtWidgets.QDialogButtonBox.Ok).setEnabled(True)
-            self.currentlevel = unicode(toPyObject(self.currentlevel))
+            self.buttonBox.button(QtWidgets.QDialogButtonBox.StandardButton.Ok).setEnabled(True)
+            self.currentlevel = unicode(qm(self.currentlevel))
 
 
     @QtCoreSlot(QtWidgets.QTreeWidgetItem, int)
     def HandleItemActivated(self, item, column):
         """Handle a doubleclick on a level"""
-        self.currentlevel = item.data(0, QtCore.Qt.UserRole)
+        self.currentlevel = item.data(0, QtCore.Qt.ItemDataRole.UserRole)
         if self.currentlevel is not None:
-            self.currentlevel = unicode(toPyObject(self.currentlevel))
+            self.currentlevel = unicode(qm(self.currentlevel))
             self.accept()
 
 
@@ -1117,7 +1047,7 @@ def _LoadTileset(idx, name):
     if HaveNSMBLib:
         tiledata = nsmblib.decompress11LZS(comptiledata)
         rgbdata = nsmblib.decodeTileset(tiledata)
-        img = QtGui.QImage(rgbdata, 1024, 256, 4096, QtGui.QImage.Format_ARGB32_Premultiplied)
+        img = QtGui.QImage(rgbdata, 1024, 256, 4096, QtGui.QImage.Format.Format_ARGB32_Premultiplied)
     else:
         lz = lz77.LZS11()
         img = LoadTextureUsingOldMethod(lz.Decompress11LZS(comptiledata))
@@ -1240,7 +1170,7 @@ def LoadTextureUsingOldMethod(tiledata):
 
     # Convert the list of ARGB color values into a bytes object, and
     # then convert that into a QImage
-    return QtGui.QImage(struct.pack('<262144I', *dest), 1024, 256, QtGui.QImage.Format_ARGB32)
+    return QtGui.QImage(struct.pack('<262144I', *dest), 1024, 256, QtGui.QImage.Format.Format_ARGB32)
 
 
 def UnloadTileset(idx):
@@ -1536,7 +1466,7 @@ AutoSaveData = b''
 
 def createHorzLine():
     f = QtWidgets.QFrame()
-    f.setFrameStyle(QtWidgets.QFrame.HLine | QtWidgets.QFrame.Sunken)
+    f.setFrameStyle(QtWidgets.QFrame.Shape.HLine | QtWidgets.QFrame.Shadow.Sunken)
     return f
 
 def LoadNumberFont():
@@ -1563,11 +1493,11 @@ def LoadNumberFontBold():
     # normal Qt defines Q_WS_WIN and Q_WS_MAC but we don't have that here
     s = QtCore.QSysInfo()
     if hasattr(s, 'WindowsVersion'):
-        NumberFontBold = QtGui.QFont('Tahoma', 7, QtGui.QFont.Bold)
+        NumberFontBold = QtGui.QFont('Tahoma', 7, QtGui.QFont.Weight.Bold)
     elif hasattr(s, 'MacintoshVersion'):
         NumberFontBold = QtGui.QFont('Lucida Grande', 9)
     else:
-        NumberFontBold = QtGui.QFont('Sans', 8, QtGui.QFont.Bold)
+        NumberFontBold = QtGui.QFont('Sans', 8, QtGui.QFont.Weight.Bold)
 
 def SetDirty(noautosave=False):
     global Dirty, DirtyOverride, AutoSaveDirty
@@ -2332,19 +2262,19 @@ class LevelEditorItem(QtWidgets.QGraphicsItem):
     def __init__(self):
         """Generic constructor for level editor items"""
         super(LevelEditorItem, self).__init__()
-        self.setFlag(self.ItemSendsGeometryChanges, True)
+        self.setFlag(qm(QtWidgets.QGraphicsItem.GraphicsItemFlag).ItemSendsGeometryChanges, True)
 
     def itemChange(self, change, value):
         """Makes sure positions don't go out of bounds and updates them as necessary"""
 
-        if change == QtWidgets.QGraphicsItem.ItemPositionChange:
+        if change == QtWidgets.QGraphicsItem.GraphicsItemChange.ItemPositionChange:
             # snap to 24x24
-            newpos = toPyObject(value)
+            newpos = qm(value)
 
             # snap even further if Shift isn't held
             # but -only- if OverrideSnapping is off
             if not OverrideSnapping:
-                if QtWidgets.QApplication.keyboardModifiers() == QtCore.Qt.AltModifier:
+                if QtWidgets.QApplication.keyboardModifiers() == QtCore.Qt.KeyboardModifier.AltModifier:
                     newpos.setX(int(int((newpos.x() + 0.75) / 1.5) * 1.5))
                     newpos.setY(int(int((newpos.y() + 0.75) / 1.5) * 1.5))
                 else:
@@ -2402,8 +2332,8 @@ class LevelObjectEditorItem(LevelEditorItem):
         self.height = height
         self.objdata = None
 
-        self.setFlag(self.ItemIsMovable, ObjectsNonFrozen)
-        self.setFlag(self.ItemIsSelectable, ObjectsNonFrozen)
+        self.setFlag(QtWidgets.QGraphicsItem.GraphicsItemFlag.ItemIsMovable, ObjectsNonFrozen)
+        self.setFlag(QtWidgets.QGraphicsItem.GraphicsItemFlag.ItemIsSelectable, ObjectsNonFrozen)
         self.UpdateRects()
 
         self.dragging = False
@@ -2454,12 +2384,12 @@ class LevelObjectEditorItem(LevelEditorItem):
     def itemChange(self, change, value):
         """Makes sure positions don't go out of bounds and updates them as necessary"""
 
-        if change == QtWidgets.QGraphicsItem.ItemPositionChange:
+        if change == QtWidgets.QGraphicsItem.GraphicsItemChange.ItemPositionChange:
             scene = self.scene()
             if scene is None: return value
 
             # snap to 24x24
-            newpos = toPyObject(value)
+            newpos = qm(value)
             newpos.setX(int((newpos.x() + 12) / 24) * 24)
             newpos.setY(int((newpos.y() + 12) / 24) * 24)
             x = newpos.x()
@@ -2489,8 +2419,8 @@ class LevelObjectEditorItem(LevelEditorItem):
                 #updRect = QtCore.QRectF(self.x(), self.y(), self.BoundingRect.width(), self.BoundingRect.height())
                 #scene.invalidate(updRect)
 
-                scene.invalidate(self.x(), self.y(), self.width*24, self.height*24, QtWidgets.QGraphicsScene.BackgroundLayer)
-                #scene.invalidate(newpos.x(), newpos.y(), self.width*24, self.height*24, QtWidgets.QGraphicsScene.BackgroundLayer)
+                scene.invalidate(self.x(), self.y(), self.width*24, self.height*24, QtWidgets.QGraphicsScene.SceneLayer.BackgroundLayer)
+                #scene.invalidate(newpos.x(), newpos.y(), self.width*24, self.height*24, QtWidgets.QGraphicsScene.SceneLayer.BackgroundLayer)
 
             return newpos
 
@@ -2500,7 +2430,7 @@ class LevelObjectEditorItem(LevelEditorItem):
     def paint(self, painter, option, widget):
         """Paints the object"""
         if self.isSelected():
-            painter.setPen(QtGui.QPen(QtCore.Qt.white, 1, QtCore.Qt.DotLine))
+            painter.setPen(QtGui.QPen(QtCore.Qt.GlobalColor.white, 1, QtCore.Qt.PenStyle.DotLine))
             painter.drawRect(self.SelectionRect)
             painter.fillRect(self.SelectionRect, QtGui.QColor.fromRgb(255,255,255,64))
 
@@ -2509,8 +2439,8 @@ class LevelObjectEditorItem(LevelEditorItem):
 
     def mousePressEvent(self, event):
         """Overrides mouse pressing events if needed for resizing"""
-        if event.button() == QtCore.Qt.LeftButton:
-            if QtWidgets.QApplication.keyboardModifiers() == QtCore.Qt.ControlModifier:
+        if event.button() == QtCore.Qt.MouseButton.LeftButton:
+            if QtWidgets.QApplication.keyboardModifiers() == QtCore.Qt.KeyboardModifier.ControlModifier:
                 layer = Level.layers[self.layer]
                 if len(layer) == 0:
                     newZ = (2 - self.layer) * 8192
@@ -2540,7 +2470,7 @@ class LevelObjectEditorItem(LevelEditorItem):
 
     def mouseMoveEvent(self, event):
         """Overrides mouse movement events if needed for resizing"""
-        if event.buttons() & QtCore.Qt.LeftButton and self.dragging:
+        if event.buttons() & QtCore.Qt.MouseButton.LeftButton and self.dragging:
             # resize it
             dsx = self.dragstartx
             dsy = self.dragstarty
@@ -2690,7 +2620,7 @@ class ZoneItem(LevelEditorItem):
     def paint(self, painter, option, widget):
         """Paints the zone on screen"""
         #painter.setClipRect(option.exposedRect)
-        painter.setRenderHint(QtGui.QPainter.Antialiasing)
+        painter.setRenderHint(QtGui.QPainter.RenderHint.Antialiasing)
 
         if DarkMode:
             textColor = QtGui.QColor.fromRgba(0xFFCAE0F9)
@@ -2744,7 +2674,7 @@ class ZoneItem(LevelEditorItem):
 
     def mouseMoveEvent(self, event):
         """Overrides mouse movement events if needed for resizing"""
-        if event.buttons() & QtCore.Qt.LeftButton and self.dragging:
+        if event.buttons() & QtCore.Qt.MouseButton.LeftButton and self.dragging:
             # resize it
             clickedx = int(event.scenePos().x() / 1.5)
             clickedy = int(event.scenePos().y() / 1.5)
@@ -2842,8 +2772,8 @@ class LocationEditorItem(LevelEditorItem):
         self.UpdateTitle()
         self.UpdateRects()
 
-        self.setFlag(self.ItemIsMovable, LocationsNonFrozen)
-        self.setFlag(self.ItemIsSelectable, LocationsNonFrozen)
+        self.setFlag(QtWidgets.QGraphicsItem.GraphicsItemFlag.ItemIsMovable, LocationsNonFrozen)
+        self.setFlag(QtWidgets.QGraphicsItem.GraphicsItemFlag.ItemIsSelectable, LocationsNonFrozen)
 
         global DirtyOverride
         DirtyOverride += 1
@@ -2887,18 +2817,18 @@ class LocationEditorItem(LevelEditorItem):
     def paint(self, painter, option, widget):
         """Paints the location on screen"""
         painter.setClipRect(option.exposedRect)
-        painter.setRenderHint(QtGui.QPainter.Antialiasing)
+        painter.setRenderHint(QtGui.QPainter.RenderHint.Antialiasing)
 
         painter.setBrush(QtGui.QBrush(QtGui.QColor.fromRgb(114,42,188,70)))
-        painter.setPen(QtGui.QPen(QtCore.Qt.black, 2))
+        painter.setPen(QtGui.QPen(QtCore.Qt.GlobalColor.black, 2))
         painter.drawRect(self.DrawRect)
 
-        painter.setPen(QtGui.QPen(QtCore.Qt.white, 1))
+        painter.setPen(QtGui.QPen(QtCore.Qt.GlobalColor.white, 1))
         painter.setFont(self.font)
         painter.drawText(self.TitleRect, self.title)
 
         if self.isSelected():
-            painter.setPen(QtGui.QPen(QtCore.Qt.white, 1, QtCore.Qt.DotLine))
+            painter.setPen(QtGui.QPen(QtCore.Qt.GlobalColor.white, 1, QtCore.Qt.PenStyle.DotLine))
             painter.drawRect(self.DrawRect)
             painter.fillRect(self.DrawRect, QtGui.QColor.fromRgb(255,255,255,40))
 
@@ -2920,7 +2850,7 @@ class LocationEditorItem(LevelEditorItem):
 
     def mouseMoveEvent(self, event):
         """Overrides mouse movement events if needed for resizing"""
-        if event.buttons() & QtCore.Qt.LeftButton and self.dragging:
+        if event.buttons() & QtCore.Qt.MouseButton.LeftButton and self.dragging:
             # resize it
             dsx = self.dragstartx
             dsy = self.dragstarty
@@ -2987,8 +2917,8 @@ class SpriteEditorItem(LevelEditorItem):
 
         self.InitialiseSprite()
 
-        self.setFlag(self.ItemIsMovable, SpritesNonFrozen)
-        self.setFlag(self.ItemIsSelectable, SpritesNonFrozen)
+        self.setFlag(QtWidgets.QGraphicsItem.GraphicsItemFlag.ItemIsMovable, SpritesNonFrozen)
+        self.setFlag(QtWidgets.QGraphicsItem.GraphicsItemFlag.ItemIsSelectable, SpritesNonFrozen)
 
         global DirtyOverride
         DirtyOverride += 1
@@ -3080,7 +3010,7 @@ class SpriteEditorItem(LevelEditorItem):
     def itemChange(self, change, value):
         """Makes sure positions don't go out of bounds and updates them as necessary"""
 
-        if change == QtWidgets.QGraphicsItem.ItemPositionChange:
+        if change == QtWidgets.QGraphicsItem.GraphicsItemChange.ItemPositionChange:
             if self.scene() is None: return value
             if self.ChangingPos: return value
 
@@ -3088,12 +3018,12 @@ class SpriteEditorItem(LevelEditorItem):
             yOffset = self.yoffset
 
             # snap to 24x24
-            newpos = toPyObject(value)
+            newpos = qm(value)
 
             # snap even further if Shift isn't held
             # but -only- if OverrideSnapping is off
             if not OverrideSnapping:
-                if QtWidgets.QApplication.keyboardModifiers() == QtCore.Qt.AltModifier:
+                if QtWidgets.QApplication.keyboardModifiers() == QtCore.Qt.KeyboardModifier.AltModifier:
                     newpos.setX((int((newpos.x() + 0.75) / 1.5) * 1.5))
                     newpos.setY((int((newpos.y() + 0.75) / 1.5) * 1.5))
                 else:
@@ -3147,8 +3077,8 @@ class SpriteEditorItem(LevelEditorItem):
 
     def mousePressEvent(self, event):
         """Overrides mouse pressing events if needed for cloning"""
-        if event.button() == QtCore.Qt.LeftButton:
-            if QtWidgets.QApplication.keyboardModifiers() == QtCore.Qt.ControlModifier:
+        if event.button() == QtCore.Qt.MouseButton.LeftButton:
+            if QtWidgets.QApplication.keyboardModifiers() == QtCore.Qt.KeyboardModifier.ControlModifier:
                 newitem = SpriteEditorItem(self.type, self.objx, self.objy, self.spritedata)
                 Level.sprites.append(newitem)
                 mainWindow.scene.addItem(newitem)
@@ -3162,7 +3092,7 @@ class SpriteEditorItem(LevelEditorItem):
     def paint(self, painter, option, widget):
         """Paints the object"""
         painter.setClipRect(option.exposedRect)
-        painter.setRenderHint(QtGui.QPainter.Antialiasing)
+        painter.setRenderHint(QtGui.QPainter.RenderHint.Antialiasing)
 
         selectedOpacity, unselectedOpacity = itemBoxFillOpacities()
         if DarkMode:
@@ -3173,20 +3103,20 @@ class SpriteEditorItem(LevelEditorItem):
         if self.customPaint:
             self.customPainter(self, painter)
             if self.isSelected():
-                painter.setPen(QtGui.QPen(QtCore.Qt.white, 1, QtCore.Qt.DotLine))
+                painter.setPen(QtGui.QPen(QtCore.Qt.GlobalColor.white, 1, QtCore.Qt.PenStyle.DotLine))
                 painter.drawRect(self.SelectionRect)
                 painter.fillRect(self.SelectionRect, QtGui.QColor.fromRgb(255,255,255,64))
         else:
             if self.isSelected():
                 painter.setBrush(QtGui.QBrush(QtGui.QColor.fromRgb(fillR,fillG,fillB,selectedOpacity)))
-                painter.setPen(QtGui.QPen(QtCore.Qt.white, 1))
+                painter.setPen(QtGui.QPen(QtCore.Qt.GlobalColor.white, 1))
             else:
                 painter.setBrush(QtGui.QBrush(QtGui.QColor.fromRgb(fillR,fillG,fillB,unselectedOpacity)))
-                painter.setPen(QtGui.QPen(QtCore.Qt.black, 1))
+                painter.setPen(QtGui.QPen(QtCore.Qt.GlobalColor.black, 1))
             painter.drawRoundedRect(self.RoundedRect, 4, 4)
 
             painter.setFont(self.font)
-            painter.drawText(self.BoundingRect,QtCore.Qt.AlignCenter,str(self.type))
+            painter.drawText(self.BoundingRect,QtCore.Qt.AlignmentFlag.AlignCenter,str(self.type))
 
     def delete(self):
         """Delete the sprite from the level"""
@@ -3224,8 +3154,8 @@ class EntranceEditorItem(LevelEditorItem):
         self.entpath = path
         self.listitem = None
 
-        self.setFlag(self.ItemIsMovable, EntrancesNonFrozen)
-        self.setFlag(self.ItemIsSelectable, EntrancesNonFrozen)
+        self.setFlag(QtWidgets.QGraphicsItem.GraphicsItemFlag.ItemIsMovable, EntrancesNonFrozen)
+        self.setFlag(QtWidgets.QGraphicsItem.GraphicsItemFlag.ItemIsSelectable, EntrancesNonFrozen)
 
         global DirtyOverride
         DirtyOverride += 1
@@ -3281,7 +3211,7 @@ class EntranceEditorItem(LevelEditorItem):
     def paint(self, painter, option, widget):
         """Paints the object"""
         painter.setClipRect(option.exposedRect)
-        painter.setRenderHint(QtGui.QPainter.Antialiasing)
+        painter.setRenderHint(QtGui.QPainter.RenderHint.Antialiasing)
 
         selectedOpacity, unselectedOpacity = itemBoxFillOpacities()
         if DarkMode:
@@ -3291,10 +3221,10 @@ class EntranceEditorItem(LevelEditorItem):
 
         if self.isSelected():
             painter.setBrush(QtGui.QBrush(QtGui.QColor.fromRgb(fillR,fillG,fillB,selectedOpacity)))
-            painter.setPen(QtGui.QPen(QtCore.Qt.white, 1))
+            painter.setPen(QtGui.QPen(QtCore.Qt.GlobalColor.white, 1))
         else:
             painter.setBrush(QtGui.QBrush(QtGui.QColor.fromRgb(fillR,fillG,fillB,unselectedOpacity)))
-            painter.setPen(QtGui.QPen(QtCore.Qt.black, 1))
+            painter.setPen(QtGui.QPen(QtCore.Qt.GlobalColor.black, 1))
         painter.drawRoundedRect(self.RoundedRect, 4, 4)
 
         icontype = 0
@@ -3320,14 +3250,14 @@ class EntranceEditorItem(LevelEditorItem):
 
         painter.drawPixmap(0,0,EntranceEditorItem.EntranceImages[icontype])
 
-        #painter.drawText(self.BoundingRect,QtCore.Qt.AlignLeft,str(self.entid))
+        #painter.drawText(self.BoundingRect,QtCore.Qt.AlignmentFlag.AlignLeft,str(self.entid))
         painter.setFont(self.font)
         fontheight = QtGui.QFontMetrics(self.font).ascent() * 2/3
         painter.drawText(QtCore.QPointF(3,7+fontheight/2),str(self.entid))
 
         if self.isSelected():
-            #painter.setRenderHint(QtGui.QPainter.Antialiasing, False)
-            #painter.setPen(QtGui.QPen(QtCore.Qt.black, 1, QtCore.Qt.DotLine))
+            #painter.setRenderHint(QtGui.QPainter.RenderHint.Antialiasing, False)
+            #painter.setPen(QtGui.QPen(QtCore.Qt.GlobalColor.black, 1, QtCore.Qt.PenStyle.DotLine))
             #painter.drawRect(self.SelectionRect)
             pass
 
@@ -3382,8 +3312,8 @@ class PathEditorItem(LevelEditorItem):
         self.nobjy = nobjy
         self.listitem = None
         self.LevelRect = (QtCore.QRectF(self.objx/16, self.objy/16, 24/16, 24/16))
-        self.setFlag(self.ItemIsMovable, PathsNonFrozen)
-        self.setFlag(self.ItemIsSelectable, PathsNonFrozen)
+        self.setFlag(QtWidgets.QGraphicsItem.GraphicsItemFlag.ItemIsMovable, PathsNonFrozen)
+        self.setFlag(QtWidgets.QGraphicsItem.GraphicsItemFlag.ItemIsSelectable, PathsNonFrozen)
         # handle path freezing later
 
         global DirtyOverride
@@ -3425,17 +3355,17 @@ class PathEditorItem(LevelEditorItem):
 
     def paint(self, painter, option, widget):
         """Paints the object"""
-        painter.setRenderHint(QtGui.QPainter.Antialiasing)
+        painter.setRenderHint(QtGui.QPainter.RenderHint.Antialiasing)
         painter.setClipRect(option.exposedRect)
 
         selectedOpacity, unselectedOpacity = itemBoxFillOpacities()
 
         if self.isSelected():
             painter.setBrush(QtGui.QBrush(QtGui.QColor.fromRgb(6,249,20,selectedOpacity)))
-            painter.setPen(QtGui.QPen(QtCore.Qt.white, 1))
+            painter.setPen(QtGui.QPen(QtCore.Qt.GlobalColor.white, 1))
         else:
             painter.setBrush(QtGui.QBrush(QtGui.QColor.fromRgb(6,249,20,unselectedOpacity)))
-            painter.setPen(QtGui.QPen(QtCore.Qt.black, 1))
+            painter.setPen(QtGui.QPen(QtCore.Qt.GlobalColor.black, 1))
         painter.drawRoundedRect(self.RoundedRect, 4, 4)
 
         icontype = 0
@@ -3446,8 +3376,8 @@ class PathEditorItem(LevelEditorItem):
         painter.drawText(QtCore.QPointF(4,17+fontheight/2),str(self.nodeid))
 
         if self.isSelected():
-            #painter.setRenderHint(QtGui.QPainter.Antialiasing, False)
-            #painter.setPen(QtGui.QPen(QtCore.Qt.black, 1, QtCore.Qt.DotLine))
+            #painter.setRenderHint(QtGui.QPainter.RenderHint.Antialiasing, False)
+            #painter.setPen(QtGui.QPen(QtCore.Qt.GlobalColor.black, 1, QtCore.Qt.PenStyle.DotLine))
             #painter.drawRect(self.SelectionRect)
             pass
 
@@ -3491,8 +3421,8 @@ class PathEditorLineItem(LevelEditorItem):
         self.objx = 0
         self.objy = 0
         self.nodelist = nodelist
-        self.setFlag(self.ItemIsMovable, False)
-        self.setFlag(self.ItemIsSelectable, False)
+        self.setFlag(QtWidgets.QGraphicsItem.GraphicsItemFlag.ItemIsMovable, False)
+        self.setFlag(QtWidgets.QGraphicsItem.GraphicsItemFlag.ItemIsSelectable, False)
         self.computeBoundRectAndPos()
         self.setZValue(25002)
         self.UpdateTooltip()
@@ -3535,12 +3465,12 @@ class PathEditorLineItem(LevelEditorItem):
 
     def paint(self, painter, option, widget):
         """Paints the object"""
-        painter.setRenderHint(QtGui.QPainter.Antialiasing)
+        painter.setRenderHint(QtGui.QPainter.RenderHint.Antialiasing)
         painter.setClipRect(option.exposedRect)
 
         linecolor = QtGui.QColor.fromRgb(6,249,20)
         painter.setBrush(QtGui.QBrush(linecolor))
-        painter.setPen(QtGui.QPen(linecolor, 3, join = QtCore.Qt.RoundJoin, cap = QtCore.Qt.RoundCap))
+        painter.setPen(QtGui.QPen(linecolor, 3, join = QtCore.Qt.PenJoinStyle.RoundJoin, cap = QtCore.Qt.PenCapStyle.RoundCap))
         ppath = QtGui.QPainterPath()
 
         lines = []
@@ -3558,7 +3488,7 @@ class PathEditorLineItem(LevelEditorItem):
 
         painter.drawLines(lines)
 
-        painter.setPen(QtGui.QPen(linecolor, 3, join = QtCore.Qt.RoundJoin, cap = QtCore.Qt.RoundCap, style = QtCore.Qt.DotLine))
+        painter.setPen(QtGui.QPen(linecolor, 3, join = QtCore.Qt.PenJoinStyle.RoundJoin, cap = QtCore.Qt.PenCapStyle.RoundCap, style = QtCore.Qt.PenStyle.DotLine))
         if self.nodelist[0]['graphicsitem'].pathinfo['loops']:
             painter.drawLine(QtCore.QLineF(
                 float(snl[-1]['x']*1.5) - self.x(),
@@ -3581,7 +3511,7 @@ class LevelOverviewWidget(QtWidgets.QWidget):
     def __init__(self):
         """Constructor for the level overview widget"""
         super(LevelOverviewWidget, self).__init__()
-        self.setSizePolicy(QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.MinimumExpanding, QtWidgets.QSizePolicy.MinimumExpanding))
+        self.setSizePolicy(QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Policy.MinimumExpanding, QtWidgets.QSizePolicy.Policy.MinimumExpanding))
 
         if DarkMode:
             bgcolor = QtGui.QColor.fromRgb(32, 32, 32)
@@ -3614,15 +3544,17 @@ class LevelOverviewWidget(QtWidgets.QWidget):
         """Handles mouse movement over the widget"""
         QtWidgets.QWidget.mouseMoveEvent(self, event)
 
-        if event.buttons() == QtCore.Qt.LeftButton:
-            self.moveIt.emit(int(event.pos().x() * self.posmult), int(event.pos().y() * self.posmult))
+        if event.buttons() == QtCore.Qt.MouseButton.LeftButton:
+            pos = qm(event).position()
+            self.moveIt.emit(int(pos.x() * self.posmult), int(pos.y() * self.posmult))
 
     def mousePressEvent(self, event):
         """Handles mouse pressing events over the widget"""
         QtWidgets.QWidget.mousePressEvent(self, event)
 
-        if event.button() == QtCore.Qt.LeftButton:
-            self.moveIt.emit(int(event.pos().x() * self.posmult), int(event.pos().y() * self.posmult))
+        if event.button() == QtCore.Qt.MouseButton.LeftButton:
+            pos = qm(event).position()
+            self.moveIt.emit(int(pos.x() * self.posmult), int(pos.y() * self.posmult))
 
     def paintEvent(self, event):
         """Paints the level overview widget"""
@@ -3633,7 +3565,7 @@ class LevelOverviewWidget(QtWidgets.QWidget):
             return
 
         painter = QtGui.QPainter(self)
-        painter.setRenderHint(QtGui.QPainter.Antialiasing, True)
+        painter.setRenderHint(QtGui.QPainter.RenderHint.Antialiasing, True)
 
         self.CalcSize()
         self.Rescale()
@@ -3673,7 +3605,7 @@ class LevelOverviewWidget(QtWidgets.QWidget):
 
 
         b = self.locationbrush
-        painter.setPen(QtGui.QPen(QtCore.Qt.black, 1))
+        painter.setPen(QtGui.QPen(QtCore.Qt.GlobalColor.black, 1))
 
         for location in Level.locations:
             rect = transform.mapRect(location.sceneBoundingRect())
@@ -3681,7 +3613,7 @@ class LevelOverviewWidget(QtWidgets.QWidget):
             dr(rect)
 
         b = self.locationbrush
-        painter.setPen(QtGui.QPen(QtCore.Qt.blue, 1))
+        painter.setPen(QtGui.QPen(QtCore.Qt.GlobalColor.blue, 1))
         painter.drawRect(QtCore.QRectF(self.Xposlocator/24/self.mainWindowScale,
                                        self.Yposlocator/24/self.mainWindowScale,
                                        self.Wlocator/24/self.mainWindowScale,
@@ -3743,10 +3675,10 @@ class ObjectPickerWidget(QtWidgets.QListView):
         """Initialises the widget"""
 
         super(ObjectPickerWidget, self).__init__()
-        self.setFlow(QtWidgets.QListView.LeftToRight)
-        self.setLayoutMode(QtWidgets.QListView.SinglePass)
-        self.setMovement(QtWidgets.QListView.Static)
-        self.setResizeMode(QtWidgets.QListView.Adjust)
+        self.setFlow(QtWidgets.QListView.Flow.LeftToRight)
+        self.setLayoutMode(QtWidgets.QListView.LayoutMode.SinglePass)
+        self.setMovement(QtWidgets.QListView.Movement.Static)
+        self.setResizeMode(QtWidgets.QListView.ResizeMode.Adjust)
         self.setWrapping(True)
 
         self.m0 = ObjectPickerWidget.ObjectListModel()
@@ -3783,7 +3715,7 @@ class ObjectPickerWidget(QtWidgets.QListView):
     @QtCoreSlot(QtCore.QModelIndex)
     def HandleObjReplace(self, index):
         """Throws a signal when the selected object is used as a replacement"""
-        if QtWidgets.QApplication.keyboardModifiers() == QtCore.Qt.AltModifier:
+        if QtWidgets.QApplication.keyboardModifiers() == QtCore.Qt.KeyboardModifier.AltModifier:
             self.ObjReplace.emit(index.row())
 
     ObjChanged = QtCoreSignal(int)
@@ -3799,16 +3731,16 @@ class ObjectPickerWidget(QtWidgets.QListView):
 
         def paint(self, painter, option, index):
             """Paints an object"""
-            if option.state & QtWidgets.QStyle.State_Selected:
+            if option.state & QtWidgets.QStyle.StateFlag.State_Selected:
                 painter.fillRect(option.rect, option.palette.highlight())
 
-            p = index.model().data(index, QtCore.Qt.DecorationRole)
+            p = index.model().data(index, QtCore.Qt.ItemDataRole.DecorationRole)
             painter.drawPixmap(option.rect.x()+2, option.rect.y()+2, p)
             #painter.drawText(option.rect, str(index.row()))
 
         def sizeHint(self, option, index):
             """Returns the size for the object"""
-            p = index.model().data(index, QtCore.Qt.UserRole)
+            p = index.model().data(index, QtCore.Qt.ItemDataRole.UserRole)
             return p
             #return QtCore.QSize(76,76)
 
@@ -3831,23 +3763,23 @@ class ObjectPickerWidget(QtWidgets.QListView):
             """Required by Qt"""
             return len(self.items)
 
-        def data(self, index, role=QtCore.Qt.DisplayRole):
+        def data(self, index, role=QtCore.Qt.ItemDataRole.DisplayRole):
             """Get what we have for a specific row"""
             if not index.isValid(): return None
             n = index.row()
             if n < 0: return None
             if n >= len(self.items): return None
 
-            if role == QtCore.Qt.DecorationRole:
+            if role == QtCore.Qt.ItemDataRole.DecorationRole:
                 return self.ritems[n]
 
-            if role == QtCore.Qt.BackgroundRole:
+            if role == QtCore.Qt.ItemDataRole.BackgroundRole:
                 return app.palette().base()
 
-            if role == QtCore.Qt.UserRole:
+            if role == QtCore.Qt.ItemDataRole.UserRole:
                 return self.itemsize[n]
 
-            if role == QtCore.Qt.ToolTipRole:
+            if role == QtCore.Qt.ItemDataRole.ToolTipRole:
                 return self.tooltips[n]
 
             return None
@@ -3872,7 +3804,7 @@ class ObjectPickerWidget(QtWidgets.QListView):
                 self.items.append(obj)
 
                 pm = QtGui.QPixmap(defs[i].width * 24, defs[i].height * 24)
-                pm.fill(QtCore.Qt.transparent)
+                pm.fill(QtCore.Qt.GlobalColor.transparent)
                 p = QtGui.QPainter()
                 p.begin(pm)
                 y = 0
@@ -3920,14 +3852,14 @@ class SpritePickerWidget(QtWidgets.QTreeWidget):
 
         loc = QtWidgets.QTreeWidgetItem()
         loc.setText(0, 'Paint New Location')
-        loc.setData(0, QtCore.Qt.UserRole, 1000)
+        loc.setData(0, QtCore.Qt.ItemDataRole.UserRole, 1000)
         self.addTopLevelItem(loc)
 
         for viewname, view, nodelist in SpriteCategories:
             for catname, category in view:
                 cnode = QtWidgets.QTreeWidgetItem()
                 cnode.setText(0, catname)
-                cnode.setData(0, QtCore.Qt.UserRole, -1)
+                cnode.setData(0, QtCore.Qt.ItemDataRole.UserRole, -1)
 
                 isSearch = (catname == 'Search Results')
                 if isSearch:
@@ -3938,11 +3870,11 @@ class SpritePickerWidget(QtWidgets.QTreeWidget):
                     snode = QtWidgets.QTreeWidgetItem()
                     if id == 9999:
                         snode.setText(0, 'No sprites found')
-                        snode.setData(0, QtCore.Qt.UserRole, -2)
+                        snode.setData(0, QtCore.Qt.ItemDataRole.UserRole, -2)
                         self.NoSpritesFound = snode
                     else:
                         snode.setText(0, '%d: %s' % (id, Sprites[id].name))
-                        snode.setData(0, QtCore.Qt.UserRole, id)
+                        snode.setData(0, QtCore.Qt.ItemDataRole.UserRole, id)
 
                     if isSearch:
                         SearchableItems.append(snode)
@@ -3972,7 +3904,7 @@ class SpritePickerWidget(QtWidgets.QTreeWidget):
     @QtCoreSlot(QtWidgets.QTreeWidgetItem, QtWidgets.QTreeWidgetItem)
     def HandleItemChange(self, current, previous):
         """Throws a signal when the selected object changed"""
-        id = toPyObject(current.data(0, QtCore.Qt.UserRole))
+        id = qm(current.data(0, QtCore.Qt.ItemDataRole.UserRole))
         if id != -1:
             self.SpriteChanged.emit(id)
 
@@ -3981,7 +3913,7 @@ class SpritePickerWidget(QtWidgets.QTreeWidget):
         """Shows the items containing that string"""
         check = self.SearchResultsCategory
 
-        rawresults = self.findItems(searchfor, QtCore.Qt.MatchContains | QtCore.Qt.MatchRecursive)
+        rawresults = self.findItems(searchfor, QtCore.Qt.MatchFlag.MatchContains | QtCore.Qt.MatchFlag.MatchRecursive)
         results = list(filter((lambda x: x.parent() == check), rawresults))
 
         for x in self.ShownSearchResults: x.setHidden(True)
@@ -3995,8 +3927,8 @@ class SpritePickerWidget(QtWidgets.QTreeWidget):
     @QtCoreSlot(QtWidgets.QTreeWidgetItem, int)
     def HandleSprReplace(self, item, column):
         """Throws a signal when the selected sprite is used as a replacement"""
-        if QtWidgets.QApplication.keyboardModifiers() == QtCore.Qt.AltModifier:
-            id = toPyObject(item.data(0, QtCore.Qt.UserRole))
+        if QtWidgets.QApplication.keyboardModifiers() == QtCore.Qt.KeyboardModifier.AltModifier:
+            id = qm(item.data(0, QtCore.Qt.ItemDataRole.UserRole))
             if id != -1:
                 self.SpriteReplace.emit(id)
 
@@ -4011,7 +3943,7 @@ class SpriteEditorWidget(QtWidgets.QWidget):
     def __init__(self):
         """Constructor"""
         super(SpriteEditorWidget, self).__init__()
-        self.setSizePolicy(QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Fixed))
+        self.setSizePolicy(QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Policy.Minimum, QtWidgets.QSizePolicy.Policy.Fixed))
 
         # create the raw editor
         font = QtGui.QFont()
@@ -4034,7 +3966,7 @@ class SpriteEditorWidget(QtWidgets.QWidget):
         self.noteButton = QtWidgets.QToolButton()
         self.noteButton.setIcon(GetIcon('note'))
         self.noteButton.setText('Notes')
-        self.noteButton.setToolButtonStyle(QtCore.Qt.ToolButtonTextBesideIcon)
+        self.noteButton.setToolButtonStyle(QtCore.Qt.ToolButtonStyle.ToolButtonTextBesideIcon)
         self.noteButton.setAutoRaise(True)
         self.noteButton.clicked.connect(self.ShowNoteTooltip)
 
@@ -4180,7 +4112,7 @@ class SpriteEditorWidget(QtWidgets.QWidget):
             self.widget.currentIndexChanged.connect(self.HandleIndexChanged)
 
             self.nybble = nybble
-            layout.addWidget(QtWidgets.QLabel(title+':'), row, 0, QtCore.Qt.AlignRight)
+            layout.addWidget(QtWidgets.QLabel(title+':'), row, 0, QtCore.Qt.AlignmentFlag.AlignRight)
             layout.addWidget(self.widget, row, 1)
 
         def update(self, data):
@@ -4220,7 +4152,7 @@ class SpriteEditorWidget(QtWidgets.QWidget):
             self.widget.valueChanged.connect(self.HandleValueChanged)
 
             self.nybble = nybble
-            layout.addWidget(QtWidgets.QLabel(title+':'), row, 0, QtCore.Qt.AlignRight)
+            layout.addWidget(QtWidgets.QLabel(title+':'), row, 0, QtCore.Qt.AlignmentFlag.AlignRight)
             layout.addWidget(self.widget, row, 1)
 
         def update(self, data):
@@ -4367,7 +4299,7 @@ class EntranceEditorWidget(QtWidgets.QWidget):
     def __init__(self):
         """Constructor"""
         super(EntranceEditorWidget, self).__init__()
-        self.setSizePolicy(QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Fixed))
+        self.setSizePolicy(QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Policy.Minimum, QtWidgets.QSizePolicy.Policy.Fixed))
 
         self.CanUseFlag8 = set([3,4,5,6,16,17,18,19])
         self.CanUseFlag4 = set([3,4,5,6])
@@ -4430,18 +4362,18 @@ class EntranceEditorWidget(QtWidgets.QWidget):
 
         # "Editing Entrance #" label
         self.editingLabel = QtWidgets.QLabel('-')
-        layout.addWidget(self.editingLabel, 0, 0, 1, 4, QtCore.Qt.AlignTop)
+        layout.addWidget(self.editingLabel, 0, 0, 1, 4, QtCore.Qt.AlignmentFlag.AlignTop)
 
         # add labels
-        layout.addWidget(QtWidgets.QLabel('ID:'), 3, 0, 1, 1, QtCore.Qt.AlignRight)
-        layout.addWidget(QtWidgets.QLabel('Type:'), 1, 0, 1, 1, QtCore.Qt.AlignRight)
+        layout.addWidget(QtWidgets.QLabel('ID:'), 3, 0, 1, 1, QtCore.Qt.AlignmentFlag.AlignRight)
+        layout.addWidget(QtWidgets.QLabel('Type:'), 1, 0, 1, 1, QtCore.Qt.AlignmentFlag.AlignRight)
 
         layout.addWidget(createHorzLine(), 2, 0, 1, 4)
 
-        layout.addWidget(QtWidgets.QLabel('Dest. ID:'), 3, 2, 1, 1, QtCore.Qt.AlignRight)
-        layout.addWidget(QtWidgets.QLabel('Dest. Area:'), 4, 2, 1, 1, QtCore.Qt.AlignRight)
+        layout.addWidget(QtWidgets.QLabel('Dest. ID:'), 3, 2, 1, 1, QtCore.Qt.AlignmentFlag.AlignRight)
+        layout.addWidget(QtWidgets.QLabel('Dest. Area:'), 4, 2, 1, 1, QtCore.Qt.AlignmentFlag.AlignRight)
 
-        layout.addWidget(QtWidgets.QLabel('Active on:'), 4, 0, 1, 1, QtCore.Qt.AlignRight)
+        layout.addWidget(QtWidgets.QLabel('Active on:'), 4, 0, 1, 1, QtCore.Qt.AlignmentFlag.AlignRight)
 
         self.pathIDLabel = QtWidgets.QLabel('Path ID:')
 
@@ -4452,15 +4384,15 @@ class EntranceEditorWidget(QtWidgets.QWidget):
         layout.addWidget(self.destEntrance, 3, 3, 1, 1)
         layout.addWidget(self.destArea, 4, 3, 1, 1)
 
-        layout.addWidget(self.enterableCheckbox, 5, 0, 1, 2, QtCore.Qt.AlignRight)
-        layout.addWidget(self.unknownFlagCheckbox, 5, 2, 1, 2, QtCore.Qt.AlignRight)
-        layout.addWidget(self.forwardPipeCheckbox, 6, 0, 1, 2, QtCore.Qt.AlignRight)
-        layout.addWidget(self.connectedPipeCheckbox, 6, 2, 1, 2, QtCore.Qt.AlignRight)
-        layout.addWidget(self.connectedPipeReverseCheckbox, 7, 0, 1, 2, QtCore.Qt.AlignRight)
-        layout.addWidget(self.pathID, 7, 3, 1, 1, QtCore.Qt.AlignRight)
-        layout.addWidget(self.pathIDLabel, 7, 2, 1, 1, QtCore.Qt.AlignRight)
+        layout.addWidget(self.enterableCheckbox, 5, 0, 1, 2, QtCore.Qt.AlignmentFlag.AlignRight)
+        layout.addWidget(self.unknownFlagCheckbox, 5, 2, 1, 2, QtCore.Qt.AlignmentFlag.AlignRight)
+        layout.addWidget(self.forwardPipeCheckbox, 6, 0, 1, 2, QtCore.Qt.AlignmentFlag.AlignRight)
+        layout.addWidget(self.connectedPipeCheckbox, 6, 2, 1, 2, QtCore.Qt.AlignmentFlag.AlignRight)
+        layout.addWidget(self.connectedPipeReverseCheckbox, 7, 0, 1, 2, QtCore.Qt.AlignmentFlag.AlignRight)
+        layout.addWidget(self.pathID, 7, 3, 1, 1, QtCore.Qt.AlignmentFlag.AlignRight)
+        layout.addWidget(self.pathIDLabel, 7, 2, 1, 1, QtCore.Qt.AlignmentFlag.AlignRight)
 
-        layout.addWidget(self.activeLayer, 4, 1, 1, 1, QtCore.Qt.AlignLeft)
+        layout.addWidget(self.activeLayer, 4, 1, 1, 1, QtCore.Qt.AlignmentFlag.AlignLeft)
 
         self.ent = None
         self.UpdateFlag = False
@@ -4630,7 +4562,7 @@ class PathNodeEditorWidget(QtWidgets.QWidget):
     def __init__(self):
         """Constructor"""
         super(PathNodeEditorWidget, self).__init__()
-        self.setSizePolicy(QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Fixed))
+        self.setSizePolicy(QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Policy.Minimum, QtWidgets.QSizePolicy.Policy.Fixed))
 
 
         # create widgets
@@ -4664,13 +4596,13 @@ class PathNodeEditorWidget(QtWidgets.QWidget):
         # "Editing Entrance #" label
         self.editingLabel = QtWidgets.QLabel('-')
         self.editingPathLabel = QtWidgets.QLabel('-')
-        layout.addWidget(self.editingLabel, 3, 0, 1, 4, QtCore.Qt.AlignTop)
-        layout.addWidget(self.editingPathLabel, 0, 0, 1, 4, QtCore.Qt.AlignTop)
+        layout.addWidget(self.editingLabel, 3, 0, 1, 4, QtCore.Qt.AlignmentFlag.AlignTop)
+        layout.addWidget(self.editingPathLabel, 0, 0, 1, 4, QtCore.Qt.AlignmentFlag.AlignTop)
         # add labels
-        layout.addWidget(QtWidgets.QLabel('Loops:'), 1, 0, 1, 1, QtCore.Qt.AlignRight)
-        layout.addWidget(QtWidgets.QLabel('Speed:'), 4, 0, 1, 1, QtCore.Qt.AlignRight)
-        layout.addWidget(QtWidgets.QLabel('Accel:'), 5, 0, 1, 1, QtCore.Qt.AlignRight)
-        layout.addWidget(QtWidgets.QLabel('Delay:'), 6, 0, 1, 1, QtCore.Qt.AlignRight)
+        layout.addWidget(QtWidgets.QLabel('Loops:'), 1, 0, 1, 1, QtCore.Qt.AlignmentFlag.AlignRight)
+        layout.addWidget(QtWidgets.QLabel('Speed:'), 4, 0, 1, 1, QtCore.Qt.AlignmentFlag.AlignRight)
+        layout.addWidget(QtWidgets.QLabel('Accel:'), 5, 0, 1, 1, QtCore.Qt.AlignmentFlag.AlignRight)
+        layout.addWidget(QtWidgets.QLabel('Delay:'), 6, 0, 1, 1, QtCore.Qt.AlignmentFlag.AlignRight)
         layout.addWidget(createHorzLine(), 2, 0, 1, -1)
 
         # add the widgets
@@ -4729,7 +4661,7 @@ class PathNodeEditorWidget(QtWidgets.QWidget):
     def HandleLoopsChanged(self, i):
         if self.UpdateFlag: return
         SetDirty()
-        self.path.pathinfo['loops'] = (i == QtCore.Qt.Checked)
+        self.path.pathinfo['loops'] = (i == QtCore.Qt.CheckState.Checked)
         self.path.pathinfo['peline'].update()
 
 
@@ -4740,7 +4672,7 @@ class LocationEditorWidget(QtWidgets.QWidget):
     def __init__(self):
         """Constructor"""
         super(LocationEditorWidget, self).__init__()
-        self.setSizePolicy(QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Fixed))
+        self.setSizePolicy(QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Policy.Minimum, QtWidgets.QSizePolicy.Policy.Fixed))
 
         # create widgets
         self.locationID = QtWidgets.QSpinBox()
@@ -4777,18 +4709,18 @@ class LocationEditorWidget(QtWidgets.QWidget):
 
         # "Editing Location #" label
         self.editingLabel = QtWidgets.QLabel('-')
-        layout.addWidget(self.editingLabel, 0, 0, 1, 4, QtCore.Qt.AlignTop)
+        layout.addWidget(self.editingLabel, 0, 0, 1, 4, QtCore.Qt.AlignmentFlag.AlignTop)
 
         # add labels
-        layout.addWidget(QtWidgets.QLabel('ID:'), 1, 0, 1, 1, QtCore.Qt.AlignRight)
+        layout.addWidget(QtWidgets.QLabel('ID:'), 1, 0, 1, 1, QtCore.Qt.AlignmentFlag.AlignRight)
 
         layout.addWidget(createHorzLine(), 2, 0, 1, 4)
 
-        layout.addWidget(QtWidgets.QLabel('X pos:'), 3, 0, 1, 1, QtCore.Qt.AlignRight)
-        layout.addWidget(QtWidgets.QLabel('Y pos:'), 4, 0, 1, 1, QtCore.Qt.AlignRight)
+        layout.addWidget(QtWidgets.QLabel('X pos:'), 3, 0, 1, 1, QtCore.Qt.AlignmentFlag.AlignRight)
+        layout.addWidget(QtWidgets.QLabel('Y pos:'), 4, 0, 1, 1, QtCore.Qt.AlignmentFlag.AlignRight)
 
-        layout.addWidget(QtWidgets.QLabel('Width:'), 3, 2, 1, 1, QtCore.Qt.AlignRight)
-        layout.addWidget(QtWidgets.QLabel('Height:'), 4, 2, 1, 1, QtCore.Qt.AlignRight)
+        layout.addWidget(QtWidgets.QLabel('Width:'), 3, 2, 1, 1, QtCore.Qt.AlignmentFlag.AlignRight)
+        layout.addWidget(QtWidgets.QLabel('Height:'), 4, 2, 1, 1, QtCore.Qt.AlignmentFlag.AlignRight)
 
         # add the widgets
         layout.addWidget(self.locationID, 1, 1, 1, 1)
@@ -5068,14 +5000,14 @@ class LevelViewWidget(QtWidgets.QGraphicsView):
         """Constructor"""
         super(LevelViewWidget, self).__init__(scene, parent)
 
-        self.setAlignment(QtCore.Qt.AlignLeft | QtCore.Qt.AlignTop)
+        self.setAlignment(QtCore.Qt.AlignmentFlag.AlignLeft | QtCore.Qt.AlignmentFlag.AlignTop)
         #self.setBackgroundBrush(QtGui.QBrush(QtGui.QColor.fromRgb(119,136,153)))
-        self.setDragMode(QtWidgets.QGraphicsView.RubberBandDrag)
+        self.setDragMode(QtWidgets.QGraphicsView.DragMode.RubberBandDrag)
         #self.setDragMode(QtWidgets.QGraphicsView.ScrollHandDrag)
         self.setMouseTracking(True)
         #self.setOptimizationFlags(QtWidgets.QGraphicsView.IndirectPainting)
-        self.YScrollBar = QtWidgets.QScrollBar(QtCore.Qt.Vertical, parent)
-        self.XScrollBar = QtWidgets.QScrollBar(QtCore.Qt.Horizontal, parent)
+        self.YScrollBar = QtWidgets.QScrollBar(QtCore.Qt.Orientation.Vertical, parent)
+        self.XScrollBar = QtWidgets.QScrollBar(QtCore.Qt.Orientation.Horizontal, parent)
         self.setVerticalScrollBar(self.YScrollBar)
         self.setHorizontalScrollBar(self.XScrollBar)
 
@@ -5086,13 +5018,13 @@ class LevelViewWidget(QtWidgets.QGraphicsView):
     def mousePressEvent(self, event):
         """Overrides mouse pressing events if needed"""
 
-        if event.buttons() & QtCore.Qt.MidButton or event.buttons() & QtCore.Qt.RightButton:
-            self.setDragMode(QtWidgets.QGraphicsView.NoDrag)
+        if event.buttons() & QtCore.Qt.MouseButton.MiddleButton or event.buttons() & QtCore.Qt.MouseButton.RightButton:
+            self.setDragMode(QtWidgets.QGraphicsView.DragMode.NoDrag)
 
-        if event.buttons() & QtCore.Qt.RightButton and not (event.buttons() & QtCore.Qt.LeftButton):
+        if event.buttons() & QtCore.Qt.MouseButton.RightButton and not (event.buttons() & QtCore.Qt.MouseButton.LeftButton):
             if CurrentPaintType <= 3 and CurrentObject != -1:
                 # paint an object
-                clicked = mainWindow.view.mapToScene(event.x(), event.y())
+                clicked = mainWindow.view.mapToScene(qm(event).position().toPoint())
                 if clicked.x() < 0: clicked.setX(0)
                 if clicked.y() < 0: clicked.setY(0)
                 clickedx = int(clicked.x() / 24)
@@ -5118,7 +5050,7 @@ class LevelViewWidget(QtWidgets.QGraphicsView):
 
             elif CurrentPaintType == 4 and CurrentSprite != -1:
                 # common stuff
-                clicked = mainWindow.view.mapToScene(event.x(), event.y())
+                clicked = mainWindow.view.mapToScene(qm(event).position().toPoint())
                 if clicked.x() < 0: clicked.setX(0)
                 if clicked.y() < 0: clicked.setY(0)
 
@@ -5196,7 +5128,7 @@ class LevelViewWidget(QtWidgets.QGraphicsView):
 
             elif CurrentPaintType == 5:
                 # paint an entrance
-                clicked = mainWindow.view.mapToScene(event.x(), event.y())
+                clicked = mainWindow.view.mapToScene(qm(event).position().toPoint())
                 if clicked.x() < 0: clicked.setX(0)
                 if clicked.y() < 0: clicked.setY(0)
                 clickedx = int((clicked.x() - 12) / 1.5)
@@ -5230,7 +5162,7 @@ class LevelViewWidget(QtWidgets.QGraphicsView):
                 SetDirty()
             elif CurrentPaintType == 6:
                 # paint a pathnode
-                clicked = mainWindow.view.mapToScene(event.x(), event.y())
+                clicked = mainWindow.view.mapToScene(qm(event).position().toPoint())
                 if clicked.x() < 0: clicked.setX(0)
                 if clicked.y() < 0: clicked.setY(0)
                 clickedx = int((clicked.x() - 12) / 1.5)
@@ -5320,17 +5252,17 @@ class LevelViewWidget(QtWidgets.QGraphicsView):
 
             event.accept()
 
-        elif (event.button() == QtCore.Qt.LeftButton) and (QtWidgets.QApplication.keyboardModifiers() == QtCore.Qt.ShiftModifier):
+        elif (event.button() == QtCore.Qt.MouseButton.LeftButton) and (QtWidgets.QApplication.keyboardModifiers() == QtCore.Qt.KeyboardModifier.ShiftModifier):
             mw = mainWindow
 
-            pos = mw.view.mapToScene(event.x(), event.y())
+            pos = mw.view.mapToScene(qm(event).position().toPoint())
             addsel = mw.scene.items(pos)
             for i in addsel:
                 if (int(i.flags()) & i.ItemIsSelectable) != 0:
                     i.setSelected(not i.isSelected())
                     break
 
-        elif event.button() == QtCore.Qt.MidButton:
+        elif event.button() == QtCore.Qt.MouseButton.MiddleButton:
             self.lastCursorPosForMidButtonScroll = event.pos()
             QtWidgets.QGraphicsView.mousePressEvent(self, event)
 
@@ -5349,12 +5281,12 @@ class LevelViewWidget(QtWidgets.QGraphicsView):
     def mouseMoveEvent(self, event):
         """Overrides mouse movement events if needed"""
 
-        pos = mainWindow.view.mapToScene(event.x(), event.y())
+        pos = mainWindow.view.mapToScene(qm(event).position().toPoint())
         if pos.x() < 0: pos.setX(0)
         if pos.y() < 0: pos.setY(0)
         self.PositionHover.emit(int(pos.x()), int(pos.y()))
 
-        if event.buttons() == QtCore.Qt.RightButton and self.currentobj is not None:
+        if event.buttons() == QtCore.Qt.MouseButton.RightButton and self.currentobj is not None:
             obj = self.currentobj
 
             # possibly a small optimisation
@@ -5373,7 +5305,7 @@ class LevelViewWidget(QtWidgets.QGraphicsView):
 
                 dsx = self.dragstartx
                 dsy = self.dragstarty
-                clicked = mainWindow.view.mapToScene(event.x(), event.y())
+                clicked = mainWindow.view.mapToScene(qm(event).position().toPoint())
                 if clicked.x() < 0: clicked.setX(0)
                 if clicked.y() < 0: clicked.setY(0)
                 clickx = int(clicked.x() / 24)
@@ -5423,7 +5355,7 @@ class LevelViewWidget(QtWidgets.QGraphicsView):
 
                 dsx = self.dragstartx
                 dsy = self.dragstarty
-                clicked = mainWindow.view.mapToScene(event.x(), event.y())
+                clicked = mainWindow.view.mapToScene(qm(event).position().toPoint())
                 if clicked.x() < 0: clicked.setX(0)
                 if clicked.y() < 0: clicked.setY(0)
                 clickx = int(clicked.x() / 1.5)
@@ -5471,7 +5403,7 @@ class LevelViewWidget(QtWidgets.QGraphicsView):
 
             elif isinstance(obj, type_spr):
                 # move the created sprite
-                clicked = mainWindow.view.mapToScene(event.x(), event.y())
+                clicked = mainWindow.view.mapToScene(qm(event).position().toPoint())
                 if clicked.x() < 0: clicked.setX(0)
                 if clicked.y() < 0: clicked.setY(0)
                 clickedx = int((clicked.x() - 12) / 12) * 8
@@ -5483,7 +5415,7 @@ class LevelViewWidget(QtWidgets.QGraphicsView):
 
             elif isinstance(obj, type_ent):
                 # move the created entrance
-                clicked = mainWindow.view.mapToScene(event.x(), event.y())
+                clicked = mainWindow.view.mapToScene(qm(event).position().toPoint())
                 if clicked.x() < 0: clicked.setX(0)
                 if clicked.y() < 0: clicked.setY(0)
                 clickedx = int((clicked.x() - 12) / 1.5)
@@ -5495,7 +5427,7 @@ class LevelViewWidget(QtWidgets.QGraphicsView):
                     obj.setPos(int(clickedx * 1.5), int(clickedy * 1.5))
             elif isinstance(obj, type_path):
                 # move the created path
-                clicked = mainWindow.view.mapToScene(event.x(), event.y())
+                clicked = mainWindow.view.mapToScene(qm(event).position().toPoint())
                 if clicked.x() < 0: clicked.setX(0)
                 if clicked.y() < 0: clicked.setY(0)
                 clickedx = int((clicked.x() - 12) / 1.5)
@@ -5507,7 +5439,7 @@ class LevelViewWidget(QtWidgets.QGraphicsView):
                     obj.setPos(int(clickedx * 1.5), int(clickedy * 1.5))
             event.accept()
 
-        elif event.buttons() == QtCore.Qt.MidButton and self.lastCursorPosForMidButtonScroll is not None:
+        elif event.buttons() == QtCore.Qt.MouseButton.MiddleButton and self.lastCursorPosForMidButtonScroll is not None:
             # https://stackoverflow.com/a/15785851
             delta = event.pos() - self.lastCursorPosForMidButtonScroll
             self.XScrollBar.setValue(self.XScrollBar.value() + (delta.x() if self.isRightToLeft() else -delta.x()))
@@ -5520,11 +5452,11 @@ class LevelViewWidget(QtWidgets.QGraphicsView):
 
     def mouseReleaseEvent(self, event):
         """Overrides mouse release events if needed"""
-        if event.button() == QtCore.Qt.RightButton:
+        if event.button() == QtCore.Qt.MouseButton.RightButton:
             self.currentobj = None
 
-        if (not event.buttons() & QtCore.Qt.MidButton) and (not event.buttons() & QtCore.Qt.RightButton):
-            self.setDragMode(QtWidgets.QGraphicsView.RubberBandDrag)
+        if (not event.buttons() & QtCore.Qt.MouseButton.MiddleButton) and (not event.buttons() & QtCore.Qt.MouseButton.RightButton):
+            self.setDragMode(QtWidgets.QGraphicsView.DragMode.RubberBandDrag)
 
         QtWidgets.QGraphicsView.mouseReleaseEvent(self, event)
 
@@ -5550,7 +5482,7 @@ class LevelViewWidget(QtWidgets.QGraphicsView):
             starty -= (starty % 24)
             endy = starty + rect.height() + 24
 
-            painter.setPen(QtGui.QPen(QtGui.QColor.fromRgb(255,255,255,opacity), 1, QtCore.Qt.DotLine))
+            painter.setPen(QtGui.QPen(QtGui.QColor.fromRgb(255,255,255,opacity), 1, QtCore.Qt.PenStyle.DotLine))
 
             x = startx
             y1 = rect.top()
@@ -5576,7 +5508,7 @@ class LevelViewWidget(QtWidgets.QGraphicsView):
             starty -= (starty % 96)
             endy = starty + rect.height() + 96
 
-            painter.setPen(QtGui.QPen(QtGui.QColor.fromRgb(255,255,255,opacity), 1, QtCore.Qt.DashLine))
+            painter.setPen(QtGui.QPen(QtGui.QColor.fromRgb(255,255,255,opacity), 1, QtCore.Qt.PenStyle.DashLine))
 
             x = startx
             y1 = rect.top()
@@ -5601,7 +5533,7 @@ class LevelViewWidget(QtWidgets.QGraphicsView):
         starty -= (starty % 192)
         endy = starty + rect.height() + 192
 
-        painter.setPen(QtGui.QPen(QtGui.QColor.fromRgb(255,255,255,opacity), 2, QtCore.Qt.DashLine))
+        painter.setPen(QtGui.QPen(QtGui.QColor.fromRgb(255,255,255,opacity), 2, QtCore.Qt.PenStyle.DashLine))
 
         x = startx
         y1 = rect.top()
@@ -5631,22 +5563,23 @@ class HexSpinBox(QtWidgets.QSpinBox):
             self.min = min
             self.max = max
 
+        @QValidatorValidateCompat
         def validate(self, input, pos):
             try:
                 input = str(input).lower()
             except:
-                return QValidatorValidateReturnValue(self.Invalid, input, pos)
+                return self.Invalid, input, pos
             valid = self.valid
 
             for char in input:
                 if char not in valid:
-                    return QValidatorValidateReturnValue(self.Invalid, input, pos)
+                    return self.Invalid, input, pos
 
             value = int(input, 16)
             if value < self.min or value > self.max:
-                return QValidatorValidateReturnValue(self.Intermediate, input, pos)
+                return self.Intermediate, input, pos
 
-            return QValidatorValidateReturnValue(self.Acceptable, input, pos)
+            return self.Acceptable, input, pos
 
 
     def __init__(self, format='%04X', *args):
@@ -5698,7 +5631,7 @@ class InputBox(QtWidgets.QDialog):
             self.spinbox = HexSpinBox()
             widget = self.spinbox
 
-        self.buttons = QtWidgets.QDialogButtonBox(QtWidgets.QDialogButtonBox.Ok | QtWidgets.QDialogButtonBox.Cancel)
+        self.buttons = QtWidgets.QDialogButtonBox(QtWidgets.QDialogButtonBox.StandardButton.Ok | QtWidgets.QDialogButtonBox.StandardButton.Cancel)
         self.buttons.accepted.connect(self.accept)
         self.buttons.rejected.connect(self.reject)
 
@@ -5725,7 +5658,7 @@ class AboutDialog(QtWidgets.QDialog):
         self.pageWidget = QtWidgets.QTextBrowser()
         self.pageWidget.setHtml(data)
 
-        buttonBox = QtWidgets.QDialogButtonBox(QtWidgets.QDialogButtonBox.Ok)
+        buttonBox = QtWidgets.QDialogButtonBox(QtWidgets.QDialogButtonBox.StandardButton.Ok)
         buttonBox.accepted.connect(self.accept)
 
         mainLayout = QtWidgets.QVBoxLayout()
@@ -5747,7 +5680,7 @@ class ObjectShiftDialog(QtWidgets.QDialog):
         self.YOffset = QtWidgets.QSpinBox()
         self.YOffset.setRange(-8192, 8191)
 
-        buttonBox = QtWidgets.QDialogButtonBox(QtWidgets.QDialogButtonBox.Ok | QtWidgets.QDialogButtonBox.Cancel)
+        buttonBox = QtWidgets.QDialogButtonBox(QtWidgets.QDialogButtonBox.StandardButton.Ok | QtWidgets.QDialogButtonBox.StandardButton.Cancel)
         buttonBox.accepted.connect(self.accept)
         buttonBox.rejected.connect(self.reject)
 
@@ -5814,8 +5747,8 @@ class MetaInfoDialog(QtWidgets.QDialog):
             self.changepw.setDisabled(False)
 
 
-        buttonBox = QtWidgets.QDialogButtonBox(QtWidgets.QDialogButtonBox.Ok | QtWidgets.QDialogButtonBox.Cancel)
-        buttonBox.addButton(self.changepw, buttonBox.ActionRole)
+        buttonBox = QtWidgets.QDialogButtonBox(QtWidgets.QDialogButtonBox.StandardButton.Ok | QtWidgets.QDialogButtonBox.StandardButton.Cancel)
+        buttonBox.addButton(self.changepw, QtWidgets.QDialogButtonBox.ButtonRole.ActionRole)
         buttonBox.accepted.connect(self.accept)
         buttonBox.rejected.connect(self.reject)
         self.changepw.clicked.connect(self.ChangeButton)
@@ -5895,10 +5828,10 @@ class MetaInfoDialog(QtWidgets.QDialog):
                 self.Verify.setMinimumWidth(320)
 
                 self.Ok = QtWidgets.QPushButton('OK')
-                self.Cancel = QtWidgets.QDialogButtonBox.Cancel
+                self.Cancel = QtWidgets.QDialogButtonBox.StandardButton.Cancel
 
                 buttonBox = QtWidgets.QDialogButtonBox()
-                buttonBox.addButton(self.Ok, buttonBox.AcceptRole)
+                buttonBox.addButton(self.Ok, QtWidgets.QDialogButtonBox.ButtonRole.AcceptRole)
                 buttonBox.addButton(self.Cancel)
 
                 buttonBox.accepted.connect(self.accept)
@@ -5912,7 +5845,7 @@ class MetaInfoDialog(QtWidgets.QDialog):
                 infoGroupBox = QtWidgets.QGroupBox('Level Information')
 
                 infoLabel = QtWidgets.QVBoxLayout()
-                infoLabel.addWidget(QtWidgets.QLabel('Password may be composed of any ASCII character,\nand up to 64 characters long.\n'), 0, QtCore.Qt.AlignCenter)
+                infoLabel.addWidget(QtWidgets.QLabel('Password may be composed of any ASCII character,\nand up to 64 characters long.\n'), 0, QtCore.Qt.AlignmentFlag.AlignCenter)
                 infoLabel.addLayout(infoLayout)
                 infoGroupBox.setLayout(infoLabel)
 
@@ -5926,7 +5859,7 @@ class MetaInfoDialog(QtWidgets.QDialog):
                 self.Ok.setDisabled(self.New.text() != self.Verify.text() and self.New.text() != '')
 
         dlg = ChangePWDialog()
-        if dlg.exec_() == QtWidgets.QDialog.Accepted:
+        if execQtObject(dlg) == QtWidgets.QDialog.DialogCode.Accepted:
             self.lockedLabel.setVisible(True)
             self.Password.setVisible(True)
             self.PasswordLabel.setVisible(True)
@@ -5957,7 +5890,7 @@ class AreaOptionsDialog(QtWidgets.QDialog):
         self.tabWidget.addTab(self.TilesetsTab, 'Tilesets')
         self.tabWidget.addTab(self.LoadingTab, 'Settings')
 
-        buttonBox = QtWidgets.QDialogButtonBox(QtWidgets.QDialogButtonBox.Ok | QtWidgets.QDialogButtonBox.Cancel)
+        buttonBox = QtWidgets.QDialogButtonBox(QtWidgets.QDialogButtonBox.StandardButton.Ok | QtWidgets.QDialogButtonBox.StandardButton.Cancel)
 
         buttonBox.accepted.connect(self.accept)
         buttonBox.rejected.connect(self.reject)
@@ -5994,9 +5927,9 @@ class LoadingTab(QtWidgets.QWidget):
         self.eventChooser = QtWidgets.QListWidget()
         defEvent = Level.defEvents
         item = QtWidgets.QListWidgetItem
-        checked = QtCore.Qt.Checked
-        unchecked = QtCore.Qt.Unchecked
-        flags = QtCore.Qt.ItemIsSelectable | QtCore.Qt.ItemIsUserCheckable | QtCore.Qt.ItemIsEnabled
+        checked = QtCore.Qt.CheckState.Checked
+        unchecked = QtCore.Qt.CheckState.Unchecked
+        flags = QtCore.Qt.ItemFlag.ItemIsSelectable | QtCore.Qt.ItemFlag.ItemIsUserCheckable | QtCore.Qt.ItemFlag.ItemIsEnabled
 
         for id in range(64):
             i = item('Event %d' % (id+1))
@@ -6109,7 +6042,7 @@ class TilesetsTab(QtWidgets.QWidget):
         w = self.widgets[tileset]
 
         if index == (w.count() - 1):
-            fname = unicode(toPyObject(w.itemData(index)))
+            fname = unicode(qm(w.itemData(index)))
             fname = fname[8:]
 
             dbox = InputBox()
@@ -6117,9 +6050,9 @@ class TilesetsTab(QtWidgets.QWidget):
             dbox.label.setText('Enter the name of a custom tileset file to use. It must be placed in the game\'s Stage\\Texture folder in order for Reggie to recognise it. Do not add the ".arc" extension at the end of the filename.')
             dbox.textbox.setMaxLength(31)
             dbox.textbox.setText(fname)
-            result = dbox.exec_()
+            result = execQtObject(dbox)
 
-            if result == QtWidgets.QDialog.Accepted:
+            if result == QtWidgets.QDialog.DialogCode.Accepted:
                 fname = unicode(dbox.textbox.text())
                 if fname.endswith('.arc'): fname = fname[:-4]
 
@@ -6142,7 +6075,7 @@ class CameraModeZoomSettingsLayout(QtWidgets.QFormLayout):
         super(CameraModeZoomSettingsLayout, self).__init__()
         self.updating = True
 
-        comboboxSizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.MinimumExpanding, QtWidgets.QSizePolicy.Fixed)
+        comboboxSizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Policy.MinimumExpanding, QtWidgets.QSizePolicy.Policy.Fixed)
 
         self.zm = -1
 
@@ -6292,9 +6225,9 @@ class ZonesDialog(QtWidgets.QDialog):
         self.NewButton = QtWidgets.QPushButton('New')
         self.DeleteButton = QtWidgets.QPushButton('Delete')
 
-        buttonBox = QtWidgets.QDialogButtonBox(QtWidgets.QDialogButtonBox.Ok | QtWidgets.QDialogButtonBox.Cancel)
-        buttonBox.addButton(self.NewButton, buttonBox.ActionRole)
-        buttonBox.addButton(self.DeleteButton, buttonBox.ActionRole)
+        buttonBox = QtWidgets.QDialogButtonBox(QtWidgets.QDialogButtonBox.StandardButton.Ok | QtWidgets.QDialogButtonBox.StandardButton.Cancel)
+        buttonBox.addButton(self.NewButton, QtWidgets.QDialogButtonBox.ButtonRole.ActionRole)
+        buttonBox.addButton(self.DeleteButton, QtWidgets.QDialogButtonBox.ButtonRole.ActionRole)
 
         buttonBox.accepted.connect(self.accept)
         buttonBox.rejected.connect(self.reject)
@@ -6310,8 +6243,8 @@ class ZonesDialog(QtWidgets.QDialog):
     @QtCoreSlot()
     def NewZone(self):
         if len(self.zoneTabs) >= 6:
-            result = QtWidgets.QMessageBox.warning(self, 'Warning', 'You are trying to add more than 6 zones to a level - keep in mind that without the proper fix to the game, this will cause your level to <b>crash</b> or have other strange issues!<br><br>Are you sure you want to do this?', QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.No)
-            if result == QtWidgets.QMessageBox.No:
+            result = QtWidgets.QMessageBox.warning(self, 'Warning', 'You are trying to add more than 6 zones to a level - keep in mind that without the proper fix to the game, this will cause your level to <b>crash</b> or have other strange issues!<br><br>Are you sure you want to do this?', QtWidgets.QMessageBox.StandardButton.Yes | QtWidgets.QMessageBox.StandardButton.No)
+            if result == QtWidgets.QMessageBox.StandardButton.No:
                 return
 
         a = []
@@ -6471,7 +6404,7 @@ class ZoneTab(QtWidgets.QWidget):
     def createRendering(self, z):
         self.Rendering = QtWidgets.QGroupBox('Rendering')
 
-        comboboxSizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.MinimumExpanding, QtWidgets.QSizePolicy.Fixed)
+        comboboxSizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Policy.MinimumExpanding, QtWidgets.QSizePolicy.Policy.Fixed)
 
         self.Zone_modeldark = QtWidgets.QComboBox()
         self.Zone_modeldark.addItems(ZoneThemeValues)
@@ -6700,7 +6633,7 @@ class BGDialog(QtWidgets.QDialog):
                 self.tabWidget.setTabText(tab, str(tab + 1))
 
 
-        buttonBox = QtWidgets.QDialogButtonBox(QtWidgets.QDialogButtonBox.Ok | QtWidgets.QDialogButtonBox.Cancel)
+        buttonBox = QtWidgets.QDialogButtonBox(QtWidgets.QDialogButtonBox.StandardButton.Ok | QtWidgets.QDialogButtonBox.StandardButton.Cancel)
 
         buttonBox.accepted.connect(self.accept)
         buttonBox.rejected.connect(self.reject)
@@ -6944,16 +6877,16 @@ class BGTab(QtWidgets.QWidget):
         if not loadFlag:
             if indexid == (self.background_nameA.count() - 1):
                 w = self.background_nameA
-                id = toPyObject(w.itemData(indexid))
+                id = qm(w.itemData(indexid))
 
                 dbox = InputBox(InputBox.Type_HexSpinBox)
                 dbox.setWindowTitle('Choose a Background ID')
                 dbox.label.setText("Enter the hex ID of a custom background to use. The file must be named using the bgA_12AB.arc format and located within the game's Object folder.")
                 dbox.spinbox.setRange(0, 0xFFFF)
                 if id is not None: dbox.spinbox.setValue(id)
-                result = dbox.exec_()
+                result = execQtObject(dbox)
 
-                if result == QtWidgets.QDialog.Accepted:
+                if result == QtWidgets.QDialog.DialogCode.Accepted:
                     id = dbox.spinbox.value()
                     w.setItemText(indexid, 'Custom background ID... (%04X)' % id)
                     w.setItemData(indexid, id)
@@ -6961,7 +6894,7 @@ class BGTab(QtWidgets.QWidget):
                     w.setCurrentIndex(self.currentIndexA)
                     return
 
-        id = toPyObject(self.background_nameA.itemData(indexid))
+        id = qm(self.background_nameA.itemData(indexid))
         filename = 'reggiedata/bga/%04X.png' % id
 
         if not os.path.isfile(filename):
@@ -7023,16 +6956,16 @@ class BGTab(QtWidgets.QWidget):
         if not loadFlag:
             if indexid == (self.background_nameB.count() - 1):
                 w = self.background_nameB
-                id = toPyObject(w.itemData(indexid))
+                id = qm(w.itemData(indexid))
 
                 dbox = InputBox(InputBox.Type_HexSpinBox)
                 dbox.setWindowTitle('Choose a Background ID')
                 dbox.label.setText("Enter the hex ID of a custom background to use. The file must be named using the bgB_12AB.arc format and located within the game's Object folder.")
                 dbox.spinbox.setRange(0, 0xFFFF)
                 if id is not None: dbox.spinbox.setValue(id)
-                result = dbox.exec_()
+                result = execQtObject(dbox)
 
-                if result == QtWidgets.QDialog.Accepted:
+                if result == QtWidgets.QDialog.DialogCode.Accepted:
                     id = dbox.spinbox.value()
                     w.setItemText(indexid, 'Custom background ID... (%04X)' % id)
                     w.setItemData(indexid, id)
@@ -7040,7 +6973,7 @@ class BGTab(QtWidgets.QWidget):
                     w.setCurrentIndex(self.currentIndexB)
                     return
 
-        id = toPyObject(self.background_nameB.itemData(indexid))
+        id = qm(self.background_nameB.itemData(indexid))
         filename = 'reggiedata/bgb/%04X.png' % id
 
         if not os.path.isfile(filename):
@@ -7107,7 +7040,7 @@ class CameraProfilesDialog(QtWidgets.QDialog):
         self.profileBox.setEnabled(False)
         self.profileBox.setToolTip('<b>Modify Selected Camera Profile Properties:</b><br>Camera Profiles can only be used with the "Event-Controlled" camera mode in the "Zones" dialog.<br><br>Transitions between zoom levels are instant, but can be hidden through careful use of zoom sprites (206).')
 
-        buttonBox = QtWidgets.QDialogButtonBox(QtWidgets.QDialogButtonBox.Ok | QtWidgets.QDialogButtonBox.Cancel)
+        buttonBox = QtWidgets.QDialogButtonBox(QtWidgets.QDialogButtonBox.StandardButton.Ok | QtWidgets.QDialogButtonBox.StandardButton.Cancel)
 
         buttonBox.accepted.connect(self.accept)
         buttonBox.rejected.connect(self.reject)
@@ -7120,7 +7053,7 @@ class CameraProfilesDialog(QtWidgets.QDialog):
 
         for profile in Level.camprofiles:
             item = CustomSortableListWidgetItem()
-            item.setData(QtCore.Qt.UserRole, profile)
+            item.setData(QtCore.Qt.ItemDataRole.UserRole, profile)
             item.sortKey = profile[0]
             self.updateItemTitle(item)
             self.list.addItem(item)
@@ -7131,11 +7064,11 @@ class CameraProfilesDialog(QtWidgets.QDialog):
         newId = 1
         for row in range(self.list.count()):
             item = self.list.item(row)
-            values = item.data(QtCore.Qt.UserRole)
+            values = item.data(QtCore.Qt.ItemDataRole.UserRole)
             newId = max(newId, values[0] + 1)
 
         item = CustomSortableListWidgetItem()
-        item.setData(QtCore.Qt.UserRole, [newId, 0, 0])
+        item.setData(QtCore.Qt.ItemDataRole.UserRole, [newId, 0, 0])
         item.sortKey = newId
         self.updateItemTitle(item)
         self.list.addItem(item)
@@ -7151,28 +7084,28 @@ class CameraProfilesDialog(QtWidgets.QDialog):
 
         if selItems:
             selItem = selItems[0]
-            values = selItem.data(QtCore.Qt.UserRole)
+            values = selItem.data(QtCore.Qt.ItemDataRole.UserRole)
 
             self.eventid.setValue(values[0])
             self.camsettings.setValues(values[1], values[2])
 
     def handleEventIDChanged(self, eventid):
         selItem = self.list.selectedItems()[0]
-        values = selItem.data(QtCore.Qt.UserRole)
+        values = selItem.data(QtCore.Qt.ItemDataRole.UserRole)
         values[0] = eventid
-        selItem.setData(QtCore.Qt.UserRole, values)
+        selItem.setData(QtCore.Qt.ItemDataRole.UserRole, values)
         selItem.sortKey = eventid
         self.updateItemTitle(selItem)
 
     def handleCamSettingsChanged(self):
         selItem = self.list.selectedItems()[0]
-        values = selItem.data(QtCore.Qt.UserRole)
+        values = selItem.data(QtCore.Qt.ItemDataRole.UserRole)
         values[1] = self.camsettings.modeButtonGroup.checkedId()
         values[2] = self.camsettings.screenSizes.currentIndex()
-        selItem.setData(QtCore.Qt.UserRole, values)
+        selItem.setData(QtCore.Qt.ItemDataRole.UserRole, values)
 
     def updateItemTitle(self, item):
-        item.setText('Camera Profile on Event %d' % item.data(QtCore.Qt.UserRole)[0])
+        item.setText('Camera Profile on Event %d' % item.data(QtCore.Qt.ItemDataRole.UserRole)[0])
 
 
 
@@ -7194,7 +7127,7 @@ class ScreenCapChoiceDialog(QtWidgets.QDialog):
             self.zoneCombo.addItem('Zone ' + str(i))
 
 
-        buttonBox = QtWidgets.QDialogButtonBox(QtWidgets.QDialogButtonBox.Ok | QtWidgets.QDialogButtonBox.Cancel)
+        buttonBox = QtWidgets.QDialogButtonBox(QtWidgets.QDialogButtonBox.StandardButton.Ok | QtWidgets.QDialogButtonBox.StandardButton.Cancel)
 
         buttonBox.accepted.connect(self.accept)
         buttonBox.rejected.connect(self.reject)
@@ -7226,7 +7159,7 @@ class AutoSavedInfoDialog(QtWidgets.QDialog):
         hlayout.addWidget(label)
         hlayout.setStretch(1, 1)
 
-        buttonbox = QtWidgets.QDialogButtonBox(QtWidgets.QDialogButtonBox.No | QtWidgets.QDialogButtonBox.Yes)
+        buttonbox = QtWidgets.QDialogButtonBox(QtWidgets.QDialogButtonBox.StandardButton.No | QtWidgets.QDialogButtonBox.StandardButton.Yes)
         buttonbox.accepted.connect(self.accept)
         buttonbox.rejected.connect(self.reject)
 
@@ -7246,7 +7179,7 @@ class AreaChoiceDialog(QtWidgets.QDialog):
         for i in range(areacount):
             self.areaCombo.addItem('Area %d' % (i+1))
 
-        buttonBox = QtWidgets.QDialogButtonBox(QtWidgets.QDialogButtonBox.Ok | QtWidgets.QDialogButtonBox.Cancel)
+        buttonBox = QtWidgets.QDialogButtonBox(QtWidgets.QDialogButtonBox.StandardButton.Ok | QtWidgets.QDialogButtonBox.StandardButton.Cancel)
 
         buttonBox.accepted.connect(self.accept)
         buttonBox.rejected.connect(self.reject)
@@ -7269,9 +7202,9 @@ class ReggieWindow(QtWidgets.QMainWindow):
         """Helper function to create an action"""
 
         if icon is not None:
-            act = QtWidgets.QAction(icon, text, self)
+            act = qm(QtGui).QAction(icon, text, self)
         else:
-            act = QtWidgets.QAction(text, self)
+            act = qm(QtGui).QAction(text, self)
 
         if shortcut is not None:
             if isinstance(shortcut, list):
@@ -7327,7 +7260,7 @@ class ReggieWindow(QtWidgets.QMainWindow):
 
         # create the level view
         self.scene = LevelScene(0, 0, 1024*24, 512*24, self)
-        self.scene.setItemIndexMethod(QtWidgets.QGraphicsScene.NoIndex)
+        self.scene.setItemIndexMethod(QtWidgets.QGraphicsScene.ItemIndexMethod.NoIndex)
         self.scene.selectionChanged.connect(self.ChangeSelectionHandler)
 
         self.view = LevelViewWidget(self.scene, self)
@@ -7350,16 +7283,16 @@ class ReggieWindow(QtWidgets.QMainWindow):
 
         # let's restore the geometry
         if settings.contains('MainWindowState'):
-            self.restoreState(toPyObject(settings.value('MainWindowState')), 0)
+            self.restoreState(qm(settings.value('MainWindowState')), 0)
         if settings.contains('MainWindowGeometry'):
-            self.restoreGeometry(toPyObject(settings.value('MainWindowGeometry')))
+            self.restoreGeometry(qm(settings.value('MainWindowGeometry')))
 
         # now get stuff ready
         loaded = False
         if len(sys.argv) > 1 and os.path.isfile(sys.argv[1]) and IsNSMBLevel(sys.argv[1]):
             loaded = self.LoadLevel(sys.argv[1], True, 1)
         elif settings.contains('LastLevel'):
-            lastlevel = unicode(toPyObject(settings.value('LastLevel')))
+            lastlevel = unicode(qm(settings.value('LastLevel')))
             settings.remove('LastLevel')
 
             if lastlevel != 'None':
@@ -7373,14 +7306,14 @@ class ReggieWindow(QtWidgets.QMainWindow):
     def SetupActionsAndMenus(self):
         """Sets up Reggie's actions, menus and toolbars"""
         self.actions = {}
-        self.CreateAction('newlevel', self.HandleNewLevel, GetIcon('new'), 'New Level', 'Create a new, blank level', QtGui.QKeySequence.New)
-        self.CreateAction('openfromname', self.HandleOpenFromName, GetIcon('open'), 'Open Level by Name...', 'Open a level based on its in-game world/number', QtGui.QKeySequence.Open)
+        self.CreateAction('newlevel', self.HandleNewLevel, GetIcon('new'), 'New Level', 'Create a new, blank level', QtGui.QKeySequence.StandardKey.New)
+        self.CreateAction('openfromname', self.HandleOpenFromName, GetIcon('open'), 'Open Level by Name...', 'Open a level based on its in-game world/number', QtGui.QKeySequence.StandardKey.Open)
         self.CreateAction('openfromfile', self.HandleOpenFromFile, GetIcon('openfromfile'), 'Open Level by File...', 'Open a level based on its filename', QtGui.QKeySequence('Ctrl+Shift+O'))
-        self.CreateAction('save', self.HandleSave, GetIcon('save'), 'Save Level', 'Save a level back to the archive file', QtGui.QKeySequence.Save)
-        self.CreateAction('saveas', self.HandleSaveAs, GetIcon('saveas'), 'Save Level As...', 'Save a level with a new filename', QtGui.QKeySequence.SaveAs)
+        self.CreateAction('save', self.HandleSave, GetIcon('save'), 'Save Level', 'Save a level back to the archive file', QtGui.QKeySequence.StandardKey.Save)
+        self.CreateAction('saveas', self.HandleSaveAs, GetIcon('saveas'), 'Save Level As...', 'Save a level with a new filename', QtGui.QKeySequence.StandardKey.SaveAs)
         self.CreateAction('screenshot', self.HandleScreenshot, GetIcon('screenshot'), 'Level Screenshot...', 'Takes a full size screenshot of your level for you to share.', QtGui.QKeySequence('Ctrl+Alt+3'))
         self.CreateAction('changegamepath', self.HandleChangeGamePath, None, 'Change Game Path...', 'Set a different folder to load the game files from', QtGui.QKeySequence('Ctrl+Alt+G'))
-        self.CreateAction('exit', self.HandleExit, None, 'Exit Reggie!', 'Exit the editor', QtGui.QKeySequence.Quit)
+        self.CreateAction('exit', self.HandleExit, None, 'Exit Reggie!', 'Exit the editor', QtGui.QKeySequence.StandardKey.Quit)
 
         self.CreateAction('showlayer0', self.HandleUpdateLayer0, None, 'Layer 0', 'Toggle viewing of object layer 0', QtGui.QKeySequence('Ctrl+1'), True)
         self.CreateAction('showlayer1', self.HandleUpdateLayer1, None, 'Layer 1', 'Toggle viewing of object layer 1', QtGui.QKeySequence('Ctrl+2'), True)
@@ -7403,9 +7336,9 @@ class ReggieWindow(QtWidgets.QMainWindow):
         self.actions['freezepaths'].setChecked(not PathsNonFrozen)
 
         self.CreateAction('zoommax', self.HandleZoomMax, GetIcon('zoommax'), 'Maximum Zoom', 'Zoom in all the way', QtGui.QKeySequence('Ctrl+PgDown'), False)
-        self.CreateAction('zoomin', self.HandleZoomIn, GetIcon('zoomin'), 'Zoom In', 'Zoom into the main level view', [QtGui.QKeySequence.ZoomIn, QtGui.QKeySequence('Ctrl+=')], False)
+        self.CreateAction('zoomin', self.HandleZoomIn, GetIcon('zoomin'), 'Zoom In', 'Zoom into the main level view', [QtGui.QKeySequence.StandardKey.ZoomIn, QtGui.QKeySequence('Ctrl+=')], False)
         self.CreateAction('zoomactual', self.HandleZoomActual, GetIcon('zoomactual'), 'Zoom 100%', 'Show the level at the default zoom', QtGui.QKeySequence('Ctrl+0'), False)
-        self.CreateAction('zoomout', self.HandleZoomOut, GetIcon('zoomout'), 'Zoom Out', 'Zoom out of the main level view', QtGui.QKeySequence.ZoomOut, False)
+        self.CreateAction('zoomout', self.HandleZoomOut, GetIcon('zoomout'), 'Zoom Out', 'Zoom out of the main level view', QtGui.QKeySequence.StandardKey.ZoomOut, False)
         self.CreateAction('zoommin', self.HandleZoomMin, GetIcon('zoommin'), 'Minimum Zoom', 'Zoom out all the way', QtGui.QKeySequence('Ctrl+PgUp'), False)
 
         self.CreateAction('areaoptions', self.HandleAreaOptions, GetIcon('area'), 'Area Settings...', 'Controls tileset swapping, stage timer, entrance on load, and stage wrap', QtGui.QKeySequence('Ctrl+Alt+A'))
@@ -7422,10 +7355,10 @@ class ReggieWindow(QtWidgets.QMainWindow):
 #        self.CreateAction('undo', self.Undo, None, 'Undo', 'Undoes a single action', QtGui.QKeySequence('Ctrl+Z'))
 #        self.CreateAction('redo', self.Redo, None, 'Redo', 'Redoes a single action', QtGui.QKeySequence('Ctrl+Shift+Z'))
 
-        self.CreateAction('selectall', self.SelectAll, None, 'Select All', 'Selects all items on screen', QtGui.QKeySequence.SelectAll)
-        self.CreateAction('cut', self.Cut, GetIcon('cut'), 'Cut', 'Cut out the current selection to the clipboard', QtGui.QKeySequence.Cut)
-        self.CreateAction('copy', self.Copy, GetIcon('copy'), 'Copy', 'Copies the current selection to the clipboard', QtGui.QKeySequence.Copy)
-        self.CreateAction('paste', self.Paste, GetIcon('paste'), 'Paste', 'Pastes the current selection from the clipboard', QtGui.QKeySequence.Paste)
+        self.CreateAction('selectall', self.SelectAll, None, 'Select All', 'Selects all items on screen', QtGui.QKeySequence.StandardKey.SelectAll)
+        self.CreateAction('cut', self.Cut, GetIcon('cut'), 'Cut', 'Cut out the current selection to the clipboard', QtGui.QKeySequence.StandardKey.Cut)
+        self.CreateAction('copy', self.Copy, GetIcon('copy'), 'Copy', 'Copies the current selection to the clipboard', QtGui.QKeySequence.StandardKey.Copy)
+        self.CreateAction('paste', self.Paste, GetIcon('paste'), 'Paste', 'Pastes the current selection from the clipboard', QtGui.QKeySequence.StandardKey.Paste)
         self.CreateAction('shiftobjects', self.ShiftObjects, None, 'Shift Objects...', 'Moves all the selected objects by an offset', QtGui.QKeySequence('Ctrl+Shift+S'))
         self.CreateAction('mergelocations', self.MergeLocations, None, 'Merge Locations', 'Merges selected locations into a single large box', QtGui.QKeySequence('Ctrl+Shift+E'))
 
@@ -7563,8 +7496,8 @@ class ReggieWindow(QtWidgets.QMainWindow):
         """Sets up the dock widgets and panels"""
         # level overview
         dock = QtWidgets.QDockWidget('Level Overview', self)
-        dock.setFeatures(QtWidgets.QDockWidget.DockWidgetMovable | QtWidgets.QDockWidget.DockWidgetFloatable | QtWidgets.QDockWidget.DockWidgetClosable)
-        #dock.setAllowedAreas(QtCore.Qt.LeftDockWidgetArea | QtCore.Qt.RightDockWidgetArea)
+        dock.setFeatures(QtWidgets.QDockWidget.DockWidgetFeature.DockWidgetMovable | QtWidgets.QDockWidget.DockWidgetFeature.DockWidgetFloatable | QtWidgets.QDockWidget.DockWidgetFeature.DockWidgetClosable)
+        #dock.setAllowedAreas(QtCore.Qt.DockWidgetArea.LeftDockWidgetArea | QtCore.Qt.DockWidgetArea.RightDockWidgetArea)
         dock.setObjectName('leveloverview') #needed for the state to save/restore correctly
 
         self.levelOverview = LevelOverviewWidget()
@@ -7573,7 +7506,7 @@ class ReggieWindow(QtWidgets.QMainWindow):
         dock.setWidget(self.levelOverview)
 
 
-        self.addDockWidget(QtCore.Qt.RightDockWidgetArea, dock)
+        self.addDockWidget(QtCore.Qt.DockWidgetArea.RightDockWidgetArea, dock)
         dock.setVisible(True)
         act = dock.toggleViewAction()
         act.setShortcut(QtGui.QKeySequence('Ctrl+M'))
@@ -7582,8 +7515,8 @@ class ReggieWindow(QtWidgets.QMainWindow):
         # create the sprite editor panel
         dock = ItemEditorDockWidget('Modify Selected Sprite Properties', self)
         dock.setActive(False)
-        dock.setFeatures(QtWidgets.QDockWidget.DockWidgetMovable | QtWidgets.QDockWidget.DockWidgetFloatable)
-        dock.setAllowedAreas(QtCore.Qt.LeftDockWidgetArea | QtCore.Qt.RightDockWidgetArea)
+        dock.setFeatures(QtWidgets.QDockWidget.DockWidgetFeature.DockWidgetMovable | QtWidgets.QDockWidget.DockWidgetFeature.DockWidgetFloatable)
+        dock.setAllowedAreas(QtCore.Qt.DockWidgetArea.LeftDockWidgetArea | QtCore.Qt.DockWidgetArea.RightDockWidgetArea)
         dock.setObjectName('spriteeditor') #needed for the state to save/restore correctly
 
         self.spriteDataEditor = SpriteEditorWidget()
@@ -7591,28 +7524,28 @@ class ReggieWindow(QtWidgets.QMainWindow):
         dock.setWidget(self.spriteDataEditor)
         self.spriteEditorDock = dock
 
-        self.addDockWidget(QtCore.Qt.RightDockWidgetArea, dock)
+        self.addDockWidget(QtCore.Qt.DockWidgetArea.RightDockWidgetArea, dock)
         dock.setFloating(True)
 
         # create the entrance editor panel
         dock = ItemEditorDockWidget('Modify Selected Entrance Properties', self)
         dock.setActive(False)
-        dock.setFeatures(QtWidgets.QDockWidget.DockWidgetMovable | QtWidgets.QDockWidget.DockWidgetFloatable)
-        dock.setAllowedAreas(QtCore.Qt.LeftDockWidgetArea | QtCore.Qt.RightDockWidgetArea)
+        dock.setFeatures(QtWidgets.QDockWidget.DockWidgetFeature.DockWidgetMovable | QtWidgets.QDockWidget.DockWidgetFeature.DockWidgetFloatable)
+        dock.setAllowedAreas(QtCore.Qt.DockWidgetArea.LeftDockWidgetArea | QtCore.Qt.DockWidgetArea.RightDockWidgetArea)
         dock.setObjectName('entranceeditor') #needed for the state to save/restore correctly
 
         self.entranceEditor = EntranceEditorWidget()
         dock.setWidget(self.entranceEditor)
         self.entranceEditorDock = dock
 
-        self.addDockWidget(QtCore.Qt.RightDockWidgetArea, dock)
+        self.addDockWidget(QtCore.Qt.DockWidgetArea.RightDockWidgetArea, dock)
         dock.setFloating(True)
 
         # create the path editor panel
         dock = ItemEditorDockWidget('Modify Selected Path Node Properties', self)
         dock.setActive(False)
-        dock.setFeatures(QtWidgets.QDockWidget.DockWidgetMovable | QtWidgets.QDockWidget.DockWidgetFloatable)
-        dock.setAllowedAreas(QtCore.Qt.LeftDockWidgetArea | QtCore.Qt.RightDockWidgetArea)
+        dock.setFeatures(QtWidgets.QDockWidget.DockWidgetFeature.DockWidgetMovable | QtWidgets.QDockWidget.DockWidgetFeature.DockWidgetFloatable)
+        dock.setAllowedAreas(QtCore.Qt.DockWidgetArea.LeftDockWidgetArea | QtCore.Qt.DockWidgetArea.RightDockWidgetArea)
         dock.setObjectName('pathnodeeditor') #needed for the state to save/restore correctly
 
         self.pathEditor = PathNodeEditorWidget()
@@ -7620,34 +7553,34 @@ class ReggieWindow(QtWidgets.QMainWindow):
 
         self.pathEditorDock = dock
 
-        self.addDockWidget(QtCore.Qt.RightDockWidgetArea, dock)
+        self.addDockWidget(QtCore.Qt.DockWidgetArea.RightDockWidgetArea, dock)
         dock.setFloating(True)
 
         # create the location editor panel
         dock = ItemEditorDockWidget('Modify Selected Location Properties', self)
         dock.setActive(False)
-        dock.setFeatures(QtWidgets.QDockWidget.DockWidgetMovable | QtWidgets.QDockWidget.DockWidgetFloatable)
-        dock.setAllowedAreas(QtCore.Qt.LeftDockWidgetArea | QtCore.Qt.RightDockWidgetArea)
+        dock.setFeatures(QtWidgets.QDockWidget.DockWidgetFeature.DockWidgetMovable | QtWidgets.QDockWidget.DockWidgetFeature.DockWidgetFloatable)
+        dock.setAllowedAreas(QtCore.Qt.DockWidgetArea.LeftDockWidgetArea | QtCore.Qt.DockWidgetArea.RightDockWidgetArea)
         dock.setObjectName('locationeditor') #needed for the state to save/restore correctly
 
         self.locationEditor = LocationEditorWidget()
         dock.setWidget(self.locationEditor)
         self.locationEditorDock = dock
 
-        self.addDockWidget(QtCore.Qt.RightDockWidgetArea, dock)
+        self.addDockWidget(QtCore.Qt.DockWidgetArea.RightDockWidgetArea, dock)
         dock.setFloating(True)
 
         # create the palette
         dock = QtWidgets.QDockWidget('Palette', self)
-        dock.setFeatures(QtWidgets.QDockWidget.DockWidgetMovable | QtWidgets.QDockWidget.DockWidgetFloatable | QtWidgets.QDockWidget.DockWidgetClosable)
-        dock.setAllowedAreas(QtCore.Qt.LeftDockWidgetArea | QtCore.Qt.RightDockWidgetArea)
+        dock.setFeatures(QtWidgets.QDockWidget.DockWidgetFeature.DockWidgetMovable | QtWidgets.QDockWidget.DockWidgetFeature.DockWidgetFloatable | QtWidgets.QDockWidget.DockWidgetFeature.DockWidgetClosable)
+        dock.setAllowedAreas(QtCore.Qt.DockWidgetArea.LeftDockWidgetArea | QtCore.Qt.DockWidgetArea.RightDockWidgetArea)
         dock.setObjectName('palette') #needed for the state to save/restore correctly
         self.creationDock = dock
         act = dock.toggleViewAction()
         act.setShortcut(QtGui.QKeySequence('Ctrl+P'))
         self.vmenu.addAction(act)
 
-        self.addDockWidget(QtCore.Qt.RightDockWidgetArea, dock)
+        self.addDockWidget(QtCore.Qt.DockWidgetArea.RightDockWidgetArea, dock)
         dock.setVisible(True)
 
         # add tabs to it
@@ -7707,7 +7640,7 @@ class ReggieWindow(QtWidgets.QMainWindow):
         lbg.addButton(self.objUseLayer0, 0)
         lbg.addButton(self.objUseLayer1, 1)
         lbg.addButton(self.objUseLayer2, 2)
-        lbg.buttonClicked[int].connect(self.LayerChoiceChanged)
+        qm(lbg).idClicked.connect(self.LayerChoiceChanged)
         self.LayerButtonGroup = lbg
 
         self.objPicker = ObjectPickerWidget()
@@ -7755,7 +7688,7 @@ class ReggieWindow(QtWidgets.QMainWindow):
         self.sprPicker.SwitchView(SpriteCategories[0])
         spl.addWidget(self.sprPicker, 1)
 
-        viewpicker.setCurrentIndex(int(toPyObject(settings.value('SpriteView', 0))))
+        viewpicker.setCurrentIndex(int(qm(settings.value('SpriteView', 0))))
 
         self.defaultPropButton = QtWidgets.QPushButton('Set Default Properties')
         self.defaultPropButton.setEnabled(False)
@@ -7769,15 +7702,15 @@ class ReggieWindow(QtWidgets.QMainWindow):
 
         # default data editor
         ddock = QtWidgets.QDockWidget('Default Properties', self)
-        ddock.setFeatures(QtWidgets.QDockWidget.DockWidgetMovable | QtWidgets.QDockWidget.DockWidgetFloatable | QtWidgets.QDockWidget.DockWidgetClosable)
-        ddock.setAllowedAreas(QtCore.Qt.LeftDockWidgetArea | QtCore.Qt.RightDockWidgetArea)
+        ddock.setFeatures(QtWidgets.QDockWidget.DockWidgetFeature.DockWidgetMovable | QtWidgets.QDockWidget.DockWidgetFeature.DockWidgetFloatable | QtWidgets.QDockWidget.DockWidgetFeature.DockWidgetClosable)
+        ddock.setAllowedAreas(QtCore.Qt.DockWidgetArea.LeftDockWidgetArea | QtCore.Qt.DockWidgetArea.RightDockWidgetArea)
         ddock.setObjectName('defaultprops') #needed for the state to save/restore correctly
 
         self.defaultDataEditor = SpriteEditorWidget()
         self.defaultDataEditor.setVisible(False)
         ddock.setWidget(self.defaultDataEditor)
 
-        self.addDockWidget(QtCore.Qt.RightDockWidgetArea, ddock)
+        self.addDockWidget(QtCore.Qt.DockWidgetArea.RightDockWidgetArea, ddock)
         ddock.setVisible(False)
         ddock.setFloating(True)
         self.defaultPropDock = ddock
@@ -7910,24 +7843,24 @@ class ReggieWindow(QtWidgets.QMainWindow):
         msg = QtWidgets.QMessageBox()
         msg.setText('The level has unsaved changes in it.')
         msg.setInformativeText('Do you want to save them?')
-        msg.setStandardButtons(QtWidgets.QMessageBox.Save | QtWidgets.QMessageBox.Discard | QtWidgets.QMessageBox.Cancel)
-        msg.setDefaultButton(QtWidgets.QMessageBox.Save)
-        ret = msg.exec_()
+        msg.setStandardButtons(QtWidgets.QMessageBox.StandardButton.Save | QtWidgets.QMessageBox.StandardButton.Discard | QtWidgets.QMessageBox.StandardButton.Cancel)
+        msg.setDefaultButton(QtWidgets.QMessageBox.StandardButton.Save)
+        ret = execQtObject(msg)
 
-        if ret == QtWidgets.QMessageBox.Save:
+        if ret == QtWidgets.QMessageBox.StandardButton.Save:
             if not self.HandleSave():
                 # save failed
                 return True
             return False
-        elif ret == QtWidgets.QMessageBox.Discard:
+        elif ret == QtWidgets.QMessageBox.StandardButton.Discard:
             return False
-        elif ret == QtWidgets.QMessageBox.Cancel:
+        elif ret == QtWidgets.QMessageBox.StandardButton.Cancel:
             return True
 
     @QtCoreSlot()
     def InfoBox(self):
         """Shows the about box"""
-        AboutDialog().exec_()
+        execQtObject(AboutDialog())
         return
 
     @QtCoreSlot()
@@ -7953,7 +7886,7 @@ class ReggieWindow(QtWidgets.QMainWindow):
         """Records the Level Meta Information"""
         if Level.areanum == 1:
             dlg = MetaInfoDialog()
-            if dlg.exec_() == QtWidgets.QDialog.Accepted:
+            if execQtObject(dlg) == QtWidgets.QDialog.DialogCode.Accepted:
                 Level.Title = dlg.levelName.text()
                 Level.Author = dlg.Author.text()
                 Level.Group = dlg.Group.text()
@@ -7964,7 +7897,7 @@ class ReggieWindow(QtWidgets.QMainWindow):
         else:
             dlg = QtWidgets.QMessageBox()
             dlg.setText('Sorry!\n\nYou can only view or edit Level Information in Area 1.')
-            dlg.exec_()
+            execQtObject(dlg)
 
     @QtCoreSlot()
     def HelpBox(self):
@@ -8103,8 +8036,8 @@ class ReggieWindow(QtWidgets.QMainWindow):
             clip = encoded[11:-2].split('|')
 
             if func_len(clip) > 300:
-                result = QtWidgets.QMessageBox.warning(self, 'Reggie!', "You're trying to paste over 300 items at once.\nThis may take a while (depending on your computer speed), are you sure you want to continue?", QtWidgets.QMessageBox.Yes, QtWidgets.QMessageBox.No)
-                if result == QtWidgets.QMessageBox.No:
+                result = QtWidgets.QMessageBox.warning(self, 'Reggie!', "You're trying to paste over 300 items at once.\nThis may take a while (depending on your computer speed), are you sure you want to continue?", QtWidgets.QMessageBox.StandardButton.Yes, QtWidgets.QMessageBox.StandardButton.No)
+                if result == QtWidgets.QMessageBox.StandardButton.No:
                     return
 
             for item in clip:
@@ -8249,7 +8182,7 @@ class ReggieWindow(QtWidgets.QMainWindow):
         if len(items) == 0: return
 
         dlg = ObjectShiftDialog()
-        if dlg.exec_() == QtWidgets.QDialog.Accepted:
+        if execQtObject(dlg) == QtWidgets.QDialog.DialogCode.Accepted:
             xoffset = dlg.XOffset.value()
             yoffset = dlg.YOffset.value()
             if xoffset == 0 and yoffset == 0: return
@@ -8272,8 +8205,8 @@ class ReggieWindow(QtWidgets.QMainWindow):
                 if objectsExist and spritesExist:
                     # no point in warning them if there are only objects
                     # since then, it will just silently reduce the offset and it won't be noticed
-                    result = QtWidgets.QMessageBox.information(None, 'Warning',  "You are trying to move object(s) by an offset which isn't a multiple of 16. It will work, but the objects will not be able to move exactly the same amount as the sprites. Are you sure you want to do this?", QtWidgets.QMessageBox.Yes, QtWidgets.QMessageBox.No)
-                    if result == QtWidgets.QMessageBox.No:
+                    result = QtWidgets.QMessageBox.information(None, 'Warning',  "You are trying to move object(s) by an offset which isn't a multiple of 16. It will work, but the objects will not be able to move exactly the same amount as the sprites. Are you sure you want to do this?", QtWidgets.QMessageBox.StandardButton.Yes, QtWidgets.QMessageBox.StandardButton.No)
+                    if result == QtWidgets.QMessageBox.StandardButton.No:
                         return
 
             xpoffset = xoffset * 1.5
@@ -8370,7 +8303,7 @@ class ReggieWindow(QtWidgets.QMainWindow):
         if self.CheckDirty():
             return
 
-        fn = QFileDialog_getOpenFileName(self, 'Choose a level archive', '', 'Level archives (*.arc);;All Files(*)')
+        fn = qm(QtWidgets.QFileDialog.getOpenFileName)(self, 'Choose a level archive', '', 'Level archives (*.arc);;All Files(*)')[0]
         if fn == '': return
 
         with open(unicode(fn), 'rb') as getit:
@@ -8391,7 +8324,7 @@ class ReggieWindow(QtWidgets.QMainWindow):
 
         # choose one
         dlg = AreaChoiceDialog(areacount)
-        if dlg.exec_() == QtWidgets.QDialog.Rejected:
+        if execQtObject(dlg) == QtWidgets.QDialog.DialogCode.Rejected:
             return
 
         area = dlg.areaCombo.currentIndex()+1
@@ -8433,8 +8366,8 @@ class ReggieWindow(QtWidgets.QMainWindow):
     @QtCoreSlot()
     def HandleDeleteArea(self):
         """Deletes the current area"""
-        result = QtWidgets.QMessageBox.warning(self, 'Reggie!', 'Are you <b>sure</b> you want to delete this area?<br><br>The level will automatically save afterwards - there is no way<br>you can undo the deletion or get it back afterwards!', QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.No, QtWidgets.QMessageBox.No)
-        if result == QtWidgets.QMessageBox.No: return
+        result = QtWidgets.QMessageBox.warning(self, 'Reggie!', 'Are you <b>sure</b> you want to delete this area?<br><br>The level will automatically save afterwards - there is no way<br>you can undo the deletion or get it back afterwards!', QtWidgets.QMessageBox.StandardButton.Yes | QtWidgets.QMessageBox.StandardButton.No, QtWidgets.QMessageBox.StandardButton.No)
+        if result == QtWidgets.QMessageBox.StandardButton.No: return
 
         if not self.HandleSave(): return
 
@@ -8503,7 +8436,7 @@ class ReggieWindow(QtWidgets.QMainWindow):
         if self.CheckDirty(): return
 
         dlg = ChooseLevelNameDialog()
-        if dlg.exec_() == QtWidgets.QDialog.Accepted:
+        if execQtObject(dlg) == QtWidgets.QDialog.DialogCode.Accepted:
             #start = time.time()
             self.LoadLevel(dlg.currentlevel, False, 1)
             #end = time.time()
@@ -8515,7 +8448,7 @@ class ReggieWindow(QtWidgets.QMainWindow):
         """Open a level using the filename"""
         if self.CheckDirty(): return
 
-        fn = QFileDialog_getOpenFileName(self, 'Choose a level archive', '', 'Level archives (*.arc);;All Files(*)')
+        fn = qm(QtWidgets.QFileDialog.getOpenFileName)(self, 'Choose a level archive', '', 'Level archives (*.arc);;All Files(*)')[0]
         if fn == '': return
         self.LoadLevel(unicode(fn), True, 1)
 
@@ -8548,7 +8481,7 @@ class ReggieWindow(QtWidgets.QMainWindow):
     @QtCoreSlot()
     def HandleSaveAs(self):
         """Save a level back to the archive, with a new filename"""
-        fn = QFileDialog_getSaveFileName(self, 'Choose a new filename', '', 'Level archives (*.arc);;All Files(*)')
+        fn = qm(QtWidgets.QFileDialog.getSaveFileName)(self, 'Choose a new filename', '', 'Level archives (*.arc);;All Files(*)')
         if fn == '': return
         fn = unicode(fn)
 
@@ -8633,8 +8566,8 @@ class ReggieWindow(QtWidgets.QMainWindow):
 
         global ObjectsNonFrozen
         ObjectsNonFrozen = checked
-        flag1 = QtWidgets.QGraphicsItem.ItemIsSelectable
-        flag2 = QtWidgets.QGraphicsItem.ItemIsMovable
+        flag1 = QtWidgets.QGraphicsItem.GraphicsItemFlag.ItemIsSelectable
+        flag2 = QtWidgets.QGraphicsItem.GraphicsItemFlag.ItemIsMovable
 
         for layer in Level.layers:
             for obj in layer:
@@ -8653,8 +8586,8 @@ class ReggieWindow(QtWidgets.QMainWindow):
 
         global SpritesNonFrozen
         SpritesNonFrozen = checked
-        flag1 = QtWidgets.QGraphicsItem.ItemIsSelectable
-        flag2 = QtWidgets.QGraphicsItem.ItemIsMovable
+        flag1 = QtWidgets.QGraphicsItem.GraphicsItemFlag.ItemIsSelectable
+        flag2 = QtWidgets.QGraphicsItem.GraphicsItemFlag.ItemIsMovable
 
         for spr in Level.sprites:
             spr.setFlag(flag1, checked)
@@ -8672,8 +8605,8 @@ class ReggieWindow(QtWidgets.QMainWindow):
 
         global EntrancesNonFrozen
         EntrancesNonFrozen = checked
-        flag1 = QtWidgets.QGraphicsItem.ItemIsSelectable
-        flag2 = QtWidgets.QGraphicsItem.ItemIsMovable
+        flag1 = QtWidgets.QGraphicsItem.GraphicsItemFlag.ItemIsSelectable
+        flag2 = QtWidgets.QGraphicsItem.GraphicsItemFlag.ItemIsMovable
 
         for ent in Level.entrances:
             ent.setFlag(flag1, checked)
@@ -8690,8 +8623,8 @@ class ReggieWindow(QtWidgets.QMainWindow):
 
         global PathsNonFrozen
         PathsNonFrozen = checked
-        flag1 = QtWidgets.QGraphicsItem.ItemIsSelectable
-        flag2 = QtWidgets.QGraphicsItem.ItemIsMovable
+        flag1 = QtWidgets.QGraphicsItem.GraphicsItemFlag.ItemIsSelectable
+        flag2 = QtWidgets.QGraphicsItem.GraphicsItemFlag.ItemIsMovable
 
         for node in Level.paths:
             node.setFlag(flag1, checked)
@@ -8708,8 +8641,8 @@ class ReggieWindow(QtWidgets.QMainWindow):
 
         global LocationsNonFrozen
         LocationsNonFrozen = checked
-        flag1 = QtWidgets.QGraphicsItem.ItemIsSelectable
-        flag2 = QtWidgets.QGraphicsItem.ItemIsMovable
+        flag1 = QtWidgets.QGraphicsItem.GraphicsItemFlag.ItemIsSelectable
+        flag2 = QtWidgets.QGraphicsItem.GraphicsItemFlag.ItemIsMovable
 
         for loc in Level.locations:
             loc.setFlag(flag1, checked)
@@ -8838,7 +8771,7 @@ class ReggieWindow(QtWidgets.QMainWindow):
                 checkname = os.path.join(gamePath, name+'.arc')
 
             if not IsNSMBLevel(checkname):
-                QtWidgets.QMessageBox.warning(self, 'Reggie!', "This file doesn't seem to be a valid level.", QtWidgets.QMessageBox.Ok)
+                QtWidgets.QMessageBox.warning(self, 'Reggie!', "This file doesn't seem to be a valid level.", QtWidgets.QMessageBox.StandardButton.Ok)
                 return False
 
         global Dirty, DirtyOverride
@@ -8870,7 +8803,7 @@ class ReggieWindow(QtWidgets.QMainWindow):
             progress.setCancelButton(None)
             progress.setMinimumDuration(0)
             progress.setRange(0,7)
-            progress.setWindowModality(QtCore.Qt.WindowModal)
+            progress.setWindowModality(QtCore.Qt.WindowModality.WindowModal)
             progress.setWindowTitle('Reggie!')
 
         # this tracks progress
@@ -9160,7 +9093,7 @@ class ReggieWindow(QtWidgets.QMainWindow):
         CurrentLayer = nl
 
         # should we replace?
-        if QtWidgets.QApplication.keyboardModifiers() == QtCore.Qt.AltModifier:
+        if QtWidgets.QApplication.keyboardModifiers() == QtCore.Qt.KeyboardModifier.AltModifier:
             items = self.scene.selectedItems()
             type_obj = LevelObjectEditorItem
             tileset = CurrentPaintType
@@ -9432,7 +9365,7 @@ class ReggieWindow(QtWidgets.QMainWindow):
 
     def keyPressEvent(self, event):
         """Handles key press events for the main window if needed"""
-        if event.key() == QtCore.Qt.Key_Delete or event.key() == QtCore.Qt.Key_Backspace:
+        if event.key() == QtCore.Qt.Key.Key_Delete or event.key() == QtCore.Qt.Key.Key_Backspace:
             sel = self.scene.selectedItems()
             if len(sel) > 0:
                 self.SelectionUpdateFlag = True
@@ -9455,7 +9388,7 @@ class ReggieWindow(QtWidgets.QMainWindow):
     def HandleAreaOptions(self):
         """Pops up the options for Area Dialogue"""
         dlg = AreaOptionsDialog()
-        if dlg.exec_() == QtWidgets.QDialog.Accepted:
+        if execQtObject(dlg) == QtWidgets.QDialog.DialogCode.Accepted:
             SetDirty()
             Level.timeLimit = dlg.LoadingTab.timer.value() - 200
             Level.startEntrance = dlg.LoadingTab.entrance.value()
@@ -9478,7 +9411,7 @@ class ReggieWindow(QtWidgets.QMainWindow):
 
             for idx, oldname, assignment, widget in zip(range(4), oldnames, assignments, widgets):
                 ts_idx = widget.currentIndex()
-                fname = str(toPyObject(widget.itemData(ts_idx)))
+                fname = str(qm(widget.itemData(ts_idx)))
 
                 if fname == '':
                     toUnload.append(idx)
@@ -9496,7 +9429,7 @@ class ReggieWindow(QtWidgets.QMainWindow):
 
             defEvents = 0
             eventChooser = dlg.LoadingTab.eventChooser
-            checked = QtCore.Qt.Checked
+            checked = QtCore.Qt.CheckState.Checked
             for i in range(64):
                 if eventChooser.item(i).checkState() == checked:
                     defEvents |= (1 << i)
@@ -9520,7 +9453,7 @@ class ReggieWindow(QtWidgets.QMainWindow):
     def HandleZones(self):
         """Pops up the options for Zone dialogue"""
         dlg = ZonesDialog()
-        if dlg.exec_() == QtWidgets.QDialog.Accepted:
+        if execQtObject(dlg) == QtWidgets.QDialog.DialogCode.Accepted:
             SetDirty()
             i = 0
 
@@ -9612,7 +9545,7 @@ class ReggieWindow(QtWidgets.QMainWindow):
     def HandleBG(self):
         """Pops up the Background settings Dialog"""
         dlg = BGDialog()
-        if dlg.exec_() == QtWidgets.QDialog.Accepted:
+        if execQtObject(dlg) == QtWidgets.QDialog.DialogCode.Accepted:
             SetDirty()
             i = 0
             for z in Level.zones:
@@ -9625,7 +9558,7 @@ class ReggieWindow(QtWidgets.QMainWindow):
 
                 z.ZoomA = tab.zoomA.currentIndex()
 
-                id = toPyObject(tab.background_nameA.itemData(tab.background_nameA.currentIndex()))
+                id = qm(tab.background_nameA.itemData(tab.background_nameA.currentIndex()))
                 if tab.toscreenA.isChecked():
                     # mode 5
                     z.bg1A = id
@@ -9645,7 +9578,7 @@ class ReggieWindow(QtWidgets.QMainWindow):
 
                 z.ZoomB = tab.zoomB.currentIndex()
 
-                id = toPyObject(tab.background_nameB.itemData(tab.background_nameB.currentIndex()))
+                id = qm(tab.background_nameB.itemData(tab.background_nameB.currentIndex()))
                 if tab.toscreenB.isChecked():
                     # mode 5
                     z.bg1B = id
@@ -9663,13 +9596,13 @@ class ReggieWindow(QtWidgets.QMainWindow):
     def HandleCameraProfiles(self):
         """Pops up the options for camera profiles"""
         dlg = CameraProfilesDialog()
-        if dlg.exec_() == QtWidgets.QDialog.Accepted:
+        if execQtObject(dlg) == QtWidgets.QDialog.DialogCode.Accepted:
             SetDirty()
 
             camprofiles = []
             for row in range(dlg.list.count()):
                 item = dlg.list.item(row)
-                camprofiles.append(item.data(QtCore.Qt.UserRole))
+                camprofiles.append(item.data(QtCore.Qt.ItemDataRole.UserRole))
 
             Level.camprofiles = camprofiles
 
@@ -9678,14 +9611,14 @@ class ReggieWindow(QtWidgets.QMainWindow):
         """Takes a screenshot of the entire level and saves it"""
 
         dlg = ScreenCapChoiceDialog()
-        if dlg.exec_() == QtWidgets.QDialog.Accepted:
-            fn = QFileDialog_getSaveFileName(mainWindow, 'Choose a new filename', '/untitled.png', 'Portable Network Graphics (*.png)')
+        if execQtObject(dlg) == QtWidgets.QDialog.DialogCode.Accepted:
+            fn = qm(QtWidgets.QFileDialog.getSaveFileName)(mainWindow, 'Choose a new filename', '/untitled.png', 'Portable Network Graphics (*.png)')
             if fn == '': return
             fn = unicode(fn)
 
             if dlg.zoneCombo.currentIndex() == 0:
-                ScreenshotImage = QtGui.QImage(mainWindow.view.width(), mainWindow.view.height(), QtGui.QImage.Format_ARGB32)
-                ScreenshotImage.fill(QtCore.Qt.transparent)
+                ScreenshotImage = QtGui.QImage(mainWindow.view.width(), mainWindow.view.height(), QtGui.QImage.Format.Format_ARGB32)
+                ScreenshotImage.fill(QtCore.Qt.GlobalColor.transparent)
 
                 RenderPainter = QtGui.QPainter(ScreenshotImage)
                 mainWindow.view.render(RenderPainter, QtCore.QRectF(0,0,mainWindow.view.width(),  mainWindow.view.height()), QtCore.QRect(QtCore.QPoint(0,0), QtCore.QSize(mainWindow.view.width(),  mainWindow.view.height())))
@@ -9707,8 +9640,8 @@ class ReggieWindow(QtWidgets.QMainWindow):
                 minX = (0 if 40 > minX else minX-40)
                 minY = (40 if 40 > minY else minY-40)
 
-                ScreenshotImage = QtGui.QImage(int(maxX - minX), int(maxY - minY), QtGui.QImage.Format_ARGB32)
-                ScreenshotImage.fill(QtCore.Qt.transparent)
+                ScreenshotImage = QtGui.QImage(int(maxX - minX), int(maxY - minY), QtGui.QImage.Format.Format_ARGB32)
+                ScreenshotImage.fill(QtCore.Qt.GlobalColor.transparent)
 
                 RenderPainter = QtGui.QPainter(ScreenshotImage)
                 mainWindow.scene.render(RenderPainter, QtCore.QRectF(0,0,int(maxX - minX) ,int(maxY - minY)), QtCore.QRectF(int(minX), int(minY), int(maxX - minX), int(maxY - minY)))
@@ -9717,8 +9650,8 @@ class ReggieWindow(QtWidgets.QMainWindow):
 
             else:
                 i = dlg.zoneCombo.currentIndex() - 2
-                ScreenshotImage = QtGui.QImage(int(Level.zones[i].width*1.5), int(Level.zones[i].height*1.5), QtGui.QImage.Format_ARGB32)
-                ScreenshotImage.fill(QtCore.Qt.transparent)
+                ScreenshotImage = QtGui.QImage(int(Level.zones[i].width*1.5), int(Level.zones[i].height*1.5), QtGui.QImage.Format.Format_ARGB32)
+                ScreenshotImage.fill(QtCore.Qt.GlobalColor.transparent)
 
                 RenderPainter = QtGui.QPainter(ScreenshotImage)
                 mainWindow.scene.render(RenderPainter, QtCore.QRectF(0,0,Level.zones[i].width*1.5, Level.zones[i].height*1.5), QtCore.QRectF(int(Level.zones[i].objx)*1.5, int(Level.zones[i].objy)*1.5, Level.zones[i].width*1.5, Level.zones[i].height*1.5))
@@ -9734,6 +9667,12 @@ def main():
     global app, mainWindow, settings
 
     # create an application
+
+    # The default high-dpi scaling looks really bad, unfortunately.
+    if QtCompatVersion >= (5,14,0):
+        QtWidgets.QApplication.setHighDpiScaleFactorRoundingPolicy(
+            QtCore.Qt.HighDpiScaleFactorRoundingPolicy.RoundPreferFloor)
+
     sys.argv[0] = ApplicationDisplayName  # only way to set the app display name on Qt 4
     app = QtWidgets.QApplication(sys.argv)
 
@@ -9773,13 +9712,13 @@ def main():
     global ObjectsNonFrozen, SpritesNonFrozen, EntrancesNonFrozen, LocationsNonFrozen, PathsNonFrozen
 
     # note: the str().lower() is for macOS, where bools in settings aren't automatically stringified
-    GridEnabled = (str(toPyObject(settings.value('GridEnabled', 'false'))).lower() == 'true')
-    DarkMode = (str(toPyObject(settings.value('DarkMode', 'false'))).lower() == 'true')
-    ObjectsNonFrozen = (str(toPyObject(settings.value('FreezeObjects', 'false'))).lower() == 'false')
-    SpritesNonFrozen = (str(toPyObject(settings.value('FreezeSprites', 'false'))).lower() == 'false')
-    EntrancesNonFrozen = (str(toPyObject(settings.value('FreezeEntrances', 'false'))).lower() == 'false')
-    PathsNonFrozen = (str(toPyObject(settings.value('FreezePaths', 'false'))).lower() == 'false')
-    LocationsNonFrozen = (str(toPyObject(settings.value('FreezeLocations', 'false'))).lower() == 'false')
+    GridEnabled = (str(qm(settings.value('GridEnabled', 'false'))).lower() == 'true')
+    DarkMode = (str(qm(settings.value('DarkMode', 'false'))).lower() == 'true')
+    ObjectsNonFrozen = (str(qm(settings.value('FreezeObjects', 'false'))).lower() == 'false')
+    SpritesNonFrozen = (str(qm(settings.value('FreezeSprites', 'false'))).lower() == 'false')
+    EntrancesNonFrozen = (str(qm(settings.value('FreezeEntrances', 'false'))).lower() == 'false')
+    PathsNonFrozen = (str(qm(settings.value('FreezePaths', 'false'))).lower() == 'false')
+    LocationsNonFrozen = (str(qm(settings.value('FreezeLocations', 'false'))).lower() == 'false')
 
     if DarkMode:
         setupDarkMode()
@@ -9790,7 +9729,7 @@ def main():
             break
 
     if settings.contains('GamePath'):
-        SetGamePath(toPyObject(settings.value('GamePath')))
+        SetGamePath(qm(settings.value('GamePath')))
 
     # choose a folder for the game
     # let the user pick a folder without restarting the editor if they fail
@@ -9807,15 +9746,15 @@ def main():
             break
 
     # check to see if we have anything saved
-    autofile = unicode(toPyObject(settings.value('AutoSaveFilePath', 'none')))
+    autofile = unicode(qm(settings.value('AutoSaveFilePath', 'none')))
     if autofile != 'none':
         try:
-            autofiledata = toPyObject(settings.value('AutoSaveFileData', b'x')).data()
+            autofiledata = qm(settings.value('AutoSaveFileData', b'x')).data()
         except Exception:
             autofiledata = b'x'
         if autofiledata != b'x':
-            result = AutoSavedInfoDialog(autofile).exec_()
-            if result == QtWidgets.QDialog.Accepted:
+            result = execQtObject(AutoSavedInfoDialog(autofile))
+            if result == QtWidgets.QDialog.DialogCode.Accepted:
                 global RestoredFromAutoSave, AutoSavePath, AutoSaveData
                 RestoredFromAutoSave = True
                 AutoSavePath = autofile
@@ -9827,7 +9766,7 @@ def main():
     # create and show the main window
     mainWindow = ReggieWindow()
     mainWindow.show()
-    exitcodesys = app.exec_()
+    exitcodesys = execQtObject(app)
     app.deleteLater()
     sys.exit(exitcodesys)
 
