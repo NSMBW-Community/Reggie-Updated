@@ -3139,6 +3139,7 @@ class SpriteEditorItem(LevelEditorItem):
                     self.positionChanged(self, oldx, oldy, x, y)
 
                 SetDirty()
+                mainWindow.levelOverview.update()
 
             return newpos
 
@@ -3240,6 +3241,7 @@ class EntranceEditorItem(LevelEditorItem):
         retVal = super().itemChange(change, value)
         try:
             self.UpdateRects()
+            mainWindow.levelOverview.update()
         except AttributeError:
             # Can happen during initialization. We can just ignore this
             pass
