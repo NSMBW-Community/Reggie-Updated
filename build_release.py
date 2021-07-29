@@ -74,15 +74,6 @@ except ImportError:
     nsmblib = None
     print('>>   [ ] NSMBLib is installed')
 
-# UPX being installed
-
-# There seems to be no reliable way to determine in this script if
-# PyInstaller will detect UPX or not. PyInstaller itself provides no
-# public API for this, and doing horrible things with its private API
-# didn't ultimately work well enough to be useful.
-# So all we can do is show this generic message, unfortunately.
-print('>>   [?] UPX is installed')
-
 
 # Now show big warning messages if any of those failed
 if sys.flags.optimize < 2:
@@ -91,8 +82,6 @@ if sys.flags.optimize < 2:
 
 if nsmblib is None:
     print_emphasis('>> WARNING: NSMBLib does not seem to be installed! Please consider installing it prior to building.')
-
-print_emphasis('>> NOTE: If the PyInstaller output below says "INFO: UPX is not available.", you should install UPX!')
 
 
 ########################################################################
