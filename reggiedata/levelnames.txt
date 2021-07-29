@@ -63,7 +63,7 @@ World 4-4|04-04
 Ghost House|04-21
 World 4-5|04-05
 Castle|04-24
-Doomship|04-38
+Airship|04-38
 Toad House 1|04-26
 Toad House 2|04-27
 Toad House 3|04-28
@@ -100,7 +100,7 @@ Tower|06-22
 World 6-5|06-05
 World 6-6|06-06
 Castle|06-24
-Doomship|06-38
+Airship|06-38
 Toad House 1|06-26
 Toad House 2|06-27
 Toad House 3|06-28
@@ -136,7 +136,7 @@ World 8-4|08-04
 World 8-5|08-05
 World 8-6|08-06
 World 8-7|08-07
-Doomship|08-38
+Airship|08-38
 Castle|08-24
 Toad House 1|08-26
 Toad House 2|08-27

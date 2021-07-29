@@ -25,6 +25,66 @@ Original Reggie! Homepage: http://www.rvlution.net/reggie/
 Changelog
 =========
 
+Reggie-Updated 2021.05.18.0:
+----------------------------
+- Reggie Updated now supports spritedata.xml's from Reggie Next! ...Kind of. It
+  tries its best to map all of Next's new field formats onto the existing ones,
+  and it's not perfect, but it works pretty well in most cases.
+- The "Layer 0 Spotlight" and "Full Darkness" options have been converted to
+  checkboxes, to support a combined mode with both effects which has been
+  discovered. (Thanks to Abood and Ninji for both independently finding this.)
+- The "Full Screen" layer 0 spotlight mode has been renamed to "Extremely
+  Large", as it turns out that the circle can still be seen at high zoom
+  levels. (Thanks to Ninji for discovering this in the code, and to Zementblock
+  for testing it.)
+- You can now always see the ID of a location, even when the location isn't
+  wide enough to fit the text. You can also now drag such a location by its ID,
+  too. (Thanks to Grop for pointing this issue out, and suggesting a fix.)
+- The "Add" button in the Camera Profiles dialog now adds a new profile with
+  (highest event ID) + 1, instead of one with event ID 0. (Thanks to Skawo for
+  the suggestion.)
+- Renamed a few zone themes to be more clear.
+- Fixed a few tooltips that had inaccurate information.
+- Replaced the term "Doomship" with "Airship" everywhere, for consistency and
+  accuracy.
+- Other smaller changes and bugfixes.
+
+
+Reggie-Updated 2021.03.21.0:
+----------------------------
+- Added support for "Zone Direction" setting in the Zones dialog.
+- Dark Mode has been added! You can find it in the "View" menu.
+- The "View" dropdown in the Sprites tab in the Palette now remembers your
+  choice when you close and re-open Reggie. No need to instinctively switch to
+  the "Search" view every time anymore!
+- Removed text labels ("Sprites", "Entrances", "Paths") from Palette tabs, to
+  improve compactness so that they all fit on-screen at once without scrolling.
+  The original labels have been retained as tooltips, though.
+- Fixed a bug where the dock widgets (item editor windows) were displayed
+  incorrectly upon first launch.
+- Fixed broken "Reggie! Help" icon.
+- Reggie now supports "portable.txt", inspired by Dolphin Emulator. Placing a
+  file with that name in Reggie's directory will cause it to save/load settings
+  locally instead of using the system registry.
+- Reggie now enables
+  [setUnifiedTitleAndToolBarOnMac](https://doc.qt.io/qt-5/qmainwindow.html#unifiedTitleAndToolBarOnMac-prop)
+  for a slightly nicer look on macOS.
+- Fixed broken settings on macOS.
+- Deleted the sprite image for sprite 376 ("Moving Chain-Link") because it
+  looked awful.
+- The Help menu now shows the Qt bindings in use, its version number, and the
+  version number of Qt itself.
+- Renamed "About PyQt" to "About Qt".
+- All PNG files have been minified, saving about 1.6 MB.
+- Added a new "-clear-settings" CLI argument, which causes all settings to be
+  reset to defaults upon launch. This could be helpful if corrupted settings
+  are preventing Reggie from loading.
+- Added a new "-gamepath=PATH" CLI argument for specifying the game path,
+  bypassing the folder picker dialog. This can be used as a workaround since
+  the folder picker dialog is bugged and unusable on certain platforms.
+- Other smaller changes and bugfixes.
+
+
 Reggie-Updated 2021.01.27.1:
 ----------------------------
 - Essentially the same as the previous release. It was requested that I add a

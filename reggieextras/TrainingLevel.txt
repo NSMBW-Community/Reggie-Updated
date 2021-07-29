@@ -218,7 +218,7 @@ brick block does, for some reason.
 Some floating coins, that sit on top of the water. They only work with
 non-location based water. They possibly may work with Lava and Poison Water.
 
-And lastly for this room, the Doomship Key, which when collected, goes up
+And lastly for this room, the Airship Key, which when collected, goes up
 to your inventory area, but doesn't actually do anything.
 To 'pretend' like it does something, you can apply a location underneath
 where you place the key that when entered, triggers an event.

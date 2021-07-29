@@ -249,6 +249,40 @@ def isValidGamePath(check='ug'):
     return True
 
 
+def setupDarkMode():
+    """Sets up dark mode theming"""
+    # Taken from https://gist.github.com/QuantumCD/6245215
+
+    app.setStyle(QtWidgets.QStyleFactory.create('Fusion'))
+
+    darkPalette = QtGui.QPalette()
+    darkPalette.setColor(QtGui.QPalette.Window, QtGui.QColor(53,53,53))
+    darkPalette.setColor(QtGui.QPalette.WindowText, QtCore.Qt.white)
+    darkPalette.setColor(QtGui.QPalette.Base, QtGui.QColor(25,25,25))
+    darkPalette.setColor(QtGui.QPalette.AlternateBase, QtGui.QColor(53,53,53))
+    darkPalette.setColor(QtGui.QPalette.ToolTipBase, QtCore.Qt.white)
+    darkPalette.setColor(QtGui.QPalette.ToolTipText, QtCore.Qt.white)
+    darkPalette.setColor(QtGui.QPalette.Text, QtCore.Qt.white)
+    darkPalette.setColor(QtGui.QPalette.Button, QtGui.QColor(53,53,53))
+    darkPalette.setColor(QtGui.QPalette.ButtonText, QtCore.Qt.white)
+    darkPalette.setColor(QtGui.QPalette.BrightText, QtCore.Qt.red)
+    darkPalette.setColor(QtGui.QPalette.Link, QtGui.QColor(42, 130, 218))
+
+    darkPalette.setColor(QtGui.QPalette.Highlight, QtGui.QColor(42, 130, 218))
+    darkPalette.setColor(QtGui.QPalette.HighlightedText, QtCore.Qt.black)
+
+    # fix for disabled menu options
+    darkPalette.setColor(QtGui.QPalette.Disabled, QtGui.QPalette.Text, QtGui.QColor(127,127,127))
+    darkPalette.setColor(QtGui.QPalette.Disabled, QtGui.QPalette.Light, QtGui.QColor(53,53,53))
+
+    app.setPalette(darkPalette)
+
+    app.setStyleSheet("""
+        QToolTip { color: #ffffff; background-color: #2a82da; border: 1px solid white }
+        #qt_toolbar_ext_button { background-color: #555; border: 1px solid #888; border-radius: 2px }
+        #qt_toolbar_ext_button::hover { background-color: #666 }
+    """)
+
 
 LevelNames = None
 def LoadLevelNames():
@@ -366,16 +400,16 @@ BgScrollRates = [0.0, 0.125, 0.25, 0.375, 0.5, 0.625, 0.75, 0.875, 1.0, 0.0, 1.2
 BgScrollRateStrings = ['None', '0.125x', '0.25x', '0.375x', '0.5x', '0.625x', '0.75x', '0.875x', '1x', 'None', '1.2x', '1.5x', '2x', '4x']
 
 ZoneThemeValues = [
-    'Overworld', 'Underground', 'Underwater', 'Lava/Volcano [reddish]',
-    'Desert', 'Beach*', 'Forest*', 'Snow Overworld*',
-    'Sky/Bonus*', 'Mountains*', 'Tower', 'Castle',
+    'Overworld', 'Underground', 'Underwater', 'Lava Underground',
+    'Desert', 'Beach', 'Forest', 'Snow Overworld',
+    'Sky/Bonus*', 'Mountains', 'Tower', 'Castle',
     'Ghost House', 'River Cave', 'Ghost House Exit', 'Underwater Cave',
-    'Desert Cave', 'Icy Cave*', 'Lava/Volcano', 'Final Battle',
-    'World 8 Castle', 'World 8 Doomship*', 'Lit Tower'
+    'Desert Cave', 'Icy Cave*', 'Lava', 'Final Battle',
+    'World 8 Tower/Castle', 'World 8 Airship*', 'World 7 Tower Indoors',
 ]
 
 ZoneTerrainThemeValues = [
-    'Normal/Overworld', 'Underground', 'Underwater', 'Lava/Volcano',
+    'Normal/Overworld', 'Underground', 'Underwater', 'Lava',
 ]
 
 Sprites = None
@@ -418,27 +452,75 @@ class SpriteDefinition():
 
         for field in elem.childNodes:
             if field.nodeType != field.ELEMENT_NODE: continue
+            if field.nodeName in ['dependency', 'suggested']: continue  # Reggie Next compatibility
 
             attribs = field.attributes
+            if field.nodeName in ['dualbox', 'multidualbox']:  # Reggie Next compatibility
+                title = attribs['title2'].nodeValue
+            else:
+                title = attribs['title'].nodeValue
 
+            commentParts = []
             if keyInAttribs('comment', field):
-                comment = '<b>%s</b>:<br>%s' % (attribs['title'].nodeValue, attribs['comment'].nodeValue)
+                commentParts.append(field.attributes['comment'].nodeValue)
+            if keyInAttribs('comment2', field):  # Reggie Next compatibility
+                commentParts.append(field.attributes['comment2'].nodeValue)
+            if keyInAttribs('advancedcomment', field):  # Reggie Next compatibility
+                commentParts.append(field.attributes['advancedcomment'].nodeValue)
+            if commentParts:
+                comment = '<b>%s</b>:<br>%s' % (title, '<br/><br/>'.join(commentParts))
             else:
                 comment = None
 
-            if field.nodeName == 'checkbox':
-                # parameters: title, nybble, mask, comment
+
+            maskHint = None
+            if keyInAttribs('nybble', field):
                 snybble = attribs['nybble'].nodeValue
+            elif keyInAttribs('bit', field):  # Reggie Next compatibility
+                bit = attribs['bit'].nodeValue
+                if ',' in bit:  # just take the least significant part -- close enough
+                    bit = bit.split(',')[-1]
+                bit = bit.strip()
+                if bit.count('-') == 0:  # one bit -- we can infer a mask from this for checkboxes, too
+                    bit = int(bit)
+                    snybble = str(((bit - 1) // 4) + 1)
+                    maskHint = 1 << (3 - ((bit - 1) % 4))
+                elif bit.count('-') == 1:  # multiple bits; hopefully it aligns to a nybble
+                    startbit, endbit = bit.split('-')
+                    startbit, endbit = int(startbit), int(endbit)
+                    if endbit % 4 != 0:
+                        # We're going to seriously lose precision here -- possibly
+                        # catastrophically -- but maybe the code for the individual
+                        # nodeName can use the maskHint to produce some reasonable behavior
+                        maskHint = 1 << (3 - ((endbit - 1) % 4))
+                    startnyb, endnyb = ((startbit - 1) // 4) + 1, ((endbit - 1) // 4) + 1
+                    if startnyb == endnyb:
+                        snybble = str(startnyb)
+                    else:
+                        snybble = '%d-%d' % (startnyb, endnyb)
+                else:
+                    raise ValueError('Invalid "bit" field')
+
+            if keyInAttribs('mask', field):
+                mask = int(attribs['mask'].nodeValue)
+            elif maskHint is not None:
+                mask = maskHint
+            else:
+                mask = 1
+
+            if field.nodeName in ['checkbox', 'dualbox']:
+                # parameters: title, nybble, mask, comment
                 if '-' not in snybble:
                     nybble = int(snybble) - 1
                 else:
                     getit = snybble.split('-')
                     nybble = (int(getit[0]) - 1, int(getit[1]))
 
-                fields.append((0, attribs['title'].nodeValue, nybble, int(attribs['mask'].nodeValue) if keyInAttribs('mask', field) else 1, comment))
+                fields.append((0, title, nybble, mask, comment))
+
             elif field.nodeName == 'list':
                 # parameters: title, nybble, model, comment
-                snybble = attribs['nybble'].nodeValue
+
                 if '-' not in snybble:
                     nybble = int(snybble) - 1
                     max = 16
@@ -454,13 +536,27 @@ class SpriteDefinition():
                     if e.nodeName != 'entry': continue
 
                     i = int(e.attributes['value'].nodeValue)
-                    entries.append((i, e.childNodes[0].nodeValue))
-                    existing[i] = True
+                    if e.childNodes:
+                        name = e.childNodes[0].nodeValue
+                    else:  # Reggie Next compatibility
+                        name = str(i)
 
-                fields.append((1, attribs['title'].nodeValue, nybble, SpriteDefinition.ListPropertyModel(entries, existing, max), comment))
-            elif field.nodeName == 'value':
+                    if maskHint:
+                        # Reggie Next compatibility
+                        valuesToAdd = []
+                        for j in range(maskHint):
+                            valuesToAdd.append(i * maskHint + j)
+                    else:
+                        valuesToAdd = [i]
+
+                    for v in valuesToAdd:
+                        entries.append((v, name))
+                        existing[v] = True
+
+                fields.append((1, title, nybble, SpriteDefinition.ListPropertyModel(entries, existing, max), comment))
+
+            elif field.nodeName in ['value', 'multidualbox']:
                 # parameters: title, nybble, max, comment
-                snybble = attribs['nybble'].nodeValue
 
                 # if it's 5-12 skip it
                 # fixes tobias's crashy "unknown values"
@@ -474,7 +570,10 @@ class SpriteDefinition():
                     nybble = (int(getit[0]) - 1, int(getit[1]))
                     max = (16 << ((nybble[1] - nybble[0] - 1) * 4))
 
-                fields.append((2, attribs['title'].nodeValue, nybble, max, comment))
+                fields.append((2, title, nybble, max, comment))
+
+            else:
+                raise ValueError(field.nodeName)
 
 
 def LoadSpriteData():
@@ -495,10 +594,16 @@ def LoadSpriteData():
 
         spriteid = int(sprite.attributes['id'].nodeValue)
         spritename = unicode(sprite.attributes['name'].nodeValue)
-        notes = None
 
+        notesParts = []
         if keyInAttribs('notes', sprite):
-            notes = '<b>Sprite Notes:</b> ' + sprite.attributes['notes'].nodeValue
+            notesParts.append(sprite.attributes['notes'].nodeValue)
+        if keyInAttribs('advancednotes', sprite):  # Reggie Next compatibility
+            notesParts.append(sprite.attributes['advancednotes'].nodeValue)
+        if notesParts:
+            notes = '<b>Sprite Notes:</b> ' + '<br/><br/>'.join(notesParts)
+        else:
+            notes = None
 
         sdef = SpriteDefinition()
         sdef.id = spriteid
@@ -625,7 +730,8 @@ def DecodeReggieInfo(data, validKeys):
 
     # Filter out uninteresting strings and check that the length is right
     strings = [s for s in stack if s not in {'PyQt4.QtCore', 'QString', None}]
-    assert len(strings) == 12
+    if len(strings) != 12:
+        raise ValueError('Wrong number of strings in level metadata (%d)' % len(strings))
 
     # Convert e.g. [a, b, c, d, e, f] -> {a: b, c: d, e: f}
     # https://stackoverflow.com/a/12739974
@@ -633,7 +739,9 @@ def DecodeReggieInfo(data, validKeys):
     levelinfo = dict(zip(it, it))
 
     # Double-check that the keys are as expected, and return
-    assert set(levelinfo) == validKeys
+    if set(levelinfo) != validKeys:
+        raise ValueError('Wrong keys in level metadata: ' + str(set(levelinfo)))
+
     return levelinfo
 
 
@@ -1516,9 +1624,6 @@ class LevelUnit():
         self.areanum = 1
         self.areacount = 1
 
-        mainWindow.levelOverview.maxX = 100
-        mainWindow.levelOverview.maxY = 40
-
         # we don't parse blocks 4, 11, 12, 13, 14
         # we can create the rest manually
         self.blocks = [None]*14
@@ -2116,22 +2221,29 @@ class LevelUnit():
         # So we make an extra, all-defaults bounding block and use it
         # for every camera profile.
 
+        # We also make an empty (all 00s) first profile to work around a
+        # game bug: the game initially thinks that the first profile is
+        # active (rather than "no profile"), and thus will refuse to
+        # activate it until you switch to some other profile first. So
+        # we just make a dummy first profile to avoid triggering this
+        # confusing behavior. (It can never be activated because it's
+        # tied to "event 0," which doesn't exist.)
+
         profilestruct = struct.Struct('>xxxxxxxxxxxxBBBBxxBx')
         bdngstruct = struct.Struct('>4lHHhh')
-        offset = 20  # empty first profile to work around game bug
-        offset2 = len(self.blocks[2])
-        pcount = len(Level.camprofiles)
-        buffer = create_string_buffer(20 * (pcount + 1))
+
+        buffer = create_string_buffer(20 * (len(Level.camprofiles) + 1))
         buffer2 = create_string_buffer(self.blocks[2] + bytes(24))
 
-        bdngid = len(buffer2) // 24
-        bdngstruct.pack_into(buffer2, offset2, 0, 0, 0, 0, bdngid, 15, 0, 0)
-
+        offset2 = len(self.blocks[2])
         bdngid = offset2 // 20
+
+        offset = 20  # empty first profile to work around game bug
         for p in Level.camprofiles:
             profilestruct.pack_into(buffer, offset, bdngid, p[1], p[2], p[3], p[0])
             offset += 20
-            offset2 += 24
+
+        bdngstruct.pack_into(buffer2, offset2, 0, 0, 0, 0, bdngid, 15, 0, 0)
 
         self.blocks[11] = buffer.raw
         self.blocks[2] = buffer2.raw
@@ -2203,6 +2315,14 @@ class LevelUnit():
             'Password': self.Password
         }
         return pickletools.optimize(pickle.dumps(info, 2))
+
+
+def itemBoxFillOpacities():
+    """Return opacities for selected and unselected states"""
+    if DarkMode:
+        return 255, 180
+    else:
+        return 240, 120
 
 
 class LevelEditorItem(QtWidgets.QGraphicsItem):
@@ -2420,7 +2540,7 @@ class LevelObjectEditorItem(LevelEditorItem):
 
     def mouseMoveEvent(self, event):
         """Overrides mouse movement events if needed for resizing"""
-        if event.buttons() != QtCore.Qt.NoButton and self.dragging:
+        if event.buttons() & QtCore.Qt.LeftButton and self.dragging:
             # resize it
             dsx = self.dragstartx
             dsy = self.dragstarty
@@ -2573,10 +2693,15 @@ class ZoneItem(LevelEditorItem):
         #painter.setClipRect(option.exposedRect)
         painter.setRenderHint(QtGui.QPainter.Antialiasing)
 
+        if DarkMode:
+            textColor = QtGui.QColor.fromRgba(0xFFCAE0F9)
+        else:
+            textColor = QtGui.QColor.fromRgba(0xFF2C4054)
+
         painter.setPen(QtGui.QPen(QtGui.QColor.fromRgba(0xB093C9FF), 3))
         painter.drawRect(self.DrawRect)
 
-        painter.setPen(QtGui.QPen(QtGui.QColor.fromRgba(0xFF2C4054), 3))
+        painter.setPen(QtGui.QPen(textColor, 3))
         painter.setFont(self.font)
         painter.drawText(self.TitlePos, self.title)
 
@@ -2620,8 +2745,7 @@ class ZoneItem(LevelEditorItem):
 
     def mouseMoveEvent(self, event):
         """Overrides mouse movement events if needed for resizing"""
-
-        if event.buttons() != QtCore.Qt.NoButton and self.dragging:
+        if event.buttons() & QtCore.Qt.LeftButton and self.dragging:
             # resize it
             clickedx = int(event.scenePos().x() / 1.5)
             clickedy = int(event.scenePos().y() / 1.5)
@@ -2710,7 +2834,7 @@ class LocationEditorItem(LevelEditorItem):
         super(LocationEditorItem, self).__init__()
 
         self.font = NumberFontBold
-        self.TitlePos = QtCore.QPointF(4,12)
+        self.TitleRect = QtCore.QRectF(4,4,26,20)
         self.objx = x
         self.objy = y
         self.width = width
@@ -2739,11 +2863,26 @@ class LocationEditorItem(LevelEditorItem):
     def UpdateRects(self):
         """Updates the location's bounding rectangle"""
         self.prepareGeometryChange()
-        self.BoundingRect = QtCore.QRectF(0,0,self.width*1.5,self.height*1.5)
+        self.BoundingRectWithoutTitleRect = QtCore.QRectF(0,0,self.width*1.5,self.height*1.5)
+        self.BoundingRect = self.BoundingRectWithoutTitleRect | self.TitleRect
         self.SelectionRect = QtCore.QRectF(self.objx*1.5,self.objy*1.5,self.width*1.5,self.height*1.5)
         self.ZoneRect = QtCore.QRectF(self.objx,self.objy,self.width,self.height)
         self.DrawRect = QtCore.QRectF(1,1,self.width*1.5-2,self.height*1.5-2)
         self.GrabberRect = QtCore.QRectF(1.5*self.width-6,1.5*self.height-6,5,5)
+
+
+    def shape(self):
+        """
+        self.BoundingRect is big enough to include self.TitleRect (so
+        the ID text can be painted), but that makes the hit-detection
+        region too large if the rect is small.
+        """
+        # We basically make a vertically-flipped "L" shape if the location
+        # is small, so that you can click on the ID number to select the location
+        qpp = QtGui.QPainterPath()
+        qpp.addRect(self.BoundingRectWithoutTitleRect)
+        qpp.addRect(self.TitleRect)
+        return qpp
 
 
     def paint(self, painter, option, widget):
@@ -2757,7 +2896,7 @@ class LocationEditorItem(LevelEditorItem):
 
         painter.setPen(QtGui.QPen(QtCore.Qt.white, 1))
         painter.setFont(self.font)
-        painter.drawText(self.TitlePos, self.title)
+        painter.drawText(self.TitleRect, self.title)
 
         if self.isSelected():
             painter.setPen(QtGui.QPen(QtCore.Qt.white, 1, QtCore.Qt.DotLine))
@@ -2782,7 +2921,7 @@ class LocationEditorItem(LevelEditorItem):
 
     def mouseMoveEvent(self, event):
         """Overrides mouse movement events if needed for resizing"""
-        if event.buttons() != QtCore.Qt.NoButton and self.dragging:
+        if event.buttons() & QtCore.Qt.LeftButton and self.dragging:
             # resize it
             dsx = self.dragstartx
             dsy = self.dragstarty
@@ -2857,13 +2996,13 @@ class SpriteEditorItem(LevelEditorItem):
         self.setPos(int((x+self.xoffset)*1.5),int((y+self.yoffset)*1.5))
         DirtyOverride -= 1
 
-        sname = Sprites[type].name
+        sname = Sprites[type].name if type < len(Sprites) else 'UNKNOWN'
         self.name = sname
         self.setToolTip('<b>Sprite %d:</b><br>%s' % (type,sname))
 
     def SetType(self, type):
         """Sets the type of the sprite"""
-        self.name = Sprites[type].name
+        self.name = Sprites[type].name if type < len(Sprites) else 'UNKNOWN'
         self.setToolTip('<b>Sprite %d:</b><br>%s' % (type, self.name))
         self.type = type
 
@@ -3001,6 +3140,7 @@ class SpriteEditorItem(LevelEditorItem):
                     self.positionChanged(self, oldx, oldy, x, y)
 
                 SetDirty()
+                mainWindow.levelOverview.update()
 
             return newpos
 
@@ -3025,6 +3165,12 @@ class SpriteEditorItem(LevelEditorItem):
         painter.setClipRect(option.exposedRect)
         painter.setRenderHint(QtGui.QPainter.Antialiasing)
 
+        selectedOpacity, unselectedOpacity = itemBoxFillOpacities()
+        if DarkMode:
+            fillR, fillG, fillB = 30, 110, 196
+        else:
+            fillR, fillG, fillB = 0, 92, 196
+
         if self.customPaint:
             self.customPainter(self, painter)
             if self.isSelected():
@@ -3033,10 +3179,10 @@ class SpriteEditorItem(LevelEditorItem):
                 painter.fillRect(self.SelectionRect, QtGui.QColor.fromRgb(255,255,255,64))
         else:
             if self.isSelected():
-                painter.setBrush(QtGui.QBrush(QtGui.QColor.fromRgb(0,92,196,240)))
+                painter.setBrush(QtGui.QBrush(QtGui.QColor.fromRgb(fillR,fillG,fillB,selectedOpacity)))
                 painter.setPen(QtGui.QPen(QtCore.Qt.white, 1))
             else:
-                painter.setBrush(QtGui.QBrush(QtGui.QColor.fromRgb(0,92,196,120)))
+                painter.setBrush(QtGui.QBrush(QtGui.QColor.fromRgb(fillR,fillG,fillB,unselectedOpacity)))
                 painter.setPen(QtGui.QPen(QtCore.Qt.black, 1))
             painter.drawRoundedRect(self.RoundedRect, 4, 4)
 
@@ -3091,6 +3237,17 @@ class EntranceEditorItem(LevelEditorItem):
         self.UpdateTooltip()
         self.UpdateRects()
 
+    def itemChange(self, change, value):
+        """Makes sure positions don't go out of bounds and updates them as necessary"""
+        retVal = super().itemChange(change, value)
+        try:
+            self.UpdateRects()
+            mainWindow.levelOverview.update()
+        except AttributeError:
+            # Can happen during initialization. We can just ignore this
+            pass
+        return retVal
+
     def UpdateTooltip(self):
         """Updates the entrance object's tooltip"""
         if self.enttype >= len(EntranceTypeNames):
@@ -3126,11 +3283,18 @@ class EntranceEditorItem(LevelEditorItem):
         """Paints the object"""
         painter.setClipRect(option.exposedRect)
         painter.setRenderHint(QtGui.QPainter.Antialiasing)
+
+        selectedOpacity, unselectedOpacity = itemBoxFillOpacities()
+        if DarkMode:
+            fillR, fillG, fillB = 255, 50, 50
+        else:
+            fillR, fillG, fillB = 190, 0, 0
+
         if self.isSelected():
-            painter.setBrush(QtGui.QBrush(QtGui.QColor.fromRgb(190,0,0,240)))
+            painter.setBrush(QtGui.QBrush(QtGui.QColor.fromRgb(fillR,fillG,fillB,selectedOpacity)))
             painter.setPen(QtGui.QPen(QtCore.Qt.white, 1))
         else:
-            painter.setBrush(QtGui.QBrush(QtGui.QColor.fromRgb(190,0,0,120)))
+            painter.setBrush(QtGui.QBrush(QtGui.QColor.fromRgb(fillR,fillG,fillB,unselectedOpacity)))
             painter.setPen(QtGui.QPen(QtCore.Qt.black, 1))
         painter.drawRoundedRect(self.RoundedRect, 4, 4)
 
@@ -3265,11 +3429,13 @@ class PathEditorItem(LevelEditorItem):
         painter.setRenderHint(QtGui.QPainter.Antialiasing)
         painter.setClipRect(option.exposedRect)
 
+        selectedOpacity, unselectedOpacity = itemBoxFillOpacities()
+
         if self.isSelected():
-            painter.setBrush(QtGui.QBrush(QtGui.QColor.fromRgb(6,249,20,240)))
+            painter.setBrush(QtGui.QBrush(QtGui.QColor.fromRgb(6,249,20,selectedOpacity)))
             painter.setPen(QtGui.QPen(QtCore.Qt.white, 1))
         else:
-            painter.setBrush(QtGui.QBrush(QtGui.QColor.fromRgb(6,249,20,120)))
+            painter.setBrush(QtGui.QBrush(QtGui.QColor.fromRgb(6,249,20,unselectedOpacity)))
             painter.setPen(QtGui.QPen(QtCore.Qt.black, 1))
         painter.drawRoundedRect(self.RoundedRect, 4, 4)
 
@@ -3418,7 +3584,11 @@ class LevelOverviewWidget(QtWidgets.QWidget):
         super(LevelOverviewWidget, self).__init__()
         self.setSizePolicy(QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.MinimumExpanding, QtWidgets.QSizePolicy.MinimumExpanding))
 
-        self.bgbrush = QtGui.QBrush(QtGui.QColor.fromRgb(153,119,119))
+        if DarkMode:
+            bgcolor = QtGui.QColor.fromRgb(32,12,12)
+        else:
+            bgcolor = QtGui.QColor.fromRgb(153,119,119)
+        self.bgbrush = QtGui.QBrush(bgcolor)
         self.objbrush = QtGui.QBrush(QtGui.QColor.fromRgb(255,255,255))
         self.viewbrush = QtGui.QBrush(QtGui.QColor.fromRgb(47,79,79,120))
         self.view = QtCore.QRectF(0,0,0,0)
@@ -3426,9 +3596,6 @@ class LevelOverviewWidget(QtWidgets.QWidget):
         self.entrancebrush = QtGui.QBrush(QtGui.QColor.fromRgb(255,0,0))
         self.locationbrush = QtGui.QBrush(QtGui.QColor.fromRgb(114,42,188,50))
 
-        self.scale = 0.375
-        self.maxX = 1
-        self.maxY = 1
         self.CalcSize()
         self.Rescale()
 
@@ -3441,14 +3608,8 @@ class LevelOverviewWidget(QtWidgets.QWidget):
     def Reset(self):
         """Resets the max and scale variables"""
         self.scale = 0.375
-        self.maxX = 1
-        self.maxY = 1
         self.CalcSize()
         self.Rescale()
-
-    def CalcSize(self):
-        """Calculates all the required sizes for this scale"""
-        self.posmult = 24.0 / self.scale
 
     def mouseMoveEvent(self, event):
         """Handles mouse movement over the widget"""
@@ -3475,82 +3636,50 @@ class LevelOverviewWidget(QtWidgets.QWidget):
         painter = QtGui.QPainter(self)
         painter.setRenderHint(QtGui.QPainter.Antialiasing, True)
 
+        self.CalcSize()
         self.Rescale()
         painter.fillRect(event.rect(), self.bgbrush)
         painter.scale(self.scale, self.scale)
+        transform = QtGui.QTransform() / 24
 
-        maxX = self.maxX
-        maxY = self.maxY
         dr = painter.drawRect
         fr = painter.fillRect
-
-        maxX = 0
-        maxY = 0
 
 
         b = self.viewbrush
         painter.setPen(QtGui.QPen(QtGui.QColor.fromRgb(0,255,255), 1))
 
         for zone in Level.zones:
-            x = zone.objx / 16
-            y = zone.objy / 16
-            width = zone.width / 16
-            height = zone.height / 16
-            fr(QtCore.QRectF(x, y, width, height), b)
-            dr(QtCore.QRectF(x, y, width, height))
-            if x+width > maxX:
-                maxX = x+width
-            if y+height > maxY:
-                maxY = y+height
+            rect = transform.mapRect(zone.sceneBoundingRect())
+            fr(rect, b)
+            dr(rect)
 
         b = self.objbrush
 
         for layer in Level.layers:
             for obj in layer:
                 fr(obj.LevelRect, b)
-                if obj.objx > maxX:
-                    maxX = obj.objx
-                if obj.objy > maxY:
-                    maxY = obj.objy
 
 
         b = self.spritebrush
 
         for sprite in Level.sprites:
             fr(sprite.LevelRect, b)
-            if sprite.objx/16 > maxX:
-                maxX = sprite.objx/16
-            if sprite.objy/16 > maxY:
-                maxY = sprite.objy/16
 
 
         b = self.entrancebrush
 
         for ent in Level.entrances:
             fr(ent.LevelRect, b)
-            if ent.objx/16 > maxX:
-                maxX = ent.objx/16
-            if ent.objy/16 > maxY:
-                maxY = ent.objy/16
 
 
         b = self.locationbrush
         painter.setPen(QtGui.QPen(QtCore.Qt.black, 1))
 
         for location in Level.locations:
-            x = location.objx / 16
-            y = location.objy / 16
-            width = location.width / 16
-            height = location.height / 16
-            fr(QtCore.QRectF(x, y, width, height), b)
-            dr(QtCore.QRectF(x, y, width, height))
-            if x+width > maxX:
-                maxX = x+width
-            if y+height > maxY:
-                maxY = y+height
-
-        self.maxX = maxX
-        self.maxY = maxY
+            rect = transform.mapRect(location.sceneBoundingRect())
+            fr(rect, b)
+            dr(rect)
 
         b = self.locationbrush
         painter.setPen(QtGui.QPen(QtCore.Qt.blue, 1))
@@ -3560,7 +3689,40 @@ class LevelOverviewWidget(QtWidgets.QWidget):
                                        self.Hlocator/24/self.mainWindowScale))
 
 
+    def CalcSize(self):
+        """Calculates self.maxX and self.maxY"""
+        if Level is None:
+            # fixes race condition where this widget's size is calculated
+            # after the level is created, but before it's loaded
+            self.maxX = 100
+            self.maxY = 40
+            return
+
+        transform = QtGui.QTransform() / 24
+        rect = QtCore.QRectF()
+
+        for zone in Level.zones:
+            rect |= transform.mapRect(zone.sceneBoundingRect())
+
+        for layer in Level.layers:
+            for obj in layer:
+                rect |= obj.LevelRect
+
+        for sprite in Level.sprites:
+            rect |= sprite.LevelRect
+
+        for ent in Level.entrances:
+            rect |= ent.LevelRect
+
+        for location in Level.locations:
+            rect |= transform.mapRect(location.sceneBoundingRect())
+
+        self.maxX = rect.right()
+        self.maxY = rect.bottom()
+
+
     def Rescale(self):
+        """Calculates self.scale and self.posmult"""
         self.Xscale = (float(self.width())/float(self.maxX+45))
         self.Yscale = (float(self.height())/float(self.maxY+25))
 
@@ -3571,8 +3733,7 @@ class LevelOverviewWidget(QtWidgets.QWidget):
 
         if self.scale == 0: self.scale = 1
 
-        self.CalcSize()
-
+        self.posmult = 24.0 / self.scale
 
 
 
@@ -4083,7 +4244,7 @@ class SpriteEditorWidget(QtWidgets.QWidget):
         if self.spritetype == type: return
 
         self.spritetype = type
-        if type != 1000:
+        if type != 1000 and type < len(Sprites):
             sprite = Sprites[type]
         else:
             sprite = None
@@ -4817,7 +4978,11 @@ class ItemEditorDockWidget(QtWidgets.QDockWidget):
 class LevelScene(QtWidgets.QGraphicsScene):
     """GraphicsScene subclass for the level scene"""
     def __init__(self, *args):
-        self.bgbrush = QtGui.QBrush(QtGui.QColor.fromRgb(153,119,119))
+        if DarkMode:
+            bgcolor = QtGui.QColor.fromRgb(32,12,12)
+        else:
+            bgcolor = QtGui.QColor.fromRgb(153,119,119)
+        self.bgbrush = QtGui.QBrush(bgcolor)
         super(LevelScene, self).__init__(*args)
 
     def drawBackground(self, painter, rect):
@@ -4918,9 +5083,14 @@ class LevelViewWidget(QtWidgets.QGraphicsView):
         self.currentobj = None
         self.lastCursorPosForMidButtonScroll = None
 
+
     def mousePressEvent(self, event):
         """Overrides mouse pressing events if needed"""
-        if event.button() == QtCore.Qt.RightButton:
+
+        if event.buttons() & QtCore.Qt.MidButton or event.buttons() & QtCore.Qt.RightButton:
+            self.setDragMode(QtWidgets.QGraphicsView.NoDrag)
+
+        if event.buttons() & QtCore.Qt.RightButton and not (event.buttons() & QtCore.Qt.LeftButton):
             if CurrentPaintType <= 3 and CurrentObject != -1:
                 # paint an object
                 clicked = mainWindow.view.mapToScene(event.x(), event.y())
@@ -5353,6 +5523,10 @@ class LevelViewWidget(QtWidgets.QGraphicsView):
         """Overrides mouse release events if needed"""
         if event.button() == QtCore.Qt.RightButton:
             self.currentobj = None
+
+        if (not event.buttons() & QtCore.Qt.MidButton) and (not event.buttons() & QtCore.Qt.RightButton):
+            self.setDragMode(QtWidgets.QGraphicsView.RubberBandDrag)
+
         QtWidgets.QGraphicsView.mouseReleaseEvent(self, event)
 
 
@@ -5363,6 +5537,11 @@ class LevelViewWidget(QtWidgets.QGraphicsView):
         Zoom = mainWindow.ZoomLevel
         drawLine = painter.drawLine
 
+        if DarkMode:
+            opacity = 50
+        else:
+            opacity = 100
+
         if Zoom >= 50:
             startx = rect.x()
             startx -= (startx % 24)
@@ -5372,7 +5551,7 @@ class LevelViewWidget(QtWidgets.QGraphicsView):
             starty -= (starty % 24)
             endy = starty + rect.height() + 24
 
-            painter.setPen(QtGui.QPen(QtGui.QColor.fromRgb(255,255,255,100), 1, QtCore.Qt.DotLine))
+            painter.setPen(QtGui.QPen(QtGui.QColor.fromRgb(255,255,255,opacity), 1, QtCore.Qt.DotLine))
 
             x = startx
             y1 = rect.top()
@@ -5398,7 +5577,7 @@ class LevelViewWidget(QtWidgets.QGraphicsView):
             starty -= (starty % 96)
             endy = starty + rect.height() + 96
 
-            painter.setPen(QtGui.QPen(QtGui.QColor.fromRgb(255,255,255,100), 1, QtCore.Qt.DashLine))
+            painter.setPen(QtGui.QPen(QtGui.QColor.fromRgb(255,255,255,opacity), 1, QtCore.Qt.DashLine))
 
             x = startx
             y1 = rect.top()
@@ -5423,7 +5602,7 @@ class LevelViewWidget(QtWidgets.QGraphicsView):
         starty -= (starty % 192)
         endy = starty + rect.height() + 192
 
-        painter.setPen(QtGui.QPen(QtGui.QColor.fromRgb(255,255,255,100), 2, QtCore.Qt.DashLine))
+        painter.setPen(QtGui.QPen(QtGui.QColor.fromRgb(255,255,255,opacity), 2, QtCore.Qt.DashLine))
 
         x = startx
         y1 = rect.top()
@@ -5978,7 +6157,7 @@ class CameraModeZoomSettingsLayout(QtWidgets.QFormLayout):
                     (6, 'X Tracking Only', 'In this mode, the camera will only move horizontally. It will be aligned to the bottom edge of the zone.'),
                     (7, 'X Expanding Only', 'In this mode, the camera will only zoom out during multiplayer if the players are far apart horizontally.'),
                     (1, 'Y Tracking Only', 'In this mode, the camera will only move vertically. It will be centered horizontally in the zone.'),
-                    (2, 'Y Expanding Only', 'In this mode, the camera will zoom out during multiplayer if the players are far apart vertically.'),
+                    (2, 'Y Expanding Only', 'In this mode, the camera will zoom out during multiplayer if the players are far apart vertically. The largest screen size will only be used if a player is flying with a Propeller Suit or Block.'),
                 ]:
 
             rb = QtWidgets.QRadioButton(str(i) + ': ' + name)
@@ -6143,8 +6322,8 @@ class ZonesDialog(QtWidgets.QDialog):
 
     @QtCoreSlot()
     def NewZone(self):
-        if len(self.zoneTabs) >= 8:
-            result = QtWidgets.QMessageBox.warning(self, 'Warning', 'You are trying to add more than 8 zones to a level - keep in mind that without the proper fix to the game, this will cause your level to <b>crash</b> or have other strange issues!<br><br>Are you sure you want to do this?', QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.No)
+        if len(self.zoneTabs) >= 6:
+            result = QtWidgets.QMessageBox.warning(self, 'Warning', 'You are trying to add more than 6 zones to a level - keep in mind that without the proper fix to the game, this will cause your level to <b>crash</b> or have other strange issues!<br><br>Are you sure you want to do this?', QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.No)
             if result == QtWidgets.QMessageBox.No:
                 return
 
@@ -6331,33 +6510,21 @@ class ZoneTab(QtWidgets.QWidget):
         if z.terraindark >= len(ZoneTerrainThemeValues): z.terraindark = len(ZoneTerrainThemeValues) - 1
         self.Zone_terraindark.setCurrentIndex(z.terraindark)
 
-
-        self.Zone_vnormal = QtWidgets.QRadioButton('Normal')
-        self.Zone_vnormal.setToolTip('<b>Normal:</b><br>Sets the visibility mode to normal.')
-
-        self.Zone_vspotlight = QtWidgets.QRadioButton('Layer 0 Spotlight')
+        self.Zone_vspotlight = QtWidgets.QCheckBox('Layer 0 Spotlight')
         self.Zone_vspotlight.setToolTip('<b>Layer 0 Spotlight:</b><br>Sets the visibility mode to spotlight. In spotlight mode, moving behind layer 0 objects enables a spotlight that follows Mario around.')
 
-        self.Zone_vfulldark = QtWidgets.QRadioButton('Full Darkness')
+        self.Zone_vfulldark = QtWidgets.QCheckBox('Full Darkness')
         self.Zone_vfulldark.setToolTip('<b>Full Darkness:</b><br>Sets the visibility mode to full darkness. In full darkness mode, the screen is completely black and visibility is only provided by the available spotlight effect. Stars and some sprites can enhance the default visibility.')
 
         self.Zone_visibility = QtWidgets.QComboBox()
 
         self.zv = z.visibility
-        VRadioDiv = self.zv // 16
 
-        if VRadioDiv == 0:
-            self.Zone_vnormal.setChecked(True)
-        elif VRadioDiv == 1:
-            self.Zone_vspotlight.setChecked(True)
-        elif VRadioDiv == 2:
-            self.Zone_vfulldark.setChecked(True)
-        elif VRadioDiv == 3:
-            self.Zone_vfulldark.setChecked(True)
+        self.Zone_vspotlight.setChecked(self.zv & 0x10)
+        self.Zone_vfulldark.setChecked(self.zv & 0x20)
 
 
         self.ChangeVisibilityList()
-        self.Zone_vnormal.clicked.connect(self.ChangeVisibilityList)
         self.Zone_vspotlight.clicked.connect(self.ChangeVisibilityList)
         self.Zone_vfulldark.clicked.connect(self.ChangeVisibilityList)
 
@@ -6366,7 +6533,6 @@ class ZoneTab(QtWidgets.QWidget):
         ZoneRenderingLayout.addRow('Terrain Lighting:', self.Zone_terraindark)
 
         ZoneVisibilityLayout = QtWidgets.QHBoxLayout()
-        ZoneVisibilityLayout.addWidget(self.Zone_vnormal)
         ZoneVisibilityLayout.addWidget(self.Zone_vspotlight)
         ZoneVisibilityLayout.addWidget(self.Zone_vfulldark)
 
@@ -6379,29 +6545,31 @@ class ZoneTab(QtWidgets.QWidget):
 
     @QtCoreSlot(bool)
     def ChangeVisibilityList(self):
-        VRadioMod = self.zv % 16
+        VChoice = self.zv % 16
 
-        if self.Zone_vnormal.isChecked():
+        addList = toolTip = None
+        if not self.Zone_vfulldark.isChecked():
+            if not self.Zone_vspotlight.isChecked():
+                addList = ['Layer 0: Hidden', 'Layer 0: On Top']
+                toolTip = '<b>Hidden</b> - Mario is hidden when moving behind objects on Layer 0<br><b>On Top</b> - Mario is displayed above Layer 0 at all times<br><br>Note: Entities behind layer 0 other than Mario are never visible'
+            else:
+                addList = ['Spotlight: Small', 'Spotlight: Large', 'Spotlight: Extremely Large']
+                toolTip = '<b>Small</b> - A small, centered spotlight affords visibility through layer 0<br><b>Large</b> - A large, centered spotlight affords visibility through layer 0<br><b>Extremely Large</b> - An extremely large, centered spotlight, which spans the whole screen at all but the largest zoom levels, affords visibility through layer 0'
+        else:
+            if not self.Zone_vspotlight.isChecked():
+                addList = ['Darkness: Large Foglight', 'Darkness: Lightbeam', 'Darkness: Large Focus Light', 'Darkness: Small Foglight', 'Darkness: Small Focus Light', 'Darkness: Absolute Black']
+                toolTip = '<b>Large Foglight</b> - A large, organic light source surrounds Mario<br><b>Lightbeam</b> - Mario is able to aim a conical lightbeam through use of the Wiimote<br><b>Large Focus Light</b> - A large spotlight which changes size based upon player movement<br><b>Small Foglight</b> - A small, organic light source surrounds Mario<br><b>Small Focus Light</b> - A small spotlight which changes size based on player movement<br><b>Absolute Black</b> - Visibility is provided only by fireballs, stars, and certain sprites'
+            else:
+                addList = ['Small Spotlight and Small Focus Light']
+                toolTip = '<b>Small Spotlight and Small Focus Light</b> - A small, centered spotlight affords visibility through layer 0, and a small spotlight which changes size based on player movement provides visibility through darkness'
+
+        if addList is not None and toolTip is not None:
             self.Zone_visibility.clear()
-            addList = ['Hidden', 'On Top']
             self.Zone_visibility.addItems(addList)
-            self.Zone_visibility.setToolTip('<b>Hidden</b> - Mario is hidden when moving behind objects on Layer 0<br><b>On Top</b> - Mario is displayed above Layer 0 at all times.<br><br>Note: Entities behind layer 0 other than Mario are never visible')
-            if VRadioMod >= len(addList): VRadioMod = len(addList) - 1
-            self.Zone_visibility.setCurrentIndex(VRadioMod)
-        elif self.Zone_vspotlight.isChecked():
-            self.Zone_visibility.clear()
-            addList = ['Small', 'Large', 'Full Screen']
-            self.Zone_visibility.addItems(addList)
-            self.Zone_visibility.setToolTip('<b>Small</b> - A small, centered spotlight affords visibility through layer 0.<br><b>Large</b> - A large, centered spotlight affords visibility through layer 0<br><b>Full Screen</b> - the entire screen is revealed whenever Mario walks behind layer 0')
-            if VRadioMod >= len(addList): VRadioMod = len(addList) - 1
-            self.Zone_visibility.setCurrentIndex(VRadioMod)
-        elif self.Zone_vfulldark.isChecked():
-            self.Zone_visibility.clear()
-            addList = ['Large Foglight', 'Lightbeam', 'Large Focus Light', 'Small Foglight', 'Small Focus Light', 'Absolute Black']
-            self.Zone_visibility.addItems(addList)
-            self.Zone_visibility.setToolTip('<b>Large Foglight</b> - A large, organic light source surrounds Mario<br><b>Lightbeam</b> - Mario is able to aim a conical lightbeam through use of the Wiimote<br><b>Large Focus Light</b> - A large spotlight which changes size based upon player movement<br><b>Small Foglight</b> - A small, organic light source surrounds Mario<br><b>Small Focuslight</b> - A small spotlight which changes size based on player movement<br><b>Absolute Black</b> - Visibility is provided only by fireballs, stars, and certain sprites')
-            if VRadioMod >= len(addList): VRadioMod = len(addList) - 1
-            self.Zone_visibility.setCurrentIndex(VRadioMod)
+            self.Zone_visibility.setToolTip(toolTip)
+
+            if VChoice >= len(addList): VChoice = len(addList) - 1
+            self.Zone_visibility.setCurrentIndex(VChoice)
 
 
     def createBounds(self, z):
@@ -6981,8 +7149,15 @@ class CameraProfilesDialog(QtWidgets.QDialog):
         self.list.sortItems()
 
     def handleAdd(self, item=None):
+        newId = 1
+        for row in range(self.list.count()):
+            item = self.list.item(row)
+            values = item.data(QtCore.Qt.UserRole)
+            newId = max(newId, values[0] + 1)
+
         item = CustomSortableListWidgetItem()
-        item.setData(QtCore.Qt.UserRole, [0, 0, 0, 0])
+        item.setData(QtCore.Qt.UserRole, [newId, 0, 0, 0])
+        item.sortKey = newId
         self.updateItemTitle(item)
         self.list.addItem(item)
 
@@ -7232,8 +7407,11 @@ class ReggieWindow(QtWidgets.QMainWindow):
         self.CreateAction('showlayer0', self.HandleUpdateLayer0, None, 'Layer 0', 'Toggle viewing of object layer 0', QtGui.QKeySequence('Ctrl+1'), True)
         self.CreateAction('showlayer1', self.HandleUpdateLayer1, None, 'Layer 1', 'Toggle viewing of object layer 1', QtGui.QKeySequence('Ctrl+2'), True)
         self.CreateAction('showlayer2', self.HandleUpdateLayer2, None, 'Layer 2', 'Toggle viewing of object layer 2', QtGui.QKeySequence('Ctrl+3'), True)
-        self.CreateAction('grid', self.HandleShowGrid, GetIcon('grid'), 'Show Grid', 'Show a grid over the level view', QtGui.QKeySequence('Ctrl+G'), True)
+        self.CreateAction('grid', self.HandleShowGrid, GetIcon('grid_white' if DarkMode else 'grid'), 'Show Grid', 'Show a grid over the level view', QtGui.QKeySequence('Ctrl+G'), True)
         self.actions['grid'].setChecked(GridEnabled)
+
+        self.CreateAction('darkmode', self.HandleDarkMode, GetIcon('darkmode'), 'Dark Mode', 'Turn dark mode on or off', None, True)
+        self.actions['darkmode'].setChecked(DarkMode)
 
         self.CreateAction('freezeobjects', self.HandleObjectsFreeze, None, 'Freeze Objects', 'Make objects non-selectable', QtGui.QKeySequence('Ctrl+Shift+1'), True)
         self.actions['freezeobjects'].setChecked(not ObjectsNonFrozen)
@@ -7260,7 +7438,7 @@ class ReggieWindow(QtWidgets.QMainWindow):
 
         self.CreateAction('aboutqt', app.aboutQt, None, 'About Qt...', 'About the Qt library Reggie! is based on', QtGui.QKeySequence('Ctrl+Shift+Y'))
         self.CreateAction('infobox', self.InfoBox, GetIcon('about'), 'About Reggie!', 'Info about the program, and the team behind it', QtGui.QKeySequence('Ctrl+Shift+I'))
-        self.CreateAction('helpbox', self.HelpBox, GetIcon('help'), 'Reggie! Help...', 'Help Documentation for the needy newbie', QtGui.QKeySequence('Ctrl+Shift+H'))
+        self.CreateAction('helpbox', self.HelpBox, GetIcon('contents'), 'Reggie! Help...', 'Help Documentation for the needy newbie', QtGui.QKeySequence('Ctrl+Shift+H'))
         self.CreateAction('tipbox', self.TipBox, GetIcon('tips'), 'Reggie! Tips...', 'Tips and controls for beginners and power users', QtGui.QKeySequence('Ctrl+Shift+T'))
 
 #        self.CreateAction('undo', self.Undo, None, 'Undo', 'Undoes a single action', QtGui.QKeySequence('Ctrl+Z'))
@@ -7333,6 +7511,9 @@ class ReggieWindow(QtWidgets.QMainWindow):
         vmenu.addAction(self.actions['zoomactual'])
         vmenu.addAction(self.actions['zoomout'])
         vmenu.addAction(self.actions['zoommin'])
+        vmenu.addSeparator()
+        vmenu.addAction(self.actions['darkmode'])
+        vmenu.addSeparator()
         # self.levelOverviewDock.toggleViewAction() is added here later
         # so we assign it to self.vmenu
         self.vmenu = vmenu
@@ -8569,6 +8750,15 @@ class ReggieWindow(QtWidgets.QMainWindow):
         self.scene.update()
 
 
+    @QtCoreSlot(bool)
+    def HandleDarkMode(self, checked):
+        """Handle toggling of dark mode"""
+        settings.setValue('DarkMode', checked)
+
+        if checked != DarkMode:
+            QtWidgets.QMessageBox.information(None, 'Dark Mode', 'This change will take effect when you restart Reggie!.')
+
+
     @QtCoreSlot()
     def HandleZoomIn(self):
         """Handle zooming in"""
@@ -9420,15 +9610,11 @@ class ReggieWindow(QtWidgets.QMainWindow):
                 z.modeldark = tab.Zone_modeldark.currentIndex()
                 z.terraindark = tab.Zone_terraindark.currentIndex()
 
-                if tab.Zone_vnormal.isChecked():
-                    z.visibility = 0
-                    z.visibility = z.visibility + tab.Zone_visibility.currentIndex()
+                z.visibility = tab.Zone_visibility.currentIndex()
                 if tab.Zone_vspotlight.isChecked():
-                    z.visibility = 16
-                    z.visibility = z.visibility + tab.Zone_visibility.currentIndex()
+                    z.visibility += 16
                 if tab.Zone_vfulldark.isChecked():
-                    z.visibility = 32
-                    z.visibility = z.visibility + tab.Zone_visibility.currentIndex()
+                    z.visibility += 32
 
 
                 z.yupperbound = tab.Zone_yboundup.value()
@@ -9608,16 +9794,20 @@ def main():
     if '-clear-settings' in sys.argv:
         settings.clear()
 
-    global EnableAlpha, GridEnabled
+    global EnableAlpha, GridEnabled, DarkMode
     global ObjectsNonFrozen, SpritesNonFrozen, EntrancesNonFrozen, LocationsNonFrozen, PathsNonFrozen
 
     # note: the str().lower() is for macOS, where bools in settings aren't automatically stringified
     GridEnabled = (str(toPyObject(settings.value('GridEnabled', 'false'))).lower() == 'true')
+    DarkMode = (str(toPyObject(settings.value('DarkMode', 'false'))).lower() == 'true')
     ObjectsNonFrozen = (str(toPyObject(settings.value('FreezeObjects', 'false'))).lower() == 'false')
     SpritesNonFrozen = (str(toPyObject(settings.value('FreezeSprites', 'false'))).lower() == 'false')
     EntrancesNonFrozen = (str(toPyObject(settings.value('FreezeEntrances', 'false'))).lower() == 'false')
     PathsNonFrozen = (str(toPyObject(settings.value('FreezePaths', 'false'))).lower() == 'false')
     LocationsNonFrozen = (str(toPyObject(settings.value('FreezeLocations', 'false'))).lower() == 'false')
+
+    if DarkMode:
+        setupDarkMode()
 
     for arg in sys.argv:
         if arg.startswith('-gamepath='):
@@ -9674,6 +9864,8 @@ if '-alpha' in sys.argv:
     # nsmblib doesn't support -alpha so if it's enabled
     # then don't use it
     HaveNSMBLib = False
+
+DarkMode = False
 
 # check version
 if HaveNSMBLib:
