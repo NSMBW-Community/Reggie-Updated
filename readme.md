@@ -270,17 +270,31 @@ If you are using the source release:
 - Python 2.7 (or newer) (3.5 or newer recommended) — https://www.python.org
 - Qt for Python or PyQt; your options depend on the version of Python you're using:
   - If using Python 2.x: PyQt 4.8 (or newer, but less than 5) — https://www.lfd.uci.edu/~gohlke/pythonlibs/#pyqt4
-  - If using Python 3.x, either of the following:
-    - PyQt 5.11 (or newer) **(RECOMMENDED)** — `pip install PyQt5`
+  - If using Python 3.x, any of the following:
+    - PyQt 6.1.1 (or newer) **(RECOMMENDED)** — `pip install PyQt6`
+    - PyQt 5.11 (or newer) (use if PyQt6 isn't available for your system) — `pip install PyQt5`
     - Qt for Python 5.12 (or newer) (NOT RECOMMENDED) — `pip install PySide2`
 - NSMBLib 0.4 (or newer) — `pip install nsmblib` (optional)
 
-If you have a prebuilt/frozen release (for Windows, macOS or Ubuntu)
+If you have a prebuilt/frozen release (for Windows, macOS or Ubuntu),
 you don't need to install anything — all the required libraries are included.
 
 For more information on running Reggie! from source and getting the required
 libraries, check the Getting Started page inside the help file
 (located at reggiedata/help/start.html within the archive)
+
+
+macOS Troubleshooting
+=====================
+
+If you get the error "Reggie! Level Editor is damaged and can't be opened.",
+it's because the release builds are unsigned. To fix it, launch a Terminal
+window and run
+
+    sudo xattr -rd com.apple.quarantine /path/to/Reggie!\ Level\ Editor.app
+    
+which will override the application signature requirement. Then you should be
+able to launch the app.
 
 
 Reggie! Team
