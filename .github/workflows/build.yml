@@ -17,12 +17,7 @@ jobs:
             pyqt-version: 6
             platform: windows-latest
             arch: 'x64'
-          - build-name: 'Windows 8.1+ 32-bit'
-            python-version: 3.9
-            pyqt-version: 6
-            platform: windows-latest
-            arch: 'x86'
-          - build-name: 'Windows 7'
+          - build-name: 'Windows 7 or 32-bit'
             python-version: 3.8
             pyqt-version: 5
             platform: windows-latest
