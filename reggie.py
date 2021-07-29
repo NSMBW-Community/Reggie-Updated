@@ -3238,7 +3238,7 @@ class EntranceEditorItem(LevelEditorItem):
 
     def itemChange(self, change, value):
         """Makes sure positions don't go out of bounds and updates them as necessary"""
-        retVal = super().itemChange(change, value)
+        retVal = super(EntranceEditorItem, self).itemChange(change, value)
         try:
             self.UpdateRects()
             mainWindow.levelOverview.update()
