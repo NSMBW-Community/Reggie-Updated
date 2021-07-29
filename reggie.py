@@ -3235,6 +3235,16 @@ class EntranceEditorItem(LevelEditorItem):
         self.UpdateTooltip()
         self.UpdateRects()
 
+    def itemChange(self, change, value):
+        """Makes sure positions don't go out of bounds and updates them as necessary"""
+        retVal = super().itemChange(change, value)
+        try:
+            self.UpdateRects()
+        except AttributeError:
+            # Can happen during initialization. We can just ignore this
+            pass
+        return retVal
+
     def UpdateTooltip(self):
         """Updates the entrance object's tooltip"""
         if self.enttype >= len(EntranceTypeNames):
