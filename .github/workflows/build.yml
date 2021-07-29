@@ -114,7 +114,7 @@ jobs:
       run: |
         $PYTHON_CMD -m pip install --upgrade pip
         $PYTHON_CMD -m pip install wheel
-        $PYTHON_CMD -m pip install PyQt${{ env.pyqt-version }} nsmblib
+        $PYTHON_CMD -m pip install PyQt${{ matrix.pyqt-version }} nsmblib
     - name: Install PyInstaller (Windows/Linux)
       if: ${{ runner.os == 'Windows' || runner.os == 'Linux' }}
       shell: bash
@@ -134,11 +134,11 @@ jobs:
         cd ..
         .././python3 -m pip install .
     - name: Build (PyQt5)
-      if: ${{ env.pyqt-version == 5 }}
+      if: ${{ matrix.pyqt-version == 5 }}
       shell: bash
       run: $PYTHON_CMD -OO build_release.py --pyqt5
     - name: Build (PyQt6)
-      if: ${{ env.pyqt-version == 6 }}
+      if: ${{ matrix.pyqt-version == 6 }}
       shell: bash
       run: $PYTHON_CMD -OO build_release.py
     - name: Tar (macOS/Linux)
