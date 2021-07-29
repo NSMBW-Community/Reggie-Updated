@@ -14,22 +14,22 @@ jobs:
         include:
           - build-name: 'Windows 8.1+ 64-bit'
             python-version: 3.9
+            pyqt-version: 6
             platform: windows-latest
             arch: 'x64'
-          - build-name: 'Windows 8.1+ 32-bit'
-            python-version: 3.9
-            platform: windows-latest
-            arch: 'x86'
-          - build-name: 'Windows 7'
+          - build-name: 'Windows 7 or 32-bit'
             python-version: 3.8
+            pyqt-version: 5
             platform: windows-latest
             arch: 'x86'
           - build-name: 'macOS'
             python-version: 3.9
+            pyqt-version: 6
             platform: macos-latest
             arch: 'x64'
           - build-name: 'Ubuntu'
             python-version: 3.9
+            pyqt-version: 6
             platform: ubuntu-latest
             arch: 'x64'
 
@@ -109,7 +109,7 @@ jobs:
       run: |
         $PYTHON_CMD -m pip install --upgrade pip
         $PYTHON_CMD -m pip install wheel
-        $PYTHON_CMD -m pip install PyQt5 nsmblib
+        $PYTHON_CMD -m pip install PyQt${{ matrix.pyqt-version }} nsmblib
     - name: Install PyInstaller (Windows/Linux)
       if: ${{ runner.os == 'Windows' || runner.os == 'Linux' }}
       shell: bash
@@ -128,6 +128,10 @@ jobs:
         ../.././python3 ./waf all
         cd ..
         .././python3 -m pip install .
+    - name: Configure PyQt5 build
+      if: ${{ matrix.pyqt-version == 5 }}
+      shell: bash
+      run: echo "PYQT_VERSION=PyQt5" >> $GITHUB_ENV
     - name: Build
       shell: bash
       run: $PYTHON_CMD -OO build_release.py

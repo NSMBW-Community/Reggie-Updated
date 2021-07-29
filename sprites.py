@@ -17,8 +17,7 @@
 # with this program; if not, write to the Free Software Foundation, Inc.,
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
-from reggie import importQt
-
+from qt_compat import importQt
 QtCore, QtGui, QtWidgets, QtCompatVersion, QtBindingsVersion, QtName = importQt()
 
 # Some Py2/Py3 compatibility helpers
@@ -52,9 +51,9 @@ class AuxiliaryItem(QtWidgets.QGraphicsItem):
     def __init__(self, parent):
         """Generic constructor for auxiliary items"""
         QtWidgets.QGraphicsItem.__init__(self)
-        self.setFlag(QtWidgets.QGraphicsItem.ItemIsMovable, False)
-        self.setFlag(QtWidgets.QGraphicsItem.ItemIsSelectable, False)
-        self.setFlag(QtWidgets.QGraphicsItem.ItemStacksBehindParent, True)
+        self.setFlag(QtWidgets.QGraphicsItem.GraphicsItemFlag.ItemIsMovable, False)
+        self.setFlag(QtWidgets.QGraphicsItem.GraphicsItemFlag.ItemIsSelectable, False)
+        self.setFlag(QtWidgets.QGraphicsItem.GraphicsItemFlag.ItemStacksBehindParent, True)
         self.setParentItem(parent)
 
     def boundingRect(self):
@@ -85,7 +84,7 @@ class AuxiliaryTrackObject(AuxiliaryItem):
 
     def paint(self, painter, option, widget):
         painter.setClipRect(option.exposedRect)
-        painter.setRenderHint(QtGui.QPainter.Antialiasing)
+        painter.setRenderHint(QtGui.QPainter.RenderHint.Antialiasing)
         painter.setPen(OutlinePen)
 
         if self.direction == 1:
@@ -117,7 +116,7 @@ class AuxiliaryCircleOutline(AuxiliaryItem):
 
     def paint(self, painter, option, widget):
         painter.setClipRect(option.exposedRect)
-        painter.setRenderHint(QtGui.QPainter.Antialiasing)
+        painter.setRenderHint(QtGui.QPainter.RenderHint.Antialiasing)
         painter.setPen(OutlinePen)
         painter.setBrush(OutlineBrush)
         painter.drawEllipse(self.BoundingRect)
@@ -139,7 +138,7 @@ class AuxiliaryRotationAreaOutline(AuxiliaryItem):
 
     def paint(self, painter, option, widget):
         painter.setClipRect(option.exposedRect)
-        painter.setRenderHint(QtGui.QPainter.Antialiasing)
+        painter.setRenderHint(QtGui.QPainter.RenderHint.Antialiasing)
         painter.setPen(OutlinePen)
         painter.setBrush(OutlineBrush)
         painter.drawPie(self.BoundingRect, self.startAngle, self.spanAngle)
@@ -4015,7 +4014,7 @@ def PaintAlphaObject(sprite, painter):
     painter.restore()
 
 def PaintBlock(sprite, painter):
-    painter.setRenderHint(QtGui.QPainter.Antialiasing)
+    painter.setRenderHint(QtGui.QPainter.RenderHint.Antialiasing)
     if Tiles[sprite.tilenum] is not None:
         painter.drawPixmap(0, 0, Tiles[sprite.tilenum])
     painter.drawPixmap(0, 0, sprite.image)
