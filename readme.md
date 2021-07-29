@@ -315,7 +315,7 @@ Other Testers and Contributors
 ------------------------------
 - BulletBillTime, Dirbaio, EdgarAllen, FirePhoenix, GrandMasterJimmy,
   Mooseknuckle2000, MotherBrainsBrain, RainbowIE, Skawo, Sonicandtails,
-  Tanks, Vibestar, Kitty-Cats, Zementblock
+  Tanks, Vibestar, Kitty-Cats, Zementblock, TMolter
 - Tobias Amaranth and Valeth — Text Tileset Addon
 
 
