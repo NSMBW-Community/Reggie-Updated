@@ -3221,13 +3221,19 @@ class EntranceEditorItem(LevelEditorItem):
         else:
             fillR, fillG, fillB = 190, 0, 0
 
+        painter.setPen(QtCore.Qt.PenStyle.NoPen)
         if self.isSelected():
             painter.setBrush(QtGui.QBrush(QtGui.QColor.fromRgb(fillR,fillG,fillB,selectedOpacity)))
-            painter.setPen(QtGui.QPen(QtCore.Qt.GlobalColor.white, 1))
         else:
             painter.setBrush(QtGui.QBrush(QtGui.QColor.fromRgb(fillR,fillG,fillB,unselectedOpacity)))
-            painter.setPen(QtGui.QPen(QtCore.Qt.GlobalColor.black, 1))
         painter.drawRoundedRect(self.RoundedRect, 4, 4)
+
+        painter.setBrush(QtCore.Qt.BrushStyle.NoBrush)
+        if self.isSelected():
+            painter.setPen(QtGui.QPen(QtCore.Qt.GlobalColor.white, 1))
+        else:
+            painter.setPen(QtGui.QPen(QtCore.Qt.GlobalColor.black, 1))
+
 
         icontype = 0
         enttype = self.enttype
@@ -3250,12 +3256,14 @@ class EntranceEditorItem(LevelEditorItem):
         if enttype == 24: icontype = 16 # jump out facing left
         if enttype == 27: icontype = 3 # door entrance
 
-        painter.drawPixmap(0,0,EntranceEditorItem.EntranceImages[icontype])
+        painter.drawPixmap(1,1,22,22,EntranceEditorItem.EntranceImages[icontype],1,1,22,22)
 
         #painter.drawText(self.BoundingRect,QtCore.Qt.AlignmentFlag.AlignLeft,str(self.entid))
         painter.setFont(self.font)
         fontheight = QtGui.QFontMetrics(self.font).ascent() * 2/3
         painter.drawText(QtCore.QPointF(3,7+fontheight/2),str(self.entid))
+
+        painter.drawRoundedRect(self.RoundedRect, 4, 4)
 
         if self.isSelected():
             #painter.setRenderHint(QtGui.QPainter.RenderHint.Antialiasing, False)
