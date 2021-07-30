@@ -784,15 +784,17 @@ class ObjectDef():
 def RenderObject(tileset, objnum, width, height, fullslope=False):
     """Render a tileset object into an array"""
     # allocate an array
+    errorDest = []
+    for i in range(height): errorDest.append([None]*width)
     dest = []
     for i in range(height): dest.append([0]*width)
 
     # ignore non-existent objects
     tileset_defs = ObjectDefinitions[tileset]
-    if tileset_defs is None: return dest
+    if tileset_defs is None: return errorDest
     obj = tileset_defs[objnum]
-    if obj is None: return dest
-    if len(obj.rows) == 0: return dest
+    if obj is None: return errorDest
+    if len(obj.rows) == 0: return errorDest
 
     # diagonal objects are rendered differently
     if (obj.rows[0][0][0] & 0x80) != 0:
@@ -4971,7 +4973,7 @@ class LevelScene(QtWidgets.QGraphicsScene):
                     destrow = tmap[desty]
                     destx = startx
                     for tile in row:
-                        if tile > 0:
+                        if tile is None or tile > 0:
                             destrow[destx] = tile
                         destx += 1
                     desty += 1
@@ -4983,7 +4985,9 @@ class LevelScene(QtWidgets.QGraphicsScene):
             for row in tmap:
                 destx = 0
                 for tile in row:
-                    if tile > 0 and local_Tiles[tile] is not None:
+                    if tile is None:
+                        painter.fillRect(destx, desty, 24, 24, QtCore.Qt.GlobalColor.red)
+                    elif tile > 0 and local_Tiles[tile] is not None:
                         drawPixmap(destx, desty, local_Tiles[tile])
                     destx += 24
                 desty += 24
