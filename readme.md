@@ -25,6 +25,17 @@ Original Reggie! Homepage: http://www.rvlution.net/reggie/
 Changelog
 =========
 
+Reggie-Updated 2021.07.29.1:
+----------------------------
+- Fixed "Save As..." and "Level Screenshot...", which were broken by the switch
+  to PyQt6 in the previous release.
+- Tiles from nonexistent objects are now rendered as a black-and-magenta
+  checkerboard, instead of transparent.
+- Pipe icons on pipe entrances are now drawn behind the entrance border instead
+  of in front.
+- Updated requirements_py3.txt to refer to PyQt6 instead of PyQt5.
+
+
 Reggie-Updated 2021.07.29.0:
 ----------------------------
 - This release adds support for PyQt6, the latest version of PyQt! There were a
