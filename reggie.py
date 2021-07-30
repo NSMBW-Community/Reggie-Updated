@@ -8481,7 +8481,7 @@ class ReggieWindow(QtWidgets.QMainWindow):
     @QtCoreSlot()
     def HandleSaveAs(self):
         """Save a level back to the archive, with a new filename"""
-        fn = qm(QtWidgets.QFileDialog.getSaveFileName)(self, 'Choose a new filename', '', 'Level archives (*.arc);;All Files(*)')
+        fn = qm(QtWidgets.QFileDialog.getSaveFileName)(self, 'Choose a new filename', '', 'Level archives (*.arc);;All Files(*)')[0]
         if fn == '': return
         fn = unicode(fn)
 
@@ -9612,7 +9612,7 @@ class ReggieWindow(QtWidgets.QMainWindow):
 
         dlg = ScreenCapChoiceDialog()
         if execQtObject(dlg) == QtWidgets.QDialog.DialogCode.Accepted:
-            fn = qm(QtWidgets.QFileDialog.getSaveFileName)(mainWindow, 'Choose a new filename', '/untitled.png', 'Portable Network Graphics (*.png)')
+            fn = qm(QtWidgets.QFileDialog.getSaveFileName)(mainWindow, 'Choose a new filename', '/untitled.png', 'Portable Network Graphics (*.png)')[0]
             if fn == '': return
             fn = unicode(fn)
 
