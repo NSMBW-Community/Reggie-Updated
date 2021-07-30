@@ -25,6 +25,31 @@ Original Reggie! Homepage: http://www.rvlution.net/reggie/
 Changelog
 =========
 
+Reggie-Updated 2021.07.29.0:
+----------------------------
+- This release adds support for PyQt6, the latest version of PyQt! There were a
+  lot of code changes required to make this happen, and it's possible some
+  things were overlooked, so please let me know if you encounter any issues
+  with this release. Release builds (apart from the "Windows 7" ones) will now
+  be built with PyQt6, too.
+- Reduced the limit at which Reggie will start warning you about having too
+  many zones from 8 to 6. The game can sometimes handle more than 6 zones
+  depending on selected background settings, and the incorrect limit of 8 was
+  probably determined years ago through experimentation rather than proper
+  reverse engineering.
+- Fixed the behavior of dragged sprites and entrances in the level overview.
+  (Thanks to Grop for the bug report.)
+- Removed the "Windows 8.1+ 32-bit" release builds, since PyQt6 doesn't provide
+  builds for 32-bit Python. Anyone who was using those builds can use the
+  "Windows 7 or 32-bit" (previously called just "Windows 7") builds instead,
+  which will continue to use PyQt5.
+- Simplified the GitHub Actions build process on macOS. Previously, custom
+  builds of Python and PyInstaller were used in order to gain access to the
+  system dark mode. This is no longer needed now that Reggie has its own proper
+  built-in dark mode.
+- Other smaller changes.
+
+
 Reggie-Updated 2021.05.18.0:
 ----------------------------
 - Reggie Updated now supports spritedata.xml's from Reggie Next! ...Kind of. It
@@ -270,17 +295,31 @@ If you are using the source release:
 - Python 2.7 (or newer) (3.5 or newer recommended) — https://www.python.org
 - Qt for Python or PyQt; your options depend on the version of Python you're using:
   - If using Python 2.x: PyQt 4.8 (or newer, but less than 5) — https://www.lfd.uci.edu/~gohlke/pythonlibs/#pyqt4
-  - If using Python 3.x, either of the following:
-    - PyQt 5.11 (or newer) **(RECOMMENDED)** — `pip install PyQt5`
+  - If using Python 3.x, any of the following:
+    - PyQt 6.1.1 (or newer) **(RECOMMENDED)** — `pip install PyQt6`
+    - PyQt 5.11 (or newer) (use if PyQt6 isn't available for your system) — `pip install PyQt5`
     - Qt for Python 5.12 (or newer) (NOT RECOMMENDED) — `pip install PySide2`
 - NSMBLib 0.4 (or newer) — `pip install nsmblib` (optional)
 
-If you have a prebuilt/frozen release (for Windows, macOS or Ubuntu)
+If you have a prebuilt/frozen release (for Windows, macOS or Ubuntu),
 you don't need to install anything — all the required libraries are included.
 
 For more information on running Reggie! from source and getting the required
 libraries, check the Getting Started page inside the help file
 (located at reggiedata/help/start.html within the archive)
+
+
+macOS Troubleshooting
+=====================
+
+If you get the error "Reggie! Level Editor is damaged and can't be opened.",
+it's because the release builds are unsigned. To fix it, launch a Terminal
+window and run
+
+    sudo xattr -rd com.apple.quarantine /path/to/Reggie!\ Level\ Editor.app
+    
+which will override the application signature requirement. Then you should be
+able to launch the app.
 
 
 Reggie! Team
@@ -301,7 +340,7 @@ Other Testers and Contributors
 ------------------------------
 - BulletBillTime, Dirbaio, EdgarAllen, FirePhoenix, GrandMasterJimmy,
   Mooseknuckle2000, MotherBrainsBrain, RainbowIE, Skawo, Sonicandtails,
-  Tanks, Vibestar, Kitty-Cats, Zementblock
+  Tanks, Vibestar, Kitty-Cats, Zementblock, TMolter
 - Tobias Amaranth and Valeth — Text Tileset Addon
 
 

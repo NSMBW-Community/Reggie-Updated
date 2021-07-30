@@ -67,21 +67,13 @@ else:
     print('>>   [ ] Python optimization level is -OO')
 
 # NSMBLib being installed
-try:
-    import nsmblib
-    print('>>   [X] NSMBLib is installed')
-except ImportError:
-    nsmblib = None
-    print('>>   [ ] NSMBLib is installed')
-
-# UPX being installed
-
-# There seems to be no reliable way to determine in this script if
-# PyInstaller will detect UPX or not. PyInstaller itself provides no
-# public API for this, and doing horrible things with its private API
-# didn't ultimately work well enough to be useful.
-# So all we can do is show this generic message, unfortunately.
-print('>>   [?] UPX is installed')
+if config.USE_NSMBLIB:
+    try:
+        import nsmblib
+        print('>>   [X] NSMBLib is installed')
+    except ImportError:
+        nsmblib = None
+        print('>>   [ ] NSMBLib is installed')
 
 
 # Now show big warning messages if any of those failed
@@ -89,10 +81,8 @@ if sys.flags.optimize < 2:
     msg = 'without' if sys.flags.optimize == 0 else 'with only one level of'
     print_emphasis('>> WARNING: Python is being run ' + msg + ' optimizations enabled! Please consider building with -OO.')
 
-if nsmblib is None:
+if config.USE_NSMBLIB and nsmblib is None:
     print_emphasis('>> WARNING: NSMBLib does not seem to be installed! Please consider installing it prior to building.')
-
-print_emphasis('>> NOTE: If the PyInstaller output below says "INFO: UPX is not available.", you should install UPX!')
 
 
 ########################################################################
@@ -104,8 +94,8 @@ print('>>')
 
 # Excludes
 excludes = ['calendar', 'datetime', 'difflib', 'doctest', 'inspect',
-    'locale', 'multiprocessing', 'optpath', 'os2emxpath', 'pdb',
-    'socket', 'ssl', 'unittest',
+    'multiprocessing', 'optpath', 'os2emxpath', 'pdb', 'socket', 'ssl',
+    'unittest',
     'FixTk', 'tcl', 'tk', '_tkinter', 'tkinter', 'Tkinter']
 
 if config.EXCLUDE_SELECT:
@@ -114,30 +104,33 @@ if config.EXCLUDE_THREADING:
     excludes.append('threading')
 if config.EXCLUDE_HASHLIB:
     excludes.append('hashlib')
+if config.EXCLUDE_LOCALE:
+    excludes.append('locale')
 
 if sys.platform == 'nt':
     excludes.append('posixpath')
 
 # Add excludes for other Qt modules
+if config.USE_PYQT:
+    unneededQtModules = ['Designer', 'Network', 'OpenGL', 'Qml', 'Script', 'Sql', 'Test', 'WebKit', 'Xml']
+    neededQtModules = ['Core', 'Gui', 'Widgets']
 
-unneededQtModules = ['Designer', 'Network', 'OpenGL', 'Qml', 'Script', 'Sql', 'Test', 'WebKit', 'Xml']
-neededQtModules = ['Core', 'Gui', 'Widgets']
+    targetQtVer = 5 if os.environ.get('PYQT_VERSION') == 'PyQt5' else 6
+    targetQt = f'PyQt{targetQtVer}'
+    print('>> Targeting ' + targetQt)
 
-targetQt = 'PyQt' + str(4 if sys.version_info.major < 3 else 5)
-print('>> Targeting ' + targetQt)
-
-for qt in ['PySide2', 'PyQt4', 'PyQt5']:
-    # Exclude all the stuff we don't use
-    for m in unneededQtModules:
-        excludes.append(qt + '.Qt' + m)
-
-    if qt != targetQt:
-        # Since we're not using this copy of Qt, exclude it
-        excludes.append(qt)
-
-        # As well as its QtCore/QtGui/etc
-        for m in neededQtModules:
+    for qt in ['PySide2', 'PySide6', 'PyQt4', 'PyQt5', 'PyQt6']:
+        # Exclude all the stuff we don't use
+        for m in unneededQtModules:
             excludes.append(qt + '.Qt' + m)
+
+        if qt != targetQt:
+            # Since we're not using this copy of Qt, exclude it
+            excludes.append(qt)
+
+            # As well as its QtCore/QtGui/etc
+            for m in neededQtModules:
+                excludes.append(qt + '.Qt' + m)
 
 # Includes
 includes = ['pkgutil']
@@ -146,16 +139,18 @@ includes = ['pkgutil']
 excludes_binaries = []
 if sys.platform == 'win32':
     excludes_binaries = [
-        # Qt stuff
-        'Qt5Network.dll', 'Qt5Qml.dll', 'Qt5QmlModels.dll',
-        'Qt5Quick.dll', 'Qt5WebSockets.dll',
-        # Other stuff
         'opengl32sw.dll',
         'd3dcompiler_',  # currently (2020-09-25) "d3dcompiler_47.dll",
                          # but that'll probably change eventually, so we
                          # just exclude anything that starts with this
                          # substring
     ]
+    if config.USE_PYQT:
+        excludes_binaries.extend([
+            f'Qt{targetQtVer}Network.dll', f'Qt{targetQtVer}Qml.dll',
+            f'Qt{targetQtVer}QmlModels.dll', f'Qt{targetQtVer}Quick.dll',
+            f'Qt{targetQtVer}WebSockets.dll',
+        ])
 
 elif sys.platform == 'darwin':
     # Sadly, we can't exclude anything on macOS -- it just crashes. :(
@@ -169,15 +164,17 @@ elif sys.platform == 'darwin':
 
 elif sys.platform == 'linux':
     excludes_binaries = [
-        # Qt stuff
-        # Currently (2020-09-25) these all end with ".so.5", but that
-        # may change, so we exclude anything that starts with these
-        # substrings
-        'libQt5Network.so', 'libQt5Qml.so', 'libQt5QmlModels.so',
-        'libQt5Quick.so', 'libQt5WebSockets.so',
-        # Other stuff
         'libgtk-3.so',
     ]
+    if config.USE_PYQT:
+        excludes_binaries.extend([
+            # Currently (2020-09-25) these all end with ".so.5", but that
+            # may change, so we exclude anything that starts with these
+            # substrings
+            f'libQt{targetQtVer}Network.so', f'libQt{targetQtVer}Qml.so',
+            f'libQt{targetQtVer}QmlModels.so', f'libQt{targetQtVer}Quick.so',
+            f'libQt{targetQtVer}WebSockets.so',
+        ])
 
 
 print('>> Will use the following excludes list: ' + ', '.join(excludes))
@@ -194,18 +191,23 @@ print('>> Will use the following binaries excludes list: ' + ', '.join(excludes_
 # build...
 
 args = [
-    '--windowed',
     '--onefile',
     '--distpath=' + DIR,
     '--workpath=' + WORKPATH,
 ]
 
-if sys.platform == 'win32':
-    if config.WIN_ICON:
-        args.append('--icon=' + os.path.abspath(config.WIN_ICON))
-elif sys.platform == 'darwin':
-    if config.MAC_ICON:
-        args.append('--icon=' + os.path.abspath(config.MAC_ICON))
+if config.USE_PYQT:
+    args.append('--windowed')
+
+    if sys.platform == 'win32':
+        if config.WIN_ICON:
+            args.append('--icon=' + os.path.abspath(config.WIN_ICON))
+
+    elif sys.platform == 'darwin':
+        if config.MAC_ICON:
+            args.append('--icon=' + os.path.abspath(config.MAC_ICON))
+
+if sys.platform == 'darwin':
     args.append('--osx-bundle-identifier=' + config.MAC_BUNDLE_IDENTIFIER)
 
 for p in config.EXTRA_IMPORT_PATHS:
@@ -276,11 +278,14 @@ with open(SPECFILE, 'w', encoding='utf-8') as f:
 # run with minimal arguments this time.
 
 args = [
-    '--windowed',
     '--distpath=' + DIR,
     '--workpath=' + WORKPATH,
-    SPECFILE,
 ]
+
+if config.USE_PYQT:
+    args.append('--windowed')
+
+args.append(SPECFILE)
 
 run_pyinstaller(args)
 

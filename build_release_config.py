@@ -18,9 +18,13 @@ DATA_FOLDERS = ['reggiedata', 'reggieextras']
 DATA_FILES = ['readme.md', 'license.txt']
 EXTRA_IMPORT_PATHS = []
 
+USE_PYQT = True
+USE_NSMBLIB = True
+
 EXCLUDE_SELECT = True
 EXCLUDE_THREADING = True
 EXCLUDE_HASHLIB = True
+EXCLUDE_LOCALE = True
 
 # macOS only
 AUTO_APP_BUNDLE_NAME = SCRIPT_FILE.split('.')[0] + '.app'
