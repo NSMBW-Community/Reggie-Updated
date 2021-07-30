@@ -25,6 +25,31 @@ Original Reggie! Homepage: http://www.rvlution.net/reggie/
 Changelog
 =========
 
+Reggie-Updated 2021.07.29.0:
+----------------------------
+- This release adds support for PyQt6, the latest version of PyQt! There were a
+  lot of code changes required to make this happen, and it's possible some
+  things were overlooked, so please let me know if you encounter any issues
+  with this release. Release builds (apart from the "Windows 7" ones) will now
+  be built with PyQt6, too.
+- Reduced the limit at which Reggie will start warning you about having too
+  many zones from 8 to 6. The game can sometimes handle more than 6 zones
+  depending on selected background settings, and the incorrect limit of 8 was
+  probably determined years ago through experimentation rather than proper
+  reverse engineering.
+- Fixed the behavior of dragged sprites and entrances in the level overview.
+  (Thanks to Grop for the bug report.)
+- Removed the "Windows 8.1+ 32-bit" release builds, since PyQt6 doesn't provide
+  builds for 32-bit Python. Anyone who was using those builds can use the
+  "Windows 7 or 32-bit" (previously called just "Windows 7") builds instead,
+  which will continue to use PyQt5.
+- Simplified the GitHub Actions build process on macOS. Previously, custom
+  builds of Python and PyInstaller were used in order to gain access to the
+  system dark mode. This is no longer needed now that Reggie has its own proper
+  built-in dark mode.
+- Other smaller changes.
+
+
 Reggie-Updated 2021.05.18.0:
 ----------------------------
 - Reggie Updated now supports spritedata.xml's from Reggie Next! ...Kind of. It
