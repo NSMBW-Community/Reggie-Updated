@@ -4994,7 +4994,10 @@ class LevelScene(QtWidgets.QGraphicsScene):
                 destx = 0
                 for tile in row:
                     if tile is None:
-                        painter.fillRect(destx, desty, 24, 24, QtCore.Qt.GlobalColor.red)
+                        # Magenta/black checkerboard for tiles from nonexistent objects
+                        painter.fillRect(destx, desty, 24, 24, QtGui.QColor.fromRgb(192, 0, 192))
+                        painter.fillRect(destx + 12, desty, 12, 12, QtCore.Qt.GlobalColor.black)
+                        painter.fillRect(destx, desty + 12, 12, 12, QtCore.Qt.GlobalColor.black)
                     elif tile > 0 and local_Tiles[tile] is not None:
                         drawPixmap(destx, desty, local_Tiles[tile])
                     destx += 24
