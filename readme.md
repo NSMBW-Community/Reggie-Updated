@@ -22,6 +22,80 @@ somewhat different project goals.
 Original Reggie! Homepage: http://www.rvlution.net/reggie/
 
 
+Requirements
+============
+
+If you are using the source release:
+
+- Python 2.7 (or newer) (3.5 or newer recommended) — https://www.python.org
+- Qt for Python or PyQt; your options depend on the version of Python you're using:
+  - If using Python 2.x: PyQt 4.8 (or newer, but less than 5) — https://www.lfd.uci.edu/~gohlke/pythonlibs/#pyqt4
+  - If using Python 3.x, any of the following:
+    - PyQt 6.1.1 (or newer) **(RECOMMENDED)** — `pip install PyQt6`
+    - PyQt 5.11 (or newer) (use if PyQt6 isn't available for your system) — `pip install PyQt5`
+    - Qt for Python 5.12 (or newer) (NOT RECOMMENDED) — `pip install PySide2`
+- NSMBLib 0.4 (or newer) — `pip install nsmblib` (optional)
+
+If you have a prebuilt/frozen release (for Windows, macOS or Ubuntu),
+you don't need to install anything — all the required libraries are included.
+
+For more information on running Reggie! from source and getting the required
+libraries, check the Getting Started page inside the help file
+(located at reggiedata/help/start.html within the archive)
+
+
+macOS Troubleshooting
+=====================
+
+If you get the error "Reggie! Level Editor is damaged and can't be opened.",
+it's because the release builds are unsigned. To fix it, launch a Terminal
+window and run
+
+    sudo xattr -rd com.apple.quarantine /path/to/Reggie!\ Level\ Editor.app
+    
+which will override the application signature requirement. Then you should be
+able to launch the app.
+
+
+Reggie! Team
+============
+
+Developers
+----------
+- Treeki — Creator, Programmer, Data, RE
+- Tempus — Programmer, Graphics, Data
+- AerialX — CheerIOS, Riivolution
+- megazig — Code, Optimisation, Data, RE
+- Omega — int(), Python, Testing
+- Pop006 — Sprite Images
+- Tobias Amaranth — Sprite Info (a lot of it), Event Example Stage
+- RoadrunnerWMC — "Reggie-Updated" Fork
+
+Other Testers and Contributors
+------------------------------
+- BulletBillTime, Dirbaio, EdgarAllen, FirePhoenix, GrandMasterJimmy,
+  Mooseknuckle2000, MotherBrainsBrain, RainbowIE, Skawo, Sonicandtails,
+  Tanks, Vibestar, Kitty-Cats, Zementblock, TMolter
+- Tobias Amaranth and Valeth — Text Tileset Addon
+
+
+Libraries/Resources
+===================
+
+- Qt — The Qt Company (https://www.qt.io)
+- Qt for Python — The Qt Company (https://www.qt.io)
+- PyQt — Riverbank Computing (https://riverbankcomputing.com/software/pyqt/intro)
+- Wii.py — megazig, Xuzz, The Lemon Man, Matt_P, SquidMan, Omega (https://github.com/grp/Wii.py)
+- Interface Icons — Yusuke Kamiyamane (http://p.yusukekamiyamane.com/)
+
+
+Licensing
+=========
+
+Reggie! is released under the GNU General Public License v2.
+See the license file in the distribution for information.
+
+
 Changelog
 =========
 
@@ -296,77 +370,3 @@ Release 1: (March 19th, 2010)
 - Reggie! is finally released after 4 months of work and 18 test builds!
 - First release, may have bugs or incomplete sprites. Report any errors to us
   at the forums (link above).
-
-
-Requirements
-============
-
-If you are using the source release:
-
-- Python 2.7 (or newer) (3.5 or newer recommended) — https://www.python.org
-- Qt for Python or PyQt; your options depend on the version of Python you're using:
-  - If using Python 2.x: PyQt 4.8 (or newer, but less than 5) — https://www.lfd.uci.edu/~gohlke/pythonlibs/#pyqt4
-  - If using Python 3.x, any of the following:
-    - PyQt 6.1.1 (or newer) **(RECOMMENDED)** — `pip install PyQt6`
-    - PyQt 5.11 (or newer) (use if PyQt6 isn't available for your system) — `pip install PyQt5`
-    - Qt for Python 5.12 (or newer) (NOT RECOMMENDED) — `pip install PySide2`
-- NSMBLib 0.4 (or newer) — `pip install nsmblib` (optional)
-
-If you have a prebuilt/frozen release (for Windows, macOS or Ubuntu),
-you don't need to install anything — all the required libraries are included.
-
-For more information on running Reggie! from source and getting the required
-libraries, check the Getting Started page inside the help file
-(located at reggiedata/help/start.html within the archive)
-
-
-macOS Troubleshooting
-=====================
-
-If you get the error "Reggie! Level Editor is damaged and can't be opened.",
-it's because the release builds are unsigned. To fix it, launch a Terminal
-window and run
-
-    sudo xattr -rd com.apple.quarantine /path/to/Reggie!\ Level\ Editor.app
-    
-which will override the application signature requirement. Then you should be
-able to launch the app.
-
-
-Reggie! Team
-============
-
-Developers
-----------
-- Treeki — Creator, Programmer, Data, RE
-- Tempus — Programmer, Graphics, Data
-- AerialX — CheerIOS, Riivolution
-- megazig — Code, Optimisation, Data, RE
-- Omega — int(), Python, Testing
-- Pop006 — Sprite Images
-- Tobias Amaranth — Sprite Info (a lot of it), Event Example Stage
-- RoadrunnerWMC — "Reggie-Updated" Fork
-
-Other Testers and Contributors
-------------------------------
-- BulletBillTime, Dirbaio, EdgarAllen, FirePhoenix, GrandMasterJimmy,
-  Mooseknuckle2000, MotherBrainsBrain, RainbowIE, Skawo, Sonicandtails,
-  Tanks, Vibestar, Kitty-Cats, Zementblock, TMolter
-- Tobias Amaranth and Valeth — Text Tileset Addon
-
-
-Libraries/Resources
-===================
-
-- Qt — The Qt Company (https://www.qt.io)
-- Qt for Python — The Qt Company (https://www.qt.io)
-- PyQt — Riverbank Computing (https://riverbankcomputing.com/software/pyqt/intro)
-- Wii.py — megazig, Xuzz, The Lemon Man, Matt_P, SquidMan, Omega (https://github.com/grp/Wii.py)
-- Interface Icons — Yusuke Kamiyamane (http://p.yusukekamiyamane.com/)
-
-
-Licensing
-=========
-
-Reggie! is released under the GNU General Public License v2.
-See the license file in the distribution for information.
