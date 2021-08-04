@@ -131,7 +131,7 @@ def FilesAreMissing():
     """Checks to see if any of the required files for Reggie are missing"""
 
     if not os.path.isdir('reggiedata'):
-        QtWidgets.QMessageBox.warning(None, 'Error', 'Sorry, you seem to be missing the required data files for Reggie! to work. Please redownload your copy of the editor.')
+        QtWidgets.QMessageBox.warning(None, 'Error', "Sorry, you seem to be missing the required data files for Reggie! to work. If you're running Reggie! from within a zip file, please extract it and try again. Otherwise, please redownload your copy of the editor.")
         return True
 
     required = ['entrances.png', 'entrancetypes.txt', 'icon_reggie.png', 'levelnames.txt', 'overrides.png',
