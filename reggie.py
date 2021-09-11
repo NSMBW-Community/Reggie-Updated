@@ -5583,18 +5583,18 @@ class HexSpinBox(QtWidgets.QSpinBox):
             try:
                 input = str(input).lower()
             except:
-                return self.Invalid, input, pos
+                return self.State.Invalid, input, pos
             valid = self.valid
 
             for char in input:
                 if char not in valid:
-                    return self.Invalid, input, pos
+                    return self.State.Invalid, input, pos
 
             value = int(input, 16)
             if value < self.min or value > self.max:
-                return self.Intermediate, input, pos
+                return self.State.Intermediate, input, pos
 
-            return self.Acceptable, input, pos
+            return self.State.Acceptable, input, pos
 
 
     def __init__(self, format='%04X', *args):
