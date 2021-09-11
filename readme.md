@@ -99,6 +99,15 @@ See the license file in the distribution for information.
 Changelog
 =========
 
+Reggie-Updated 2021.09.11.0:
+----------------------------
+- Fixed the "Custom background ID" dialog, which was broken in PyQt6.
+- The error message for when Reggie can't find the reggiedata folder now
+  additionally tells you that this can be caused by running it from within a
+  zip file.
+- Moved the changelog to the bottom of readme.md.
+
+
 Reggie-Updated 2021.07.29.1:
 ----------------------------
 - Fixed "Save As..." and "Level Screenshot...", which were broken by the switch
