@@ -3454,16 +3454,22 @@ class PathEditorLineItem(LevelEditorItem):
         self.scene().update()
 
     def computeBoundRectAndPos(self):
-        xcoords = []
-        ycoords = []
-        for node in self.nodelist:
-            xcoords.append(int(node['x']))
-            ycoords.append(int(node['y']))
-        self.objx = (min(xcoords)-4)#*1.5
-        self.objy = (min(ycoords)-4)#*1.5
+        if self.nodelist:
+            xcoords = []
+            ycoords = []
+            for node in self.nodelist:
+                xcoords.append(int(node['x']))
+                ycoords.append(int(node['y']))
 
-        mywidth = (8 + (max(xcoords) - self.objx))*1.5
-        myheight = (8 + (max(ycoords) - self.objy))*1.5
+            self.objx = (min(xcoords)-4)#*1.5
+            self.objy = (min(ycoords)-4)#*1.5
+            mywidth = (8 + (max(xcoords) - self.objx))*1.5
+            myheight = (8 + (max(ycoords) - self.objy))*1.5
+
+        else:
+            self.objx = self.objy = 0
+            mywidth = myheight = 16
+
         global DirtyOverride
         DirtyOverride += 1
         self.setPos(self.objx * 1.5, self.objy * 1.5)
