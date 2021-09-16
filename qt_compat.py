@@ -127,7 +127,11 @@ if QtCompatVersion < (6,0,0):
                 return self._overrides[key]
             return getattr(self._obj, key)
 
-    # This maps id(thing) -> replacement object for thing
+    # This maps (a prefix of str(thing)) -> replacement object for thing
+    # I tried to do this with id(thing), but PyQt object IDs aren't
+    # actually always static when you'd expect them to be. For example,
+    # QtGui.QFileDialog.getOpenFileName's ID changes depending on what
+    # module you access it from... for some reason.
     StaticReplaces = {}
 
     class FakeQtGui:
@@ -141,7 +145,7 @@ if QtCompatVersion < (6,0,0):
             return getattr(QtWidgets, key)
 
     StaticReplaces.update({
-        id(QtGui): FakeQtGui(),
+        "<module 'PyQt4.QtGui' from ": FakeQtGui(),
     })
 
     # Return value format for QtWidgets.QFileDialog.get[Open|Save]FileName() changed in PyQt5:
@@ -154,8 +158,8 @@ if QtCompatVersion < (6,0,0):
     else:
         QtW_QFD_getOpenFileName = QtWidgets.QFileDialog.getOpenFileName
         QtW_QFD_getSaveFileName = QtWidgets.QFileDialog.getSaveFileName
-    StaticReplaces[id(QtWidgets.QFileDialog.getOpenFileName)] = QtW_QFD_getOpenFileName
-    StaticReplaces[id(QtWidgets.QFileDialog.getSaveFileName)] = QtW_QFD_getSaveFileName
+    StaticReplaces['<built-in function getOpenFileName>'] = QtW_QFD_getOpenFileName
+    StaticReplaces['<built-in function getSaveFileName>'] = QtW_QFD_getSaveFileName
 
 
     def qm(obj):
@@ -178,9 +182,9 @@ if QtCompatVersion < (6,0,0):
 
         # Handle simple cases that we were able to precompute at launch time
         global StaticReplaces
-        result = StaticReplaces.get(id(obj))
-        if result is not None:
-            return result
+        for str_name, replacement in StaticReplaces.items():
+            if str(obj).startswith(str_name):
+                return replacement
 
         if hasattr(QtCore, 'QVariant') and isinstance(obj, QtCore.QVariant):
             # https://www.riverbankcomputing.com/static/Docs/PyQt5/pyqt_qvariant.html
