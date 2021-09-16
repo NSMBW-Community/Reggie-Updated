@@ -7086,7 +7086,7 @@ class CameraProfilesDialog(QtWidgets.QDialog):
         newId = 1
         for row in range(self.list.count()):
             item = self.list.item(row)
-            values = item.data(QtCore.Qt.ItemDataRole.UserRole)
+            values = qm(item.data(QtCore.Qt.ItemDataRole.UserRole))
             newId = max(newId, values[0] + 1)
 
         item = CustomSortableListWidgetItem()
@@ -7106,14 +7106,14 @@ class CameraProfilesDialog(QtWidgets.QDialog):
 
         if selItems:
             selItem = selItems[0]
-            values = selItem.data(QtCore.Qt.ItemDataRole.UserRole)
+            values = qm(selItem.data(QtCore.Qt.ItemDataRole.UserRole))
 
             self.eventid.setValue(values[0])
             self.camsettings.setValues(values[1], values[2])
 
     def handleEventIDChanged(self, eventid):
         selItem = self.list.selectedItems()[0]
-        values = selItem.data(QtCore.Qt.ItemDataRole.UserRole)
+        values = qm(selItem.data(QtCore.Qt.ItemDataRole.UserRole))
         values[0] = eventid
         selItem.setData(QtCore.Qt.ItemDataRole.UserRole, values)
         selItem.sortKey = eventid
@@ -7121,13 +7121,13 @@ class CameraProfilesDialog(QtWidgets.QDialog):
 
     def handleCamSettingsChanged(self):
         selItem = self.list.selectedItems()[0]
-        values = selItem.data(QtCore.Qt.ItemDataRole.UserRole)
+        values = qm(selItem.data(QtCore.Qt.ItemDataRole.UserRole))
         values[1] = self.camsettings.modeButtonGroup.checkedId()
         values[2] = self.camsettings.screenSizes.currentIndex()
         selItem.setData(QtCore.Qt.ItemDataRole.UserRole, values)
 
     def updateItemTitle(self, item):
-        item.setText('Camera Profile on Event %d' % item.data(QtCore.Qt.ItemDataRole.UserRole)[0])
+        item.setText('Camera Profile on Event %d' % qm(item.data(QtCore.Qt.ItemDataRole.UserRole))[0])
 
 
 
@@ -9624,7 +9624,7 @@ class ReggieWindow(QtWidgets.QMainWindow):
             camprofiles = []
             for row in range(dlg.list.count()):
                 item = dlg.list.item(row)
-                camprofiles.append(item.data(QtCore.Qt.ItemDataRole.UserRole))
+                camprofiles.append(qm(item.data(QtCore.Qt.ItemDataRole.UserRole)))
 
             Level.camprofiles = camprofiles
 
