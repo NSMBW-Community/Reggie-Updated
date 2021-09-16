@@ -2165,7 +2165,8 @@ class LevelUnit():
         bdngstruct = struct.Struct('>4lHHhh')
 
         buffer = create_string_buffer(20 * (len(Level.camprofiles) + 1))
-        buffer2 = create_string_buffer(self.blocks[2] + bytes(24))
+        buffer2 = create_string_buffer(len(self.blocks[2]) + 24)
+        buffer2[:len(self.blocks[2])] = self.blocks[2]
 
         offset2 = len(self.blocks[2])
         bdngid = offset2 // 20
