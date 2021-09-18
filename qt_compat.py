@@ -146,6 +146,7 @@ if QtCompatVersion < (6,0,0):
 
     StaticReplaces.update({
         "<module 'PyQt4.QtGui' from ": FakeQtGui(),
+        "<module 'PyQt5.QtGui' from ": FakeQtGui(),
     })
 
     # Return value format for QtWidgets.QFileDialog.get[Open|Save]FileName() changed in PyQt5:
