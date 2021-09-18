@@ -43,6 +43,11 @@ QtCore, QtGui, QtWidgets, QtCompatVersion, QtBindingsVersion, QtName = importQt(
 ReggieID = 'Reggie-Updated by Treeki, Tempus'
 ApplicationDisplayName = 'Reggie! Level Editor'
 
+# from C <float.h>
+# useful because sys.float_info is for double and not float
+FLT_MAX = 3.402823466e+38
+FLT_DIG = 6
+
 
 # use psyco for optimisation if available
 try:
@@ -4586,15 +4591,15 @@ class PathNodeEditorWidget(QtWidgets.QWidget):
         #[20:52:41]  [Angel-SL] 1. (readonly) pathid 2. (readonly) nodeid 3. x 4. y 5. speed (float spinner) 6. accel (float spinner)
         #not doing [20:52:58]  [Angel-SL] and 2 buttons - 7. "Move Up" 8. "Move Down"
         self.speed = QtWidgets.QDoubleSpinBox()
-        self.speed.setRange(min(sys.float_info), max(sys.float_info))
+        self.speed.setRange(-FLT_MAX, FLT_MAX)
         self.speed.setToolTip('<b>Speed:</b><br>Unknown units. Mess around and report your findings!')
-        self.speed.setDecimals(int(sys.float_info.__getattribute__('dig')))
+        self.speed.setDecimals(FLT_DIG)
         self.speed.valueChanged.connect(self.HandleSpeedChanged)
 
         self.accel = QtWidgets.QDoubleSpinBox()
-        self.accel.setRange(min(sys.float_info), max(sys.float_info))
+        self.accel.setRange(-FLT_MAX, FLT_MAX)
         self.accel.setToolTip('<b>Accel:</b><br>Unknown units. Mess around and report your findings!')
-        self.accel.setDecimals(int(sys.float_info.__getattribute__('dig')))
+        self.accel.setDecimals(FLT_DIG)
         self.accel.valueChanged.connect(self.HandleAccelChanged)
 
         self.delay = QtWidgets.QSpinBox()
