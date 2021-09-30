@@ -6970,7 +6970,7 @@ class BGTab(QtWidgets.QWidget):
         self.currentIndexB = self.background_nameB.currentIndex()
 
         self.background_nameB.activated.connect(self.viewboxB)
-        self.viewboxB(self.background_nameB.currentIndex())
+        self.viewboxB(self.background_nameB.currentIndex(), True)
 
         mainLayout = QtWidgets.QVBoxLayout()
         mainLayout.addWidget(self.background_nameB)
