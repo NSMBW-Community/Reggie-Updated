@@ -4323,6 +4323,7 @@ class EntranceEditorWidget(QtWidgets.QWidget):
         super(EntranceEditorWidget, self).__init__()
         self.setSizePolicy(QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Policy.Minimum, QtWidgets.QSizePolicy.Policy.Fixed))
 
+        self.CanUseFlag40 = set([0,1,7,8,9,12,20,21,22,23,24,27])
         self.CanUseFlag8 = set([3,4,5,6,16,17,18,19])
         self.CanUseFlag4 = set([3,4,5,6])
 
@@ -4355,6 +4356,10 @@ class EntranceEditorWidget(QtWidgets.QWidget):
         self.unknownFlagCheckbox = QtWidgets.QCheckBox('Unknown Flag')
         self.unknownFlagCheckbox.setToolTip("<b>Unknown Flag:</b><br>This box is checked on a few entrances in the game, but we haven't managed to figure out what it does (or if it does anything).")
         self.unknownFlagCheckbox.clicked.connect(self.HandleUnknownFlagClicked)
+
+        self.spawnHalfTileLeftCheckbox = QtWidgets.QCheckBox('Spawn Half a Tile Left')
+        self.spawnHalfTileLeftCheckbox.setToolTip("<b>Spawn Half a Tile Left:</b><br>If this is checked, the entrance will spawn Mario half a tile to the left.")
+        self.spawnHalfTileLeftCheckbox.clicked.connect(self.HandleSpawnHalfTileLeftClicked)
 
         self.connectedPipeCheckbox = QtWidgets.QCheckBox('Connected Pipe')
         self.connectedPipeCheckbox.setToolTip("<b>Connected Pipe:</b><br>This box allows you to enable an unused/broken feature in the game. It allows the pipe to function like the pipes in SMB3 where Mario simply goes through the pipe. However, it doesn't work correctly.")
@@ -4408,11 +4413,12 @@ class EntranceEditorWidget(QtWidgets.QWidget):
 
         layout.addWidget(self.enterableCheckbox, 5, 0, 1, 2, QtCore.Qt.AlignmentFlag.AlignRight)
         layout.addWidget(self.unknownFlagCheckbox, 5, 2, 1, 2, QtCore.Qt.AlignmentFlag.AlignRight)
-        layout.addWidget(self.forwardPipeCheckbox, 6, 0, 1, 2, QtCore.Qt.AlignmentFlag.AlignRight)
-        layout.addWidget(self.connectedPipeCheckbox, 6, 2, 1, 2, QtCore.Qt.AlignmentFlag.AlignRight)
-        layout.addWidget(self.connectedPipeReverseCheckbox, 7, 0, 1, 2, QtCore.Qt.AlignmentFlag.AlignRight)
-        layout.addWidget(self.pathID, 7, 3, 1, 1, QtCore.Qt.AlignmentFlag.AlignRight)
-        layout.addWidget(self.pathIDLabel, 7, 2, 1, 1, QtCore.Qt.AlignmentFlag.AlignRight)
+        layout.addWidget(self.spawnHalfTileLeftCheckbox, 6, 0, 1, 4, QtCore.Qt.AlignmentFlag.AlignRight)
+        layout.addWidget(self.forwardPipeCheckbox, 7, 0, 1, 2, QtCore.Qt.AlignmentFlag.AlignRight)
+        layout.addWidget(self.connectedPipeCheckbox, 7, 2, 1, 2, QtCore.Qt.AlignmentFlag.AlignRight)
+        layout.addWidget(self.connectedPipeReverseCheckbox, 8, 0, 1, 2, QtCore.Qt.AlignmentFlag.AlignRight)
+        layout.addWidget(self.pathID, 8, 3, 1, 1, QtCore.Qt.AlignmentFlag.AlignRight)
+        layout.addWidget(self.pathIDLabel, 8, 2, 1, 1, QtCore.Qt.AlignmentFlag.AlignRight)
 
         layout.addWidget(self.activeLayer, 4, 1, 1, 1, QtCore.Qt.AlignmentFlag.AlignLeft)
 
@@ -4440,6 +4446,9 @@ class EntranceEditorWidget(QtWidgets.QWidget):
 
         self.enterableCheckbox.setChecked(((ent.entsettings & 0x80) == 0))
         self.unknownFlagCheckbox.setChecked(((ent.entsettings & 2) != 0))
+
+        self.spawnHalfTileLeftCheckbox.setVisible(ent.enttype in self.CanUseFlag40)
+        self.spawnHalfTileLeftCheckbox.setChecked(((ent.entsettings & 0x40) != 0))
 
         self.connectedPipeCheckbox.setVisible(ent.enttype in self.CanUseFlag8)
         self.connectedPipeCheckbox.setChecked(((ent.entsettings & 8) != 0))
@@ -4473,6 +4482,7 @@ class EntranceEditorWidget(QtWidgets.QWidget):
     @QtCoreSlot(int)
     def HandleEntranceTypeChanged(self, i):
         """Handler for the entrance type changing"""
+        self.spawnHalfTileLeftCheckbox.setVisible(i in self.CanUseFlag40)
         self.connectedPipeCheckbox.setVisible(i in self.CanUseFlag8)
         self.connectedPipeReverseCheckbox.setVisible(i in self.CanUseFlag8 and ((self.ent.entsettings & 8) != 0))
         self.pathIDLabel.setVisible(i in self.CanUseFlag8 and ((self.ent.entsettings & 8) != 0))
@@ -4529,6 +4539,17 @@ class EntranceEditorWidget(QtWidgets.QWidget):
             self.ent.entsettings |= 2
         else:
             self.ent.entsettings &= ~2
+
+
+    @QtCoreSlot(bool)
+    def HandleSpawnHalfTileLeftClicked(self, checked):
+        """Handle for the Spawn Half a Tile Left checkbox being clicked"""
+        if self.UpdateFlag: return
+        SetDirty()
+        if checked:
+            self.ent.entsettings |= 0x40
+        else:
+            self.ent.entsettings &= ~0x40
 
 
     @QtCoreSlot(bool)
