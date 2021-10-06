@@ -8505,8 +8505,7 @@ class ReggieWindow(QtWidgets.QMainWindow):
     def HandleSave(self):
         """Save a level back to the archive"""
         if not Level.hasName:
-            self.HandleSaveAs()
-            return
+            return self.HandleSaveAs()
 
         global Dirty, AutoSaveDirty
         data = Level.save()
@@ -8530,7 +8529,7 @@ class ReggieWindow(QtWidgets.QMainWindow):
     def HandleSaveAs(self):
         """Save a level back to the archive, with a new filename"""
         fn = qm(QtWidgets.QFileDialog.getSaveFileName)(self, 'Choose a new filename', '', 'Level archives (*.arc);;All Files(*)')[0]
-        if fn == '': return
+        if fn == '': return False
         fn = unicode(fn)
 
         global Dirty, AutoSaveDirty
@@ -8543,12 +8542,17 @@ class ReggieWindow(QtWidgets.QMainWindow):
         Level.hasName = True
 
         data = Level.save()
-        with open(fn, 'wb') as f:
-            f.write(data)
+        try:
+            with open(fn, 'wb') as f:
+                f.write(data)
+        except IOError as e:
+            QtWidgets.QMessageBox.warning(None, 'Error', 'Error while Reggie was trying to save the level:\n(#%d) %s\n\n(Your work has not been saved! Try saving it under a different filename or in a different folder.)' % (e.args[0], e.args[1]))
+            return False
         settings.setValue('AutoSaveFilePath', fn)
         settings.setValue('AutoSaveFileData', b'x')
 
         self.UpdateTitle()
+        return True
 
 
     @QtCoreSlot()
