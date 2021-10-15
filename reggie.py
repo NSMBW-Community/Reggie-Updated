@@ -6467,7 +6467,7 @@ class ZoneTab(QtWidgets.QWidget):
 
         self.Zone_terraindark = QtWidgets.QComboBox()
         self.Zone_terraindark.addItems(ZoneTerrainThemeValues)
-        self.Zone_terraindark.setToolTip("<b>Terrain Theme:</b><br>Changes the way the terrain is rendered. It also affects the parts of the background which the normal theme doesn't change.")
+        self.Zone_terraindark.setToolTip("<b>Terrain Lighting:</b><br>Changes the way the terrain is rendered. It also affects the parts of the background which the normal theme doesn't change.")
         self.Zone_terraindark.setSizePolicy(comboboxSizePolicy)
         if z.terraindark < 0: z.terraindark = 0
         if z.terraindark >= len(ZoneTerrainThemeValues): z.terraindark = len(ZoneTerrainThemeValues) - 1
