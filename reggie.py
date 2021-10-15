@@ -1053,7 +1053,10 @@ def _LoadTileset(idx, name):
     # load in the textures - uses a different method if nsmblib exists
     if HaveNSMBLib:
         tiledata = nsmblib.decompress11LZS(comptiledata)
-        rgbdata = nsmblib.decodeTileset(tiledata)
+        if hasattr(nsmblib, 'decodeTilesetNoAlpha') and not EnableAlpha:
+            rgbdata = nsmblib.decodeTilesetNoAlpha(tiledata)
+        else:
+            rgbdata = nsmblib.decodeTileset(tiledata)
         img = QtGui.QImage(rgbdata, 1024, 256, 4096, QtGui.QImage.Format.Format_ARGB32_Premultiplied)
     else:
         lz = lz77.LZS11()
@@ -9826,10 +9829,6 @@ def main():
 EnableAlpha = True
 if '-alpha' in sys.argv:
     EnableAlpha = False
-
-    # nsmblib doesn't support -alpha so if it's enabled
-    # then don't use it
-    HaveNSMBLib = False
 
 DarkMode = False
 
