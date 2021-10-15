@@ -7492,6 +7492,19 @@ class ReggieWindow(QtWidgets.QMainWindow):
         lmenu.addSeparator()
         lmenu.addAction(self.actions['reloadgfx'])
 
+        if HaveNSMBLib:
+            if hasattr(nsmblib, 'getUpdatedVersion'):
+                updatedVersion = nsmblib.getUpdatedVersion()
+                updatedVersionStr = '%04d.%02d.%02d.%d' % (updatedVersion // 1000000,
+                                                           (updatedVersion // 10000) % 100,
+                                                           (updatedVersion // 100) % 100,
+                                                           updatedVersion % 100)
+                nsmblib_msg = 'Using NSMBLib-Updated %s' % (updatedVersionStr)
+            else:
+                nsmblib_msg = 'Using NSMBLib %d' % nsmblib.getVersion()
+        else:
+            nsmblib_msg = 'Not using NSMBLib'
+
         hmenu = menubar.addMenu('&Help')
         hmenu.addAction(self.actions['infobox'])
         hmenu.addAction(self.actions['helpbox'])
@@ -7505,7 +7518,7 @@ class ReggieWindow(QtWidgets.QMainWindow):
         bindingsVerAct.setEnabled(False)
         qtVerAct = hmenu.addAction('Using Qt %d.%d.%d' % QtCompatVersion)
         qtVerAct.setEnabled(False)
-        nsmblibVerAct = hmenu.addAction(('Using NSMBLib %d' % nsmblib.getVersion()) if HaveNSMBLib else 'Not using NSMBLib')
+        nsmblibVerAct = hmenu.addAction(nsmblib_msg)
         nsmblibVerAct.setEnabled(False)
 
         # create a toolbar
