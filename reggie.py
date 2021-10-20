@@ -48,6 +48,8 @@ ApplicationDisplayName = 'Reggie! Level Editor'
 FLT_MAX = 3.402823466e+38
 FLT_DIG = 6
 
+LEVEL_FILE_FORMATS_FILTER = 'All supported files (*.arc *.arc.LZ);;Level archives (*.arc);;LZ11-compressed level archives (*.arc.LZ);;All Files (*)'
+
 
 # use psyco for optimisation if available
 try:
@@ -124,13 +126,21 @@ def IsNSMBLevel(filename):
     with open(filename, 'rb') as f:
         data = f.read()
 
-    if not data.startswith(b'U\xAA8-'):
-        return False
+    if data.startswith(b'\x11'):
+        # LZ-compressed -- not much we can do without decompressing it,
+        # so let's just assume it's probably valid...
+        return True
 
-    if b'course\0' not in data and b'course1.bin\0' not in data and b'\0\0\0\x80' not in data:
-        return False
+    elif data.startswith(b'U\xAA8-'):
+        # uncompressed U8 data -- we can do some more sanity checks
 
-    return True
+        if b'course\0' not in data and b'course1.bin\0' not in data and b'\0\0\0\x80' not in data:
+            return False
+
+        return True
+
+    else:
+        return False
 
 def FilesAreMissing():
     """Checks to see if any of the required files for Reggie are missing"""
@@ -179,7 +189,7 @@ def isValidGamePath(check='ug'):
     if check is None or check == '': return False
     if not os.path.isdir(check): return False
     if not os.path.isdir(os.path.join(check, 'Texture')): return False
-    if not os.path.isfile(os.path.join(check, '01-01.arc')): return False
+    if not os.path.isfile(os.path.join(check, '01-01.arc')) or os.path.isfile(os.path.join(check, '01-01.arc.LZ')): return False
 
     return True
 
@@ -1557,6 +1567,7 @@ class LevelUnit():
         self.arcname = None
         self.filename = 'untitled'
         self.hasName = False
+        self.isCompressed = False
         arc = archive.U8()
         arc['course'] = None
         arc['course/course1.bin'] = ''
@@ -1611,7 +1622,7 @@ class LevelUnit():
         self.arcname = name
 
         if not os.path.isfile(self.arcname):
-            QtWidgets.QMessageBox.warning(None, 'Error',  'Cannot find the required level file %s.arc. Check your Stage folder and make sure it exists.' % name)
+            QtWidgets.QMessageBox.warning(None, 'Error',  'Cannot find the level file %s. Check your Stage folder and make sure it exists.' % self.arcname)
             return False
 
         self.filename = os.path.basename(self.arcname)
@@ -1644,6 +1655,15 @@ class LevelUnit():
     def loadLevelData(self, arcdata, area, progress=None):
         """Loads a specific level and area from bytes data"""
         startTime = time.time()
+
+        self.isCompressed = arcdata.startswith(b'\x11')
+
+        if self.isCompressed:
+            # decompress the data
+            if HaveNSMBLib:
+                arcdata = nsmblib.decompress11LZS(arcdata)
+            else:
+                arcdata = lz77.LZS11().Decompress11LZS(arcdata)
 
         # read the archive
         self.arc = archive.U8.load(arcdata)
@@ -1742,7 +1762,7 @@ class LevelUnit():
 
         return True
 
-    def save(self):
+    def save(self, compress=None):
         """Save the level back to a file"""
         # prepare this because else the game shits itself and refuses to load some sprites
         self.SortSpritesByZone()
@@ -1798,9 +1818,14 @@ class LevelUnit():
         arc['course/course%d_bgdatL2.bin' % areanum] = self.SaveLayer(2)
 
         # save the U8 archive
-        #with open(self.arcname, 'wb') as arcf:
-        #    arcf.write(arc._dump())
-        return arc._dump()
+        arcdata = arc._dump()
+
+        if compress is None:
+            compress = self.isCompressed
+        if compress:
+            arcdata = lz77.LZS11().Compress11LZS(arcdata)
+
+        return arcdata
 
     def LoadMetadata(self):
         """Loads block 1, the tileset names"""
@@ -7841,7 +7866,7 @@ class ReggieWindow(QtWidgets.QMainWindow):
         global AutoSaveDirty
         if not AutoSaveDirty: return
 
-        data = Level.save()
+        data = Level.save(compress=False)
         settings.setValue('AutoSaveFilePath', Level.arcname)
         settings.setValue('AutoSaveFileData', QtCore.QByteArray(data))
         AutoSaveDirty = False
@@ -8382,7 +8407,7 @@ class ReggieWindow(QtWidgets.QMainWindow):
         if self.CheckDirty():
             return
 
-        fn = qm(QtWidgets.QFileDialog.getOpenFileName)(self, 'Choose a level archive', '', 'Level archives (*.arc);;All Files(*)')[0]
+        fn = qm(QtWidgets.QFileDialog.getOpenFileName)(self, 'Choose a level archive', '', LEVEL_FILE_FORMATS_FILTER)[0]
         if fn == '': return
 
         with open(unicode(fn), 'rb') as getit:
@@ -8527,7 +8552,7 @@ class ReggieWindow(QtWidgets.QMainWindow):
         """Open a level using the filename"""
         if self.CheckDirty(): return
 
-        fn = qm(QtWidgets.QFileDialog.getOpenFileName)(self, 'Choose a level archive', '', 'Level archives (*.arc);;All Files(*)')[0]
+        fn = qm(QtWidgets.QFileDialog.getOpenFileName)(self, 'Choose a level archive', '', LEVEL_FILE_FORMATS_FILTER)[0]
         if fn == '': return
         self.LoadLevel(unicode(fn), 1)
 
@@ -8559,7 +8584,7 @@ class ReggieWindow(QtWidgets.QMainWindow):
     @QtCoreSlot()
     def HandleSaveAs(self):
         """Save a level back to the archive, with a new filename"""
-        fn = qm(QtWidgets.QFileDialog.getSaveFileName)(self, 'Choose a new filename', '', 'Level archives (*.arc);;All Files(*)')[0]
+        fn = qm(QtWidgets.QFileDialog.getSaveFileName)(self, 'Choose a new filename', '', LEVEL_FILE_FORMATS_FILTER)[0]
         if fn == '': return False
         fn = unicode(fn)
 
@@ -8571,6 +8596,7 @@ class ReggieWindow(QtWidgets.QMainWindow):
         Level.arcname = fn
         Level.filename = os.path.basename(fn)
         Level.hasName = True
+        Level.isCompressed = fn.lower().endswith('.lz')
 
         data = Level.save()
         try:
@@ -8846,7 +8872,34 @@ class ReggieWindow(QtWidgets.QMainWindow):
 
     def LoadLevelFromName(self, name, area):
         """Load a level from just its name (example: '01-01') and area number"""
-        return self.LoadLevel(os.path.join(gamePath, '%s.arc' % name), area)
+
+        name_arc = '%s.arc' % name
+        name_lz = '%s.arc.LZ' % name
+        fullpath_arc = os.path.join(gamePath, name_arc)
+        fullpath_lz = os.path.join(gamePath, name_lz)
+
+        if os.path.isfile(fullpath_lz) and os.path.isfile(fullpath_arc):
+            msg = QtWidgets.QMessageBox()
+            msg.setIcon(QtWidgets.QMessageBox.Icon.Question)
+            msg.setText('"%s" and "%s" both exist in the Stage folder.' % (name_arc, name_lz))
+            msg.setInformativeText('Which would you like to load?')
+            button_arc = msg.addButton(name_arc, QtWidgets.QMessageBox.ButtonRole.AcceptRole)
+            button_lz = msg.addButton(name_lz, QtWidgets.QMessageBox.ButtonRole.AcceptRole)
+            msg.addButton(QtWidgets.QMessageBox.StandardButton.Cancel)
+            msg.setDefaultButton(button_lz)  # Newer prioritizes .LZ
+            ret = execQtObject(msg)
+
+            if msg.clickedButton() is button_arc:
+                return self.LoadLevel(fullpath_arc, area)
+            elif msg.clickedButton() is button_lz:
+                return self.LoadLevel(fullpath_lz, area)
+            else:
+                return False
+
+        elif os.path.isfile(fullpath_lz):
+            return self.LoadLevel(fullpath_lz, area)
+
+        return self.LoadLevel(fullpath_arc, area)
 
 
     def LoadLevelFromAutosave(self):
