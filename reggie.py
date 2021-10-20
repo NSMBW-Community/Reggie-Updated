@@ -7348,17 +7348,24 @@ class ReggieWindow(QtWidgets.QMainWindow):
 
         # now get stuff ready
         loaded = False
-        if len(sys.argv) > 1 and os.path.isfile(sys.argv[1]) and IsNSMBLevel(sys.argv[1]):
-            loaded = self.LoadLevel(sys.argv[1], True, 1)
-        elif settings.contains('LastLevel'):
-            lastlevel = unicode(qm(settings.value('LastLevel')))
-            settings.remove('LastLevel')
 
-            if lastlevel != 'None':
-                loaded = self.LoadLevel(lastlevel, True, 1)
+        global RestoredFromAutoSave
+        if RestoredFromAutoSave:
+            RestoredFromAutoSave = False
+            loaded = self.LoadLevelFromAutosave()
 
         if not loaded:
-            self.LoadLevel('01-01', False, 1)
+            if len(sys.argv) > 1 and os.path.isfile(sys.argv[1]) and IsNSMBLevel(sys.argv[1]):
+                loaded = self.LoadLevel(sys.argv[1], 1)
+            elif settings.contains('LastLevel'):
+                lastlevel = unicode(qm(settings.value('LastLevel')))
+                settings.remove('LastLevel')
+
+                if lastlevel != 'None':
+                    loaded = self.LoadLevel(lastlevel, 1)
+
+        if not loaded:
+            self.LoadLevelFromName('01-01', 1)
 
         QtCore.QTimer.singleShot(100, self.levelOverview.update)
 
@@ -8362,7 +8369,7 @@ class ReggieWindow(QtWidgets.QMainWindow):
         Level.arc['course/course%d.bin' % newID] = blank
 
         if not self.HandleSave(): return
-        self.LoadLevel(Level.arcname, True, newID)
+        self.LoadLevel(Level.arcname, newID)
 
 
     @QtCoreSlot()
@@ -8432,7 +8439,7 @@ class ReggieWindow(QtWidgets.QMainWindow):
         if l2 is not None: Level.arc['course/course%d_bgdatL2.bin' % newID] = l2
 
         if not self.HandleSave(): return
-        self.LoadLevel(Level.arcname, True, newID)
+        self.LoadLevel(Level.arcname, newID)
 
 
     @QtCoreSlot()
@@ -8469,7 +8476,7 @@ class ReggieWindow(QtWidgets.QMainWindow):
         # no error checking. if it saved last time, it will probably work now
         with open(Level.arcname, 'wb') as f:
             f.write(Level.arc._dump())
-        self.LoadLevel(Level.arcname, True, 1)
+        self.LoadLevel(Level.arcname, 1)
 
 
     @QtCoreSlot()
@@ -8492,14 +8499,14 @@ class ReggieWindow(QtWidgets.QMainWindow):
                 break
 
         SetGamePath(path)
-        self.LoadLevel('01-01', False, 1)
+        self.LoadLevelFromName('01-01', 1)
 
 
     @QtCoreSlot()
     def HandleNewLevel(self):
         """Create a new level"""
         if self.CheckDirty(): return
-        self.LoadLevel(None, False, 1)
+        self.LoadNewLevel()
 
 
     @QtCoreSlot()
@@ -8510,7 +8517,7 @@ class ReggieWindow(QtWidgets.QMainWindow):
         dlg = ChooseLevelNameDialog()
         if execQtObject(dlg) == QtWidgets.QDialog.DialogCode.Accepted:
             #start = time.time()
-            self.LoadLevel(dlg.currentlevel, False, 1)
+            self.LoadLevelFromName(dlg.currentlevel, 1)
             #end = time.time()
             #print('Loaded in ' + str(end - start))
 
@@ -8522,7 +8529,7 @@ class ReggieWindow(QtWidgets.QMainWindow):
 
         fn = qm(QtWidgets.QFileDialog.getOpenFileName)(self, 'Choose a level archive', '', 'Level archives (*.arc);;All Files(*)')[0]
         if fn == '': return
-        self.LoadLevel(unicode(fn), True, 1)
+        self.LoadLevel(unicode(fn), 1)
 
 
     @QtCoreSlot()
@@ -8593,7 +8600,7 @@ class ReggieWindow(QtWidgets.QMainWindow):
         if idx == currentIdx:
             return
 
-        if self.CheckDirty() or not self.LoadLevel(Level.arcname, True, idx+1):
+        if self.CheckDirty() or not self.LoadLevel(Level.arcname, idx+1):
             self.areaComboBox.setCurrentIndex(currentIdx)
 
 
@@ -8837,16 +8844,26 @@ class ReggieWindow(QtWidgets.QMainWindow):
             event.accept()
 
 
-    def LoadLevel(self, name, fullpath, area):
+    def LoadLevelFromName(self, name, area):
+        """Load a level from just its name (example: '01-01') and area number"""
+        return self.LoadLevel(os.path.join(gamePath, '%s.arc' % name), area)
+
+
+    def LoadLevelFromAutosave(self):
+        """Load level data from the AutoSave* globals"""
+        return self.LoadLevel(None, 1, autosave=True)
+
+
+    def LoadNewLevel(self):
+        """Load a blank level"""
+        return self.LoadLevel(None, 1)
+
+
+    def LoadLevel(self, name, area, autosave=False):
         """Load a level into the editor"""
 
         if name is not None:
-            if fullpath:
-                checkname = name
-            else:
-                checkname = os.path.join(gamePath, name+'.arc')
-
-            if not IsNSMBLevel(checkname):
+            if not IsNSMBLevel(name):
                 QtWidgets.QMessageBox.warning(self, 'Reggie!', "This file doesn't seem to be a valid level.", QtWidgets.QMessageBox.StandardButton.Ok)
                 return False
 
@@ -8904,18 +8921,12 @@ class ReggieWindow(QtWidgets.QMainWindow):
         Level = LevelUnit()
 
         if name is None:
-            Level.newLevel()
-        else:
-            global RestoredFromAutoSave
-            if RestoredFromAutoSave:
-                RestoredFromAutoSave = False
+            if autosave:
                 Level.loadLevelFromAutosave(progress)
             else:
-                if fullpath:
-                    name = name
-                else:
-                    name = os.path.join(gamePath, '%s.arc' % name)
-                Level.loadLevel(name, area, progress)
+                Level.newLevel()
+        else:
+            Level.loadLevel(name, area, progress)
 
         OverrideSnapping = False
 
