@@ -1605,39 +1605,47 @@ class LevelUnit():
         self.layers = [[], [], []]
 
 
-    def loadLevel(self, name, fullpath, area, progress=None):
+    def loadLevel(self, name, area, progress=None):
         """Loads a specific level and area"""
-        startTime = time.time()
 
-        # read the archive
-        if fullpath:
-            self.arcname = name
+        self.arcname = name
+
+        if not os.path.isfile(self.arcname):
+            QtWidgets.QMessageBox.warning(None, 'Error',  'Cannot find the required level file %s.arc. Check your Stage folder and make sure it exists.' % name)
+            return False
+
+        self.filename = os.path.basename(self.arcname)
+        self.hasName = True
+
+        with open(self.arcname, 'rb') as arcf:
+            arcdata = arcf.read()
+
+        return self.loadLevelData(arcdata, area, progress)
+
+
+    def loadLevelFromAutosave(self, progress=None):
+        """Loads auto-saved level data"""
+        global AutoSavePath, AutoSaveData
+
+        if str(AutoSavePath).lower() == 'none':
+            self.arcname = None
+            self.filename = 'untitled'
+            self.hasName = False
         else:
-            self.arcname = os.path.join(gamePath, name+'.arc')
-
-        if name == 'AUTO_FLAG':
-            if str(AutoSavePath).lower() == 'none':
-                self.arcname = None
-                self.filename = 'untitled'
-                self.hasName = False
-            else:
-                self.arcname = AutoSavePath
-                self.filename = os.path.basename(self.arcname)
-                self.hasName = True
-
-            arcdata = AutoSaveData
-            SetDirty(noautosave=True)
-        else:
-            if not os.path.isfile(self.arcname):
-                QtWidgets.QMessageBox.warning(None, 'Error',  'Cannot find the required level file %s.arc. Check your Stage folder and make sure it exists.' % name)
-                return False
-
+            self.arcname = AutoSavePath
             self.filename = os.path.basename(self.arcname)
             self.hasName = True
 
-            with open(self.arcname, 'rb') as arcf:
-                arcdata = arcf.read()
+        result = self.loadLevelData(AutoSaveData, 1, progress)
+        SetDirty(noautosave=True)
+        return result
 
+
+    def loadLevelData(self, arcdata, area, progress=None):
+        """Loads a specific level and area from bytes data"""
+        startTime = time.time()
+
+        # read the archive
         self.arc = archive.U8.load(arcdata)
 
         # this is a hackish method but let's go through the U8 files
@@ -8901,9 +8909,13 @@ class ReggieWindow(QtWidgets.QMainWindow):
             global RestoredFromAutoSave
             if RestoredFromAutoSave:
                 RestoredFromAutoSave = False
-                Level.loadLevel('AUTO_FLAG', True, 1, progress)
+                Level.loadLevelFromAutosave(progress)
             else:
-                Level.loadLevel(name, fullpath, area, progress)
+                if fullpath:
+                    name = name
+                else:
+                    name = os.path.join(gamePath, '%s.arc' % name)
+                Level.loadLevel(name, area, progress)
 
         OverrideSnapping = False
 
