@@ -48,7 +48,9 @@ ApplicationDisplayName = 'Reggie! Level Editor'
 FLT_MAX = 3.402823466e+38
 FLT_DIG = 6
 
-LEVEL_FILE_FORMATS_FILTER = 'All supported files (*.arc *.arc.LZ);;Level archives (*.arc);;LZ11-compressed level archives (*.arc.LZ);;All Files (*)'
+
+LEVEL_FILE_FORMATS_FILTER_SAVE = 'Level archives (*.arc);;LZ11-compressed level archives (*.arc.LZ);;All Files (*)'
+LEVEL_FILE_FORMATS_FILTER_OPEN = 'All supported files (*.arc *.arc.LZ);;' + LEVEL_FILE_FORMATS_FILTER_SAVE
 
 
 # use psyco for optimisation if available
@@ -8407,7 +8409,7 @@ class ReggieWindow(QtWidgets.QMainWindow):
         if self.CheckDirty():
             return
 
-        fn = qm(QtWidgets.QFileDialog.getOpenFileName)(self, 'Choose a level archive', '', LEVEL_FILE_FORMATS_FILTER)[0]
+        fn = qm(QtWidgets.QFileDialog.getOpenFileName)(self, 'Choose a level archive', '', LEVEL_FILE_FORMATS_FILTER_OPEN)[0]
         if fn == '': return
 
         with open(unicode(fn), 'rb') as getit:
@@ -8552,7 +8554,7 @@ class ReggieWindow(QtWidgets.QMainWindow):
         """Open a level using the filename"""
         if self.CheckDirty(): return
 
-        fn = qm(QtWidgets.QFileDialog.getOpenFileName)(self, 'Choose a level archive', '', LEVEL_FILE_FORMATS_FILTER)[0]
+        fn = qm(QtWidgets.QFileDialog.getOpenFileName)(self, 'Choose a level archive', '', LEVEL_FILE_FORMATS_FILTER_OPEN)[0]
         if fn == '': return
         self.LoadLevel(unicode(fn), 1)
 
@@ -8584,7 +8586,7 @@ class ReggieWindow(QtWidgets.QMainWindow):
     @QtCoreSlot()
     def HandleSaveAs(self):
         """Save a level back to the archive, with a new filename"""
-        fn = qm(QtWidgets.QFileDialog.getSaveFileName)(self, 'Choose a new filename', '', LEVEL_FILE_FORMATS_FILTER)[0]
+        fn = qm(QtWidgets.QFileDialog.getSaveFileName)(self, 'Choose a new filename', '', LEVEL_FILE_FORMATS_FILTER_SAVE)[0]
         if fn == '': return False
         fn = unicode(fn)
 
