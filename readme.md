@@ -99,6 +99,29 @@ See the license file in the distribution for information.
 Changelog
 =========
 
+Reggie-Updated 2021.11.03.0:
+----------------------------
+
+- Reggie Updated can now load and saved LZ11-compressed levels (.arc.LZ). These
+  will be found in the upcoming Newer Super Mario Bros. Wii 1.30 update.
+- Release builds (apart from the 32-bit/Windows-7 build) are now built with
+  Python 3.10.
+- Added the newly discovered "Spawn Half a Tile Left" entrance setting (only
+  available for certain entrance types).
+- Renamed bgA_4102 from "Message Box" to "Iggy Boss Battle Line Guides".
+  (Thanks to B1 Gaming for pointing out that this needed to be changed.)
+- Changed the default time limit for newly added areas from 400 to 500, to be
+  consistent with both the default time limit for new levels and the value
+  Nintendo most commonly uses.
+- Changed the wording for the "Terrain Lighting" zone setting to better
+  indicate recommended usage.
+- The `-alpha` command-line flag now works when NSMBLib is in use, if it's
+  NSMBLib-Updated 2021.10.14.01 or newer.
+- The NSMBLib-Updated version number is now displayed in the Help menu if
+  available (specifically, for versions 2021.10.14.01 and newer).
+- Many bugfixes.
+
+
 Reggie-Updated 2021.09.11.0:
 ----------------------------
 - Fixed the "Custom background ID" dialog, which was broken in PyQt6.
