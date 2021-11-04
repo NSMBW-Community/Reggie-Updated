@@ -217,7 +217,7 @@ def main(args=None):
     import argparse
 
     parser = argparse.ArgumentParser(
-        description='Puzzle LZ11 compressor/decompressor.')
+        description='Reggie/Puzzle LZ11 compressor/decompressor.')
     subparsers = parser.add_subparsers(title='commands',
         description='(run a command with -h for additional help)')
 
