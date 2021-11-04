@@ -35,7 +35,7 @@
 3E02=Tuscan Columns
 3F02=Ghost Forest
 4002=Fiery Doric Colonnade
-4102=Message Box
+4102=Iggy Boss Battle Line Guides
 4202=Spiked Marble Columns
 4302=Forested Hills
 4402=None

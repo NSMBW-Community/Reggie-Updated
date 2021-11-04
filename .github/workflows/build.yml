@@ -9,7 +9,7 @@ jobs:
       matrix:
         include:
           - build-name: 'Windows 8.1+ 64-bit'
-            python-version: 3.9
+            python-version: "3.10"
             pyqt-version: 6
             platform: windows-latest
             arch: 'x64'
@@ -19,12 +19,12 @@ jobs:
             platform: windows-latest
             arch: 'x86'
           - build-name: 'macOS'
-            python-version: 3.9
+            python-version: "3.10"
             pyqt-version: 6
             platform: macos-latest
             arch: 'x64'
           - build-name: 'Ubuntu'
-            python-version: 3.9
+            python-version: "3.10"
             pyqt-version: 6
             platform: ubuntu-latest
             arch: 'x64'

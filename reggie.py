@@ -43,6 +43,15 @@ QtCore, QtGui, QtWidgets, QtCompatVersion, QtBindingsVersion, QtName = importQt(
 ReggieID = 'Reggie-Updated by Treeki, Tempus'
 ApplicationDisplayName = 'Reggie! Level Editor'
 
+# from C <float.h>
+# useful because sys.float_info is for double and not float
+FLT_MAX = 3.402823466e+38
+FLT_DIG = 6
+
+
+LEVEL_FILE_FORMATS_FILTER_SAVE = 'Level archives (*.arc);;LZ11-compressed level archives (*.arc.LZ);;All Files (*)'
+LEVEL_FILE_FORMATS_FILTER_OPEN = 'All supported files (*.arc *.arc.LZ);;' + LEVEL_FILE_FORMATS_FILTER_SAVE
+
 
 # use psyco for optimisation if available
 try:
@@ -119,19 +128,27 @@ def IsNSMBLevel(filename):
     with open(filename, 'rb') as f:
         data = f.read()
 
-    if not data.startswith(b'U\xAA8-'):
-        return False
+    if data.startswith(b'\x11'):
+        # LZ-compressed -- not much we can do without decompressing it,
+        # so let's just assume it's probably valid...
+        return True
 
-    if b'course\0' not in data and b'course1.bin\0' not in data and b'\0\0\0\x80' not in data:
-        return False
+    elif data.startswith(b'U\xAA8-'):
+        # uncompressed U8 data -- we can do some more sanity checks
 
-    return True
+        if b'course\0' not in data and b'course1.bin\0' not in data and b'\0\0\0\x80' not in data:
+            return False
+
+        return True
+
+    else:
+        return False
 
 def FilesAreMissing():
     """Checks to see if any of the required files for Reggie are missing"""
 
     if not os.path.isdir('reggiedata'):
-        QtWidgets.QMessageBox.warning(None, 'Error', 'Sorry, you seem to be missing the required data files for Reggie! to work. Please redownload your copy of the editor.')
+        QtWidgets.QMessageBox.warning(None, 'Error', "Sorry, you seem to be missing the required data files for Reggie! to work. If you're running Reggie! from within a zip file, please extract it and try again. Otherwise, please redownload your copy of the editor.")
         return True
 
     required = ['entrances.png', 'entrancetypes.txt', 'icon_reggie.png', 'levelnames.txt', 'overrides.png',
@@ -174,7 +191,7 @@ def isValidGamePath(check='ug'):
     if check is None or check == '': return False
     if not os.path.isdir(check): return False
     if not os.path.isdir(os.path.join(check, 'Texture')): return False
-    if not os.path.isfile(os.path.join(check, '01-01.arc')): return False
+    if not os.path.isfile(os.path.join(check, '01-01.arc')) or os.path.isfile(os.path.join(check, '01-01.arc.LZ')): return False
 
     return True
 
@@ -339,7 +356,7 @@ ZoneThemeValues = [
 ]
 
 ZoneTerrainThemeValues = [
-    'Normal/Overworld', 'Underground', 'Underwater', 'Lava',
+    'Normal', 'Underground*', 'Underwater*', 'Lava*',
 ]
 
 Sprites = None
@@ -784,15 +801,17 @@ class ObjectDef():
 def RenderObject(tileset, objnum, width, height, fullslope=False):
     """Render a tileset object into an array"""
     # allocate an array
+    errorDest = []
+    for i in range(height): errorDest.append([None]*width)
     dest = []
     for i in range(height): dest.append([0]*width)
 
     # ignore non-existent objects
     tileset_defs = ObjectDefinitions[tileset]
-    if tileset_defs is None: return dest
+    if tileset_defs is None: return errorDest
     obj = tileset_defs[objnum]
-    if obj is None: return dest
-    if len(obj.rows) == 0: return dest
+    if obj is None: return errorDest
+    if len(obj.rows) == 0: return errorDest
 
     # diagonal objects are rendered differently
     if (obj.rows[0][0][0] & 0x80) != 0:
@@ -1046,7 +1065,10 @@ def _LoadTileset(idx, name):
     # load in the textures - uses a different method if nsmblib exists
     if HaveNSMBLib:
         tiledata = nsmblib.decompress11LZS(comptiledata)
-        rgbdata = nsmblib.decodeTileset(tiledata)
+        if hasattr(nsmblib, 'decodeTilesetNoAlpha') and not EnableAlpha:
+            rgbdata = nsmblib.decodeTilesetNoAlpha(tiledata)
+        else:
+            rgbdata = nsmblib.decodeTileset(tiledata)
         img = QtGui.QImage(rgbdata, 1024, 256, 4096, QtGui.QImage.Format.Format_ARGB32_Premultiplied)
     else:
         lz = lz77.LZS11()
@@ -1547,6 +1569,7 @@ class LevelUnit():
         self.arcname = None
         self.filename = 'untitled'
         self.hasName = False
+        self.isCompressed = False
         arc = archive.U8()
         arc['course'] = None
         arc['course/course1.bin'] = ''
@@ -1595,39 +1618,56 @@ class LevelUnit():
         self.layers = [[], [], []]
 
 
-    def loadLevel(self, name, fullpath, area, progress=None):
+    def loadLevel(self, name, area, progress=None):
         """Loads a specific level and area"""
-        startTime = time.time()
 
-        # read the archive
-        if fullpath:
-            self.arcname = name
+        self.arcname = name
+
+        if not os.path.isfile(self.arcname):
+            QtWidgets.QMessageBox.warning(None, 'Error',  'Cannot find the level file %s. Check your Stage folder and make sure it exists.' % self.arcname)
+            return False
+
+        self.filename = os.path.basename(self.arcname)
+        self.hasName = True
+
+        with open(self.arcname, 'rb') as arcf:
+            arcdata = arcf.read()
+
+        return self.loadLevelData(arcdata, area, progress)
+
+
+    def loadLevelFromAutosave(self, progress=None):
+        """Loads auto-saved level data"""
+        global AutoSavePath, AutoSaveData
+
+        if str(AutoSavePath).lower() == 'none':
+            self.arcname = None
+            self.filename = 'untitled'
+            self.hasName = False
         else:
-            self.arcname = os.path.join(gamePath, name+'.arc')
-
-        if name == 'AUTO_FLAG':
-            if str(AutoSavePath).lower() == 'none':
-                self.arcname = None
-                self.filename = 'untitled'
-                self.hasName = False
-            else:
-                self.arcname = AutoSavePath
-                self.filename = os.path.basename(self.arcname)
-                self.hasName = True
-
-            arcdata = AutoSaveData
-            SetDirty(noautosave=True)
-        else:
-            if not os.path.isfile(self.arcname):
-                QtWidgets.QMessageBox.warning(None, 'Error',  'Cannot find the required level file %s.arc. Check your Stage folder and make sure it exists.' % name)
-                return False
-
+            self.arcname = AutoSavePath
             self.filename = os.path.basename(self.arcname)
             self.hasName = True
 
-            with open(self.arcname, 'rb') as arcf:
-                arcdata = arcf.read()
+        result = self.loadLevelData(AutoSaveData, 1, progress)
+        SetDirty(noautosave=True)
+        return result
 
+
+    def loadLevelData(self, arcdata, area, progress=None):
+        """Loads a specific level and area from bytes data"""
+        startTime = time.time()
+
+        self.isCompressed = arcdata.startswith(b'\x11')
+
+        if self.isCompressed:
+            # decompress the data
+            if HaveNSMBLib:
+                arcdata = nsmblib.decompress11LZS(arcdata)
+            else:
+                arcdata = lz77.LZS11().Decompress11LZS(arcdata)
+
+        # read the archive
         self.arc = archive.U8.load(arcdata)
 
         # this is a hackish method but let's go through the U8 files
@@ -1724,7 +1764,7 @@ class LevelUnit():
 
         return True
 
-    def save(self):
+    def save(self, compress=None):
         """Save the level back to a file"""
         # prepare this because else the game shits itself and refuses to load some sprites
         self.SortSpritesByZone()
@@ -1780,9 +1820,14 @@ class LevelUnit():
         arc['course/course%d_bgdatL2.bin' % areanum] = self.SaveLayer(2)
 
         # save the U8 archive
-        #with open(self.arcname, 'wb') as arcf:
-        #    arcf.write(arc._dump())
-        return arc._dump()
+        arcdata = arc._dump()
+
+        if compress is None:
+            compress = self.isCompressed
+        if compress:
+            arcdata = lz77.LZS11().Compress11LZS(arcdata)
+
+        return arcdata
 
     def LoadMetadata(self):
         """Loads block 1, the tileset names"""
@@ -2163,7 +2208,8 @@ class LevelUnit():
         bdngstruct = struct.Struct('>4lHHhh')
 
         buffer = create_string_buffer(20 * (len(Level.camprofiles) + 1))
-        buffer2 = create_string_buffer(self.blocks[2] + bytes(24))
+        buffer2 = create_string_buffer(len(self.blocks[2]) + 24)
+        buffer2[:len(self.blocks[2])] = self.blocks[2]
 
         offset2 = len(self.blocks[2])
         bdngid = offset2 // 20
@@ -3220,13 +3266,19 @@ class EntranceEditorItem(LevelEditorItem):
         else:
             fillR, fillG, fillB = 190, 0, 0
 
+        painter.setPen(QtCore.Qt.PenStyle.NoPen)
         if self.isSelected():
             painter.setBrush(QtGui.QBrush(QtGui.QColor.fromRgb(fillR,fillG,fillB,selectedOpacity)))
-            painter.setPen(QtGui.QPen(QtCore.Qt.GlobalColor.white, 1))
         else:
             painter.setBrush(QtGui.QBrush(QtGui.QColor.fromRgb(fillR,fillG,fillB,unselectedOpacity)))
-            painter.setPen(QtGui.QPen(QtCore.Qt.GlobalColor.black, 1))
         painter.drawRoundedRect(self.RoundedRect, 4, 4)
+
+        painter.setBrush(QtCore.Qt.BrushStyle.NoBrush)
+        if self.isSelected():
+            painter.setPen(QtGui.QPen(QtCore.Qt.GlobalColor.white, 1))
+        else:
+            painter.setPen(QtGui.QPen(QtCore.Qt.GlobalColor.black, 1))
+
 
         icontype = 0
         enttype = self.enttype
@@ -3249,12 +3301,14 @@ class EntranceEditorItem(LevelEditorItem):
         if enttype == 24: icontype = 16 # jump out facing left
         if enttype == 27: icontype = 3 # door entrance
 
-        painter.drawPixmap(0,0,EntranceEditorItem.EntranceImages[icontype])
+        painter.drawPixmap(1,1,22,22,EntranceEditorItem.EntranceImages[icontype],1,1,22,22)
 
         #painter.drawText(self.BoundingRect,QtCore.Qt.AlignmentFlag.AlignLeft,str(self.entid))
         painter.setFont(self.font)
         fontheight = QtGui.QFontMetrics(self.font).ascent() * 2/3
         painter.drawText(QtCore.QPointF(3,7+fontheight/2),str(self.entid))
+
+        painter.drawRoundedRect(self.RoundedRect, 4, 4)
 
         if self.isSelected():
             #painter.setRenderHint(QtGui.QPainter.RenderHint.Antialiasing, False)
@@ -3445,16 +3499,22 @@ class PathEditorLineItem(LevelEditorItem):
         self.scene().update()
 
     def computeBoundRectAndPos(self):
-        xcoords = []
-        ycoords = []
-        for node in self.nodelist:
-            xcoords.append(int(node['x']))
-            ycoords.append(int(node['y']))
-        self.objx = (min(xcoords)-4)#*1.5
-        self.objy = (min(ycoords)-4)#*1.5
+        if self.nodelist:
+            xcoords = []
+            ycoords = []
+            for node in self.nodelist:
+                xcoords.append(int(node['x']))
+                ycoords.append(int(node['y']))
 
-        mywidth = (8 + (max(xcoords) - self.objx))*1.5
-        myheight = (8 + (max(ycoords) - self.objy))*1.5
+            self.objx = (min(xcoords)-4)#*1.5
+            self.objy = (min(ycoords)-4)#*1.5
+            mywidth = (8 + (max(xcoords) - self.objx))*1.5
+            myheight = (8 + (max(ycoords) - self.objy))*1.5
+
+        else:
+            self.objx = self.objy = 0
+            mywidth = myheight = 16
+
         global DirtyOverride
         DirtyOverride += 1
         self.setPos(self.objx * 1.5, self.objy * 1.5)
@@ -4302,6 +4362,7 @@ class EntranceEditorWidget(QtWidgets.QWidget):
         super(EntranceEditorWidget, self).__init__()
         self.setSizePolicy(QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Policy.Minimum, QtWidgets.QSizePolicy.Policy.Fixed))
 
+        self.CanUseFlag40 = set([0,1,7,8,9,12,20,21,22,23,24,27])
         self.CanUseFlag8 = set([3,4,5,6,16,17,18,19])
         self.CanUseFlag4 = set([3,4,5,6])
 
@@ -4334,6 +4395,10 @@ class EntranceEditorWidget(QtWidgets.QWidget):
         self.unknownFlagCheckbox = QtWidgets.QCheckBox('Unknown Flag')
         self.unknownFlagCheckbox.setToolTip("<b>Unknown Flag:</b><br>This box is checked on a few entrances in the game, but we haven't managed to figure out what it does (or if it does anything).")
         self.unknownFlagCheckbox.clicked.connect(self.HandleUnknownFlagClicked)
+
+        self.spawnHalfTileLeftCheckbox = QtWidgets.QCheckBox('Spawn Half a Tile Left')
+        self.spawnHalfTileLeftCheckbox.setToolTip("<b>Spawn Half a Tile Left:</b><br>If this is checked, the entrance will spawn Mario half a tile to the left.")
+        self.spawnHalfTileLeftCheckbox.clicked.connect(self.HandleSpawnHalfTileLeftClicked)
 
         self.connectedPipeCheckbox = QtWidgets.QCheckBox('Connected Pipe')
         self.connectedPipeCheckbox.setToolTip("<b>Connected Pipe:</b><br>This box allows you to enable an unused/broken feature in the game. It allows the pipe to function like the pipes in SMB3 where Mario simply goes through the pipe. However, it doesn't work correctly.")
@@ -4387,11 +4452,12 @@ class EntranceEditorWidget(QtWidgets.QWidget):
 
         layout.addWidget(self.enterableCheckbox, 5, 0, 1, 2, QtCore.Qt.AlignmentFlag.AlignRight)
         layout.addWidget(self.unknownFlagCheckbox, 5, 2, 1, 2, QtCore.Qt.AlignmentFlag.AlignRight)
-        layout.addWidget(self.forwardPipeCheckbox, 6, 0, 1, 2, QtCore.Qt.AlignmentFlag.AlignRight)
-        layout.addWidget(self.connectedPipeCheckbox, 6, 2, 1, 2, QtCore.Qt.AlignmentFlag.AlignRight)
-        layout.addWidget(self.connectedPipeReverseCheckbox, 7, 0, 1, 2, QtCore.Qt.AlignmentFlag.AlignRight)
-        layout.addWidget(self.pathID, 7, 3, 1, 1, QtCore.Qt.AlignmentFlag.AlignRight)
-        layout.addWidget(self.pathIDLabel, 7, 2, 1, 1, QtCore.Qt.AlignmentFlag.AlignRight)
+        layout.addWidget(self.spawnHalfTileLeftCheckbox, 6, 0, 1, 4, QtCore.Qt.AlignmentFlag.AlignRight)
+        layout.addWidget(self.forwardPipeCheckbox, 7, 0, 1, 2, QtCore.Qt.AlignmentFlag.AlignRight)
+        layout.addWidget(self.connectedPipeCheckbox, 7, 2, 1, 2, QtCore.Qt.AlignmentFlag.AlignRight)
+        layout.addWidget(self.connectedPipeReverseCheckbox, 8, 0, 1, 2, QtCore.Qt.AlignmentFlag.AlignRight)
+        layout.addWidget(self.pathID, 8, 3, 1, 1, QtCore.Qt.AlignmentFlag.AlignRight)
+        layout.addWidget(self.pathIDLabel, 8, 2, 1, 1, QtCore.Qt.AlignmentFlag.AlignRight)
 
         layout.addWidget(self.activeLayer, 4, 1, 1, 1, QtCore.Qt.AlignmentFlag.AlignLeft)
 
@@ -4419,6 +4485,9 @@ class EntranceEditorWidget(QtWidgets.QWidget):
 
         self.enterableCheckbox.setChecked(((ent.entsettings & 0x80) == 0))
         self.unknownFlagCheckbox.setChecked(((ent.entsettings & 2) != 0))
+
+        self.spawnHalfTileLeftCheckbox.setVisible(ent.enttype in self.CanUseFlag40)
+        self.spawnHalfTileLeftCheckbox.setChecked(((ent.entsettings & 0x40) != 0))
 
         self.connectedPipeCheckbox.setVisible(ent.enttype in self.CanUseFlag8)
         self.connectedPipeCheckbox.setChecked(((ent.entsettings & 8) != 0))
@@ -4452,6 +4521,7 @@ class EntranceEditorWidget(QtWidgets.QWidget):
     @QtCoreSlot(int)
     def HandleEntranceTypeChanged(self, i):
         """Handler for the entrance type changing"""
+        self.spawnHalfTileLeftCheckbox.setVisible(i in self.CanUseFlag40)
         self.connectedPipeCheckbox.setVisible(i in self.CanUseFlag8)
         self.connectedPipeReverseCheckbox.setVisible(i in self.CanUseFlag8 and ((self.ent.entsettings & 8) != 0))
         self.pathIDLabel.setVisible(i in self.CanUseFlag8 and ((self.ent.entsettings & 8) != 0))
@@ -4508,6 +4578,17 @@ class EntranceEditorWidget(QtWidgets.QWidget):
             self.ent.entsettings |= 2
         else:
             self.ent.entsettings &= ~2
+
+
+    @QtCoreSlot(bool)
+    def HandleSpawnHalfTileLeftClicked(self, checked):
+        """Handle for the Spawn Half a Tile Left checkbox being clicked"""
+        if self.UpdateFlag: return
+        SetDirty()
+        if checked:
+            self.ent.entsettings |= 0x40
+        else:
+            self.ent.entsettings &= ~0x40
 
 
     @QtCoreSlot(bool)
@@ -4570,15 +4651,15 @@ class PathNodeEditorWidget(QtWidgets.QWidget):
         #[20:52:41]  [Angel-SL] 1. (readonly) pathid 2. (readonly) nodeid 3. x 4. y 5. speed (float spinner) 6. accel (float spinner)
         #not doing [20:52:58]  [Angel-SL] and 2 buttons - 7. "Move Up" 8. "Move Down"
         self.speed = QtWidgets.QDoubleSpinBox()
-        self.speed.setRange(min(sys.float_info), max(sys.float_info))
+        self.speed.setRange(-FLT_MAX, FLT_MAX)
         self.speed.setToolTip('<b>Speed:</b><br>Unknown units. Mess around and report your findings!')
-        self.speed.setDecimals(int(sys.float_info.__getattribute__('dig')))
+        self.speed.setDecimals(FLT_DIG)
         self.speed.valueChanged.connect(self.HandleSpeedChanged)
 
         self.accel = QtWidgets.QDoubleSpinBox()
-        self.accel.setRange(min(sys.float_info), max(sys.float_info))
+        self.accel.setRange(-FLT_MAX, FLT_MAX)
         self.accel.setToolTip('<b>Accel:</b><br>Unknown units. Mess around and report your findings!')
-        self.accel.setDecimals(int(sys.float_info.__getattribute__('dig')))
+        self.accel.setDecimals(FLT_DIG)
         self.accel.valueChanged.connect(self.HandleAccelChanged)
 
         self.delay = QtWidgets.QSpinBox()
@@ -4972,7 +5053,7 @@ class LevelScene(QtWidgets.QGraphicsScene):
                     destrow = tmap[desty]
                     destx = startx
                     for tile in row:
-                        if tile > 0:
+                        if tile is None or tile > 0:
                             destrow[destx] = tile
                         destx += 1
                     desty += 1
@@ -4984,7 +5065,12 @@ class LevelScene(QtWidgets.QGraphicsScene):
             for row in tmap:
                 destx = 0
                 for tile in row:
-                    if tile > 0 and local_Tiles[tile] is not None:
+                    if tile is None:
+                        # Magenta/black checkerboard for tiles from nonexistent objects
+                        painter.fillRect(destx, desty, 24, 24, QtGui.QColor.fromRgb(192, 0, 192))
+                        painter.fillRect(destx + 12, desty, 12, 12, QtCore.Qt.GlobalColor.black)
+                        painter.fillRect(destx, desty + 12, 12, 12, QtCore.Qt.GlobalColor.black)
+                    elif tile > 0 and local_Tiles[tile] is not None:
                         drawPixmap(destx, desty, local_Tiles[tile])
                     destx += 24
                 desty += 24
@@ -5569,18 +5655,18 @@ class HexSpinBox(QtWidgets.QSpinBox):
             try:
                 input = str(input).lower()
             except:
-                return self.Invalid, input, pos
+                return self.State.Invalid, input, pos
             valid = self.valid
 
             for char in input:
                 if char not in valid:
-                    return self.Invalid, input, pos
+                    return self.State.Invalid, input, pos
 
             value = int(input, 16)
             if value < self.min or value > self.max:
-                return self.Intermediate, input, pos
+                return self.State.Intermediate, input, pos
 
-            return self.Acceptable, input, pos
+            return self.State.Acceptable, input, pos
 
 
     def __init__(self, format='%04X', *args):
@@ -6437,7 +6523,7 @@ class ZoneTab(QtWidgets.QWidget):
 
         self.Zone_terraindark = QtWidgets.QComboBox()
         self.Zone_terraindark.addItems(ZoneTerrainThemeValues)
-        self.Zone_terraindark.setToolTip("<b>Terrain Theme:</b><br>Changes the way the terrain is rendered. It also affects the parts of the background which the normal theme doesn't change.")
+        self.Zone_terraindark.setToolTip("<b>Terrain Lighting:</b><br>Changes the way the terrain is rendered. It also affects the parts of the background which the normal theme doesn't change. Nintendo always used \"Normal\" terrain lighting in levels; options with * next to them are unused and not recommended.")
         self.Zone_terraindark.setSizePolicy(comboboxSizePolicy)
         if z.terraindark < 0: z.terraindark = 0
         if z.terraindark >= len(ZoneTerrainThemeValues): z.terraindark = len(ZoneTerrainThemeValues) - 1
@@ -6964,7 +7050,7 @@ class BGTab(QtWidgets.QWidget):
         self.currentIndexB = self.background_nameB.currentIndex()
 
         self.background_nameB.activated.connect(self.viewboxB)
-        self.viewboxB(self.background_nameB.currentIndex())
+        self.viewboxB(self.background_nameB.currentIndex(), True)
 
         mainLayout = QtWidgets.QVBoxLayout()
         mainLayout.addWidget(self.background_nameB)
@@ -7085,7 +7171,7 @@ class CameraProfilesDialog(QtWidgets.QDialog):
         newId = 1
         for row in range(self.list.count()):
             item = self.list.item(row)
-            values = item.data(QtCore.Qt.ItemDataRole.UserRole)
+            values = qm(item.data(QtCore.Qt.ItemDataRole.UserRole))
             newId = max(newId, values[0] + 1)
 
         item = CustomSortableListWidgetItem()
@@ -7105,14 +7191,14 @@ class CameraProfilesDialog(QtWidgets.QDialog):
 
         if selItems:
             selItem = selItems[0]
-            values = selItem.data(QtCore.Qt.ItemDataRole.UserRole)
+            values = qm(selItem.data(QtCore.Qt.ItemDataRole.UserRole))
 
             self.eventid.setValue(values[0])
             self.camsettings.setValues(values[1], values[2], values[3])
 
     def handleEventIDChanged(self, eventid):
         selItem = self.list.selectedItems()[0]
-        values = selItem.data(QtCore.Qt.ItemDataRole.UserRole)
+        values = qm(selItem.data(QtCore.Qt.ItemDataRole.UserRole))
         values[0] = eventid
         selItem.setData(QtCore.Qt.ItemDataRole.UserRole, values)
         selItem.sortKey = eventid
@@ -7120,14 +7206,14 @@ class CameraProfilesDialog(QtWidgets.QDialog):
 
     def handleCamSettingsChanged(self):
         selItem = self.list.selectedItems()[0]
-        values = selItem.data(QtCore.Qt.ItemDataRole.UserRole)
+        values = qm(selItem.data(QtCore.Qt.ItemDataRole.UserRole))
         values[1] = self.camsettings.modeButtonGroup.checkedId()
         values[2] = self.camsettings.screenSizes.currentIndex()
         values[3] = self.camsettings.zoomChange.value()
         selItem.setData(QtCore.Qt.ItemDataRole.UserRole, values)
 
     def updateItemTitle(self, item):
-        item.setText('Camera Profile on Event %d' % item.data(QtCore.Qt.ItemDataRole.UserRole)[0])
+        item.setText('Camera Profile on Event %d' % qm(item.data(QtCore.Qt.ItemDataRole.UserRole))[0])
 
 
 
@@ -7311,17 +7397,24 @@ class ReggieWindow(QtWidgets.QMainWindow):
 
         # now get stuff ready
         loaded = False
-        if len(sys.argv) > 1 and os.path.isfile(sys.argv[1]) and IsNSMBLevel(sys.argv[1]):
-            loaded = self.LoadLevel(sys.argv[1], True, 1)
-        elif settings.contains('LastLevel'):
-            lastlevel = unicode(qm(settings.value('LastLevel')))
-            settings.remove('LastLevel')
 
-            if lastlevel != 'None':
-                loaded = self.LoadLevel(lastlevel, True, 1)
+        global RestoredFromAutoSave
+        if RestoredFromAutoSave:
+            RestoredFromAutoSave = False
+            loaded = self.LoadLevelFromAutosave()
 
         if not loaded:
-            self.LoadLevel('01-01', False, 1)
+            if len(sys.argv) > 1 and os.path.isfile(sys.argv[1]) and IsNSMBLevel(sys.argv[1]):
+                loaded = self.LoadLevel(sys.argv[1], 1)
+            elif settings.contains('LastLevel'):
+                lastlevel = unicode(qm(settings.value('LastLevel')))
+                settings.remove('LastLevel')
+
+                if lastlevel != 'None':
+                    loaded = self.LoadLevel(lastlevel, 1)
+
+        if not loaded:
+            self.LoadLevelFromName('01-01', 1)
 
         QtCore.QTimer.singleShot(100, self.levelOverview.update)
 
@@ -7463,6 +7556,19 @@ class ReggieWindow(QtWidgets.QMainWindow):
         lmenu.addSeparator()
         lmenu.addAction(self.actions['reloadgfx'])
 
+        if HaveNSMBLib:
+            if hasattr(nsmblib, 'getUpdatedVersion'):
+                updatedVersion = nsmblib.getUpdatedVersion()
+                updatedVersionStr = '%04d.%02d.%02d.%d' % (updatedVersion // 1000000,
+                                                           (updatedVersion // 10000) % 100,
+                                                           (updatedVersion // 100) % 100,
+                                                           updatedVersion % 100)
+                nsmblib_msg = 'Using NSMBLib-Updated %s' % (updatedVersionStr)
+            else:
+                nsmblib_msg = 'Using NSMBLib %d' % nsmblib.getVersion()
+        else:
+            nsmblib_msg = 'Not using NSMBLib'
+
         hmenu = menubar.addMenu('&Help')
         hmenu.addAction(self.actions['infobox'])
         hmenu.addAction(self.actions['helpbox'])
@@ -7476,7 +7582,7 @@ class ReggieWindow(QtWidgets.QMainWindow):
         bindingsVerAct.setEnabled(False)
         qtVerAct = hmenu.addAction('Using Qt %d.%d.%d' % QtCompatVersion)
         qtVerAct.setEnabled(False)
-        nsmblibVerAct = hmenu.addAction(('Using NSMBLib %d' % nsmblib.getVersion()) if HaveNSMBLib else 'Not using NSMBLib')
+        nsmblibVerAct = hmenu.addAction(nsmblib_msg)
         nsmblibVerAct.setEnabled(False)
 
         # create a toolbar
@@ -7784,7 +7890,7 @@ class ReggieWindow(QtWidgets.QMainWindow):
         global AutoSaveDirty
         if not AutoSaveDirty: return
 
-        data = Level.save()
+        data = Level.save(compress=False)
         settings.setValue('AutoSaveFilePath', Level.arcname)
         settings.setValue('AutoSaveFileData', QtCore.QByteArray(data))
         AutoSaveDirty = False
@@ -8312,7 +8418,7 @@ class ReggieWindow(QtWidgets.QMainWindow):
         Level.arc['course/course%d.bin' % newID] = blank
 
         if not self.HandleSave(): return
-        self.LoadLevel(Level.arcname, True, newID)
+        self.LoadLevel(Level.arcname, newID)
 
 
     @QtCoreSlot()
@@ -8325,7 +8431,7 @@ class ReggieWindow(QtWidgets.QMainWindow):
         if self.CheckDirty():
             return
 
-        fn = qm(QtWidgets.QFileDialog.getOpenFileName)(self, 'Choose a level archive', '', 'Level archives (*.arc);;All Files(*)')[0]
+        fn = qm(QtWidgets.QFileDialog.getOpenFileName)(self, 'Choose a level archive', '', LEVEL_FILE_FORMATS_FILTER_OPEN)[0]
         if fn == '': return
 
         with open(unicode(fn), 'rb') as getit:
@@ -8382,7 +8488,7 @@ class ReggieWindow(QtWidgets.QMainWindow):
         if l2 is not None: Level.arc['course/course%d_bgdatL2.bin' % newID] = l2
 
         if not self.HandleSave(): return
-        self.LoadLevel(Level.arcname, True, newID)
+        self.LoadLevel(Level.arcname, newID)
 
 
     @QtCoreSlot()
@@ -8419,7 +8525,7 @@ class ReggieWindow(QtWidgets.QMainWindow):
         # no error checking. if it saved last time, it will probably work now
         with open(Level.arcname, 'wb') as f:
             f.write(Level.arc._dump())
-        self.LoadLevel(Level.arcname, True, 1)
+        self.LoadLevel(Level.arcname, 1)
 
 
     @QtCoreSlot()
@@ -8442,14 +8548,14 @@ class ReggieWindow(QtWidgets.QMainWindow):
                 break
 
         SetGamePath(path)
-        self.LoadLevel('01-01', False, 1)
+        self.LoadLevelFromName('01-01', 1)
 
 
     @QtCoreSlot()
     def HandleNewLevel(self):
         """Create a new level"""
         if self.CheckDirty(): return
-        self.LoadLevel(None, False, 1)
+        self.LoadNewLevel()
 
 
     @QtCoreSlot()
@@ -8460,7 +8566,7 @@ class ReggieWindow(QtWidgets.QMainWindow):
         dlg = ChooseLevelNameDialog()
         if execQtObject(dlg) == QtWidgets.QDialog.DialogCode.Accepted:
             #start = time.time()
-            self.LoadLevel(dlg.currentlevel, False, 1)
+            self.LoadLevelFromName(dlg.currentlevel, 1)
             #end = time.time()
             #print('Loaded in ' + str(end - start))
 
@@ -8470,17 +8576,16 @@ class ReggieWindow(QtWidgets.QMainWindow):
         """Open a level using the filename"""
         if self.CheckDirty(): return
 
-        fn = qm(QtWidgets.QFileDialog.getOpenFileName)(self, 'Choose a level archive', '', 'Level archives (*.arc);;All Files(*)')[0]
+        fn = qm(QtWidgets.QFileDialog.getOpenFileName)(self, 'Choose a level archive', '', LEVEL_FILE_FORMATS_FILTER_OPEN)[0]
         if fn == '': return
-        self.LoadLevel(unicode(fn), True, 1)
+        self.LoadLevel(unicode(fn), 1)
 
 
     @QtCoreSlot()
     def HandleSave(self):
         """Save a level back to the archive"""
         if not Level.hasName:
-            self.HandleSaveAs()
-            return
+            return self.HandleSaveAs()
 
         global Dirty, AutoSaveDirty
         data = Level.save()
@@ -8503,8 +8608,8 @@ class ReggieWindow(QtWidgets.QMainWindow):
     @QtCoreSlot()
     def HandleSaveAs(self):
         """Save a level back to the archive, with a new filename"""
-        fn = qm(QtWidgets.QFileDialog.getSaveFileName)(self, 'Choose a new filename', '', 'Level archives (*.arc);;All Files(*)')
-        if fn == '': return
+        fn = qm(QtWidgets.QFileDialog.getSaveFileName)(self, 'Choose a new filename', '', LEVEL_FILE_FORMATS_FILTER_SAVE)[0]
+        if fn == '': return False
         fn = unicode(fn)
 
         global Dirty, AutoSaveDirty
@@ -8515,14 +8620,20 @@ class ReggieWindow(QtWidgets.QMainWindow):
         Level.arcname = fn
         Level.filename = os.path.basename(fn)
         Level.hasName = True
+        Level.isCompressed = fn.lower().endswith('.lz')
 
         data = Level.save()
-        with open(fn, 'wb') as f:
-            f.write(data)
+        try:
+            with open(fn, 'wb') as f:
+                f.write(data)
+        except IOError as e:
+            QtWidgets.QMessageBox.warning(None, 'Error', 'Error while Reggie was trying to save the level:\n(#%d) %s\n\n(Your work has not been saved! Try saving it under a different filename or in a different folder.)' % (e.args[0], e.args[1]))
+            return False
         settings.setValue('AutoSaveFilePath', fn)
         settings.setValue('AutoSaveFileData', b'x')
 
         self.UpdateTitle()
+        return True
 
 
     @QtCoreSlot()
@@ -8539,7 +8650,7 @@ class ReggieWindow(QtWidgets.QMainWindow):
         if idx == currentIdx:
             return
 
-        if self.CheckDirty() or not self.LoadLevel(Level.arcname, True, idx+1):
+        if self.CheckDirty() or not self.LoadLevel(Level.arcname, idx+1):
             self.areaComboBox.setCurrentIndex(currentIdx)
 
 
@@ -8783,16 +8894,53 @@ class ReggieWindow(QtWidgets.QMainWindow):
             event.accept()
 
 
-    def LoadLevel(self, name, fullpath, area):
+    def LoadLevelFromName(self, name, area):
+        """Load a level from just its name (example: '01-01') and area number"""
+
+        name_arc = '%s.arc' % name
+        name_lz = '%s.arc.LZ' % name
+        fullpath_arc = os.path.join(gamePath, name_arc)
+        fullpath_lz = os.path.join(gamePath, name_lz)
+
+        if os.path.isfile(fullpath_lz) and os.path.isfile(fullpath_arc):
+            msg = QtWidgets.QMessageBox()
+            msg.setIcon(QtWidgets.QMessageBox.Icon.Question)
+            msg.setText('"%s" and "%s" both exist in the Stage folder.' % (name_arc, name_lz))
+            msg.setInformativeText('Which would you like to load?')
+            button_arc = msg.addButton(name_arc, QtWidgets.QMessageBox.ButtonRole.AcceptRole)
+            button_lz = msg.addButton(name_lz, QtWidgets.QMessageBox.ButtonRole.AcceptRole)
+            msg.addButton(QtWidgets.QMessageBox.StandardButton.Cancel)
+            msg.setDefaultButton(button_lz)  # Newer prioritizes .LZ
+            ret = execQtObject(msg)
+
+            if msg.clickedButton() is button_arc:
+                return self.LoadLevel(fullpath_arc, area)
+            elif msg.clickedButton() is button_lz:
+                return self.LoadLevel(fullpath_lz, area)
+            else:
+                return False
+
+        elif os.path.isfile(fullpath_lz):
+            return self.LoadLevel(fullpath_lz, area)
+
+        return self.LoadLevel(fullpath_arc, area)
+
+
+    def LoadLevelFromAutosave(self):
+        """Load level data from the AutoSave* globals"""
+        return self.LoadLevel(None, 1, autosave=True)
+
+
+    def LoadNewLevel(self):
+        """Load a blank level"""
+        return self.LoadLevel(None, 1)
+
+
+    def LoadLevel(self, name, area, autosave=False):
         """Load a level into the editor"""
 
         if name is not None:
-            if fullpath:
-                checkname = name
-            else:
-                checkname = os.path.join(gamePath, name+'.arc')
-
-            if not IsNSMBLevel(checkname):
+            if not IsNSMBLevel(name):
                 QtWidgets.QMessageBox.warning(self, 'Reggie!', "This file doesn't seem to be a valid level.", QtWidgets.QMessageBox.StandardButton.Ok)
                 return False
 
@@ -8850,14 +8998,12 @@ class ReggieWindow(QtWidgets.QMainWindow):
         Level = LevelUnit()
 
         if name is None:
-            Level.newLevel()
-        else:
-            global RestoredFromAutoSave
-            if RestoredFromAutoSave:
-                RestoredFromAutoSave = False
-                Level.loadLevel('AUTO_FLAG', True, 1, progress)
+            if autosave:
+                Level.loadLevelFromAutosave(progress)
             else:
-                Level.loadLevel(name, fullpath, area, progress)
+                Level.newLevel()
+        else:
+            Level.loadLevel(name, area, progress)
 
         OverrideSnapping = False
 
@@ -9627,7 +9773,7 @@ class ReggieWindow(QtWidgets.QMainWindow):
             camprofiles = []
             for row in range(dlg.list.count()):
                 item = dlg.list.item(row)
-                camprofiles.append(item.data(QtCore.Qt.ItemDataRole.UserRole))
+                camprofiles.append(qm(item.data(QtCore.Qt.ItemDataRole.UserRole)))
 
             Level.camprofiles = camprofiles
 
@@ -9637,7 +9783,7 @@ class ReggieWindow(QtWidgets.QMainWindow):
 
         dlg = ScreenCapChoiceDialog()
         if execQtObject(dlg) == QtWidgets.QDialog.DialogCode.Accepted:
-            fn = qm(QtWidgets.QFileDialog.getSaveFileName)(mainWindow, 'Choose a new filename', '/untitled.png', 'Portable Network Graphics (*.png)')
+            fn = qm(QtWidgets.QFileDialog.getSaveFileName)(mainWindow, 'Choose a new filename', '/untitled.png', 'Portable Network Graphics (*.png)')[0]
             if fn == '': return
             fn = unicode(fn)
 
@@ -9799,10 +9945,6 @@ def main():
 EnableAlpha = True
 if '-alpha' in sys.argv:
     EnableAlpha = False
-
-    # nsmblib doesn't support -alpha so if it's enabled
-    # then don't use it
-    HaveNSMBLib = False
 
 DarkMode = False
 
