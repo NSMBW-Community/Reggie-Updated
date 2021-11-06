@@ -1850,12 +1850,12 @@ class LevelUnit():
         """Loads block 7, the entrances"""
         entdata = self.blocks[6]
         entcount = len(entdata) // 20
-        entstruct = struct.Struct('>HHxxxxBBBBxBBBHxx')
+        entstruct = struct.Struct('>HHxxxxBBBBxBBBHxB')
         offset = 0
         entrances = []
         for i in range(entcount):
             data = entstruct.unpack_from(entdata,offset)
-            entrances.append(EntranceEditorItem(data[0], data[1], data[2], data[3], data[4], data[5], data[6], data[7], data[8], data[9]))
+            entrances.append(EntranceEditorItem(data[0], data[1], data[2], data[3], data[4], data[5], data[6], data[7], data[8], data[9], data[10]))
             offset += 20
         self.entrances = entrances
 
@@ -2063,7 +2063,7 @@ class LevelUnit():
     def SaveEntrances(self):
         """Saves the entrances back to block 7"""
         offset = 0
-        entstruct = struct.Struct('>HHxxxxBBBBxBBBHxx')
+        entstruct = struct.Struct('>HHxxxxBBBBxBBBHxB')
         buffer = create_string_buffer(len(self.entrances) * 20)
         zonelist = self.zones
         for entrance in self.entrances:
@@ -2071,7 +2071,7 @@ class LevelUnit():
             if zoneID < 0:
                 # This can happen if the level has no zones
                 zoneID = 0
-            entstruct.pack_into(buffer, offset, int(entrance.objx), int(entrance.objy), int(entrance.entid), int(entrance.destarea), int(entrance.destentrance), int(entrance.enttype), zoneID, int(entrance.entlayer), int(entrance.entpath), int(entrance.entsettings))
+            entstruct.pack_into(buffer, offset, int(entrance.objx), int(entrance.objy), int(entrance.entid), int(entrance.destarea), int(entrance.destentrance), int(entrance.enttype), zoneID, int(entrance.entlayer), int(entrance.entpath), int(entrance.entsettings), int(entrance.cpdirection))
             offset += 20
         self.blocks[6] = buffer.raw
 
@@ -3176,7 +3176,7 @@ class EntranceEditorItem(LevelEditorItem):
 
     BoundingRect = QtCore.QRectF(0,0,24,24)
 
-    def __init__(self, x, y, id, destarea, destentrance, type, zone, layer, path, settings):
+    def __init__(self, x, y, id, destarea, destentrance, type, zone, layer, path, settings, cpd):
         """Creates an entrance with specific data"""
         if EntranceEditorItem.EntranceImages is None:
             ei = []
@@ -3198,6 +3198,7 @@ class EntranceEditorItem(LevelEditorItem):
         self.entsettings = settings
         self.entlayer = layer
         self.entpath = path
+        self.cpdirection = cpd
         self.listitem = None
 
         self.setFlag(QtWidgets.QGraphicsItem.GraphicsItemFlag.ItemIsMovable, EntrancesNonFrozen)
@@ -4361,31 +4362,36 @@ class EntranceEditorWidget(QtWidgets.QWidget):
         super(EntranceEditorWidget, self).__init__()
         self.setSizePolicy(QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Policy.Minimum, QtWidgets.QSizePolicy.Policy.Fixed))
 
-        self.CanUseFlag40 = set([0,1,7,8,9,12,20,21,22,23,24,27])
-        self.CanUseFlag8 = set([3,4,5,6,16,17,18,19])
-        self.CanUseFlag4 = set([3,4,5,6])
+        self.CanUseFlag40 = {0,1,7,8,9,12,20,21,22,23,24,27}
+        self.CanUseFlag8 = {3,4,5,6,16,17,18,19}
+        self.CanUseFlag4 = {3,4,5,6}
 
         # create widgets
-        self.entranceID = QtWidgets.QSpinBox()
-        self.entranceID.setRange(0, 255)
-        self.entranceID.setToolTip('<b>ID:</b><br>Must be different from all other IDs')
-        self.entranceID.valueChanged.connect(self.HandleEntranceIDChanged)
-
         self.entranceType = QtWidgets.QComboBox()
         LoadEntranceNames()
         self.entranceType.addItems(EntranceTypeNames)
         self.entranceType.setToolTip('<b>Type:</b><br>Sets how the entrance behaves')
         self.entranceType.activated.connect(self.HandleEntranceTypeChanged)
 
-        self.destArea = QtWidgets.QSpinBox()
-        self.destArea.setRange(0, 4)
-        self.destArea.setToolTip('<b>Dest. Area:</b><br>If this entrance leads nowhere or the destination is in this area, set this to 0.')
-        self.destArea.valueChanged.connect(self.HandleDestAreaChanged)
+        self.entranceID = QtWidgets.QSpinBox()
+        self.entranceID.setRange(0, 255)
+        self.entranceID.setToolTip('<b>ID:</b><br>Must be different from all other IDs')
+        self.entranceID.valueChanged.connect(self.HandleEntranceIDChanged)
 
         self.destEntrance = QtWidgets.QSpinBox()
         self.destEntrance.setRange(0, 255)
         self.destEntrance.setToolTip('<b>Dest. ID:</b><br>If this entrance leads nowhere, set this to 0.')
         self.destEntrance.valueChanged.connect(self.HandleDestEntranceChanged)
+
+        self.activeLayer = QtWidgets.QComboBox()
+        self.activeLayer.addItems(['Layer 1', 'Layer 2', 'Layer 0'])
+        self.activeLayer.setToolTip('<b>Active on:</b><br>Allows you to change the collision layer which this entrance is active on. This option is very glitchy and not used in the default levels - for almost all normal cases, you will want to use layer 1.')
+        self.activeLayer.activated.connect(self.HandleActiveLayerChanged)
+
+        self.destArea = QtWidgets.QSpinBox()
+        self.destArea.setRange(0, 4)
+        self.destArea.setToolTip('<b>Dest. Area:</b><br>If this entrance leads nowhere or the destination is in this area, set this to 0.')
+        self.destArea.valueChanged.connect(self.HandleDestAreaChanged)
 
         self.enterableCheckbox = QtWidgets.QCheckBox('Enterable')
         self.enterableCheckbox.setToolTip("<b>Enterable:</b><br>If this box is checked on a pipe or door entrance, Mario will be able to enter the pipe/door. If it's not checked, he won't be able to enter it. Behaviour on other types of entrances is unknown/undefined.")
@@ -4399,66 +4405,69 @@ class EntranceEditorWidget(QtWidgets.QWidget):
         self.spawnHalfTileLeftCheckbox.setToolTip("<b>Spawn Half a Tile Left:</b><br>If this is checked, the entrance will spawn Mario half a tile to the left.")
         self.spawnHalfTileLeftCheckbox.clicked.connect(self.HandleSpawnHalfTileLeftClicked)
 
-        self.connectedPipeCheckbox = QtWidgets.QCheckBox('Connected Pipe')
-        self.connectedPipeCheckbox.setToolTip("<b>Connected Pipe:</b><br>This box allows you to enable an unused/broken feature in the game. It allows the pipe to function like the pipes in SMB3 where Mario simply goes through the pipe. However, it doesn't work correctly.")
-        self.connectedPipeCheckbox.clicked.connect(self.HandleConnectedPipeClicked)
+        self.forwardPipeCheckbox = QtWidgets.QCheckBox('Links to Forward Pipe')
+        self.forwardPipeCheckbox.setToolTip('<b>Links to Forward Pipe:</b><br>If this option is set on a pipe, the destination entrance/area values will be ignored - Mario will pass through the pipe and then reappear several tiles ahead, coming out of a pipe that faces the screen.')
+        self.forwardPipeCheckbox.clicked.connect(self.HandleForwardPipeClicked)
 
-        self.connectedPipeReverseCheckbox = QtWidgets.QCheckBox('Connected Pipe Reverse')
-        self.connectedPipeReverseCheckbox.setToolTip("<b>Connected Pipe Reverse:</b><br>If you're using connected pipes, this flag must be set on the opposite end (the one located at the end of the path).")
-        self.connectedPipeReverseCheckbox.clicked.connect(self.HandleConnectedPipeReverseClicked)
+        self.connectedPipeCheckbox = QtWidgets.QCheckBox('Connected Pipe')
+        self.connectedPipeCheckbox.setToolTip("<b>Connected Pipe:</b><br>This box allows you to enable an unused/broken feature in the game. It allows the pipe to function like the pipes in SMB3 where Mario simply goes through the pipe. It doesn't work correctly in NSMBW, but it's been fixed in Newer SMBW.")
+        self.connectedPipeCheckbox.clicked.connect(self.HandleConnectedPipeClicked)
 
         self.pathID = QtWidgets.QSpinBox()
         self.pathID.setRange(0, 255)
         self.pathID.setToolTip('<b>Path ID:</b><br>Use this option to set the path number that the connected pipe will follow.')
         self.pathID.valueChanged.connect(self.HandlePathIDChanged)
 
-        self.forwardPipeCheckbox = QtWidgets.QCheckBox('Links to Forward Pipe')
-        self.forwardPipeCheckbox.setToolTip('<b>Links to Forward Pipe:</b><br>If this option is set on a pipe, the destination entrance/area values will be ignored - Mario will pass through the pipe and then reappear several tiles ahead, coming out of a pipe that faces the screen.')
-        self.forwardPipeCheckbox.clicked.connect(self.HandleForwardPipeClicked)
+        self.connectedPipeDirection = QtWidgets.QComboBox()
+        self.connectedPipeDirection.addItems(['Up', 'Down', 'Left', 'Right'])
+        self.connectedPipeDirection.setToolTip('<b>Exit Direction:</b><br>Set the direction the player will exit out of the connected pipe.')
+        self.connectedPipeDirection.activated.connect(self.HandleConnectedPipeDirectionChanged)
 
-        self.activeLayer = QtWidgets.QComboBox()
-        self.activeLayer.addItems(['Layer 1', 'Layer 2', 'Layer 0'])
-        self.activeLayer.setToolTip('<b>Active on:</b><br>Allows you to change the collision layer which this entrance is active on. This option is very glitchy and not used in the default levels - for almost all normal cases, you will want to use layer 1.')
-        self.activeLayer.activated.connect(self.HandleActiveLayerChanged)
+        self.connectedPipeReverseCheckbox = QtWidgets.QCheckBox('Reverse')
+        self.connectedPipeReverseCheckbox.setToolTip("<b>Reverse:</b><br>This must be checked on the entrance at the end of the path.")
+        self.connectedPipeReverseCheckbox.clicked.connect(self.HandleConnectedPipeReverseClicked)
 
         # create a layout
         layout = QtWidgets.QGridLayout()
         self.setLayout(layout)
 
-        # "Editing Entrance #" label
+        # First part: "Editing Entrance #" label, and Type box
         self.editingLabel = QtWidgets.QLabel('-')
         layout.addWidget(self.editingLabel, 0, 0, 1, 4, QtCore.Qt.AlignmentFlag.AlignTop)
-
-        # add labels
-        layout.addWidget(QtWidgets.QLabel('ID:'), 3, 0, 1, 1, QtCore.Qt.AlignmentFlag.AlignRight)
         layout.addWidget(QtWidgets.QLabel('Type:'), 1, 0, 1, 1, QtCore.Qt.AlignmentFlag.AlignRight)
-
+        layout.addWidget(self.entranceType, 1, 1, 1, 3, QtCore.Qt.AlignmentFlag.AlignLeft)
         layout.addWidget(createHorzLine(), 2, 0, 1, 4)
 
+        # Second part: other general settings
+        layout.addWidget(QtWidgets.QLabel('ID:'), 3, 0, 1, 1, QtCore.Qt.AlignmentFlag.AlignRight)
+        layout.addWidget(self.entranceID, 3, 1)
         layout.addWidget(QtWidgets.QLabel('Dest. ID:'), 3, 2, 1, 1, QtCore.Qt.AlignmentFlag.AlignRight)
-        layout.addWidget(QtWidgets.QLabel('Dest. Area:'), 4, 2, 1, 1, QtCore.Qt.AlignmentFlag.AlignRight)
-
+        layout.addWidget(self.destEntrance, 3, 3)
         layout.addWidget(QtWidgets.QLabel('Active on:'), 4, 0, 1, 1, QtCore.Qt.AlignmentFlag.AlignRight)
-
-        self.pathIDLabel = QtWidgets.QLabel('Path ID:')
-
-        # add the widgets
-        layout.addWidget(self.entranceID, 3, 1, 1, 1)
-        layout.addWidget(self.entranceType, 1, 1, 1, 3)
-
-        layout.addWidget(self.destEntrance, 3, 3, 1, 1)
-        layout.addWidget(self.destArea, 4, 3, 1, 1)
-
+        layout.addWidget(self.activeLayer, 4, 1)
+        layout.addWidget(QtWidgets.QLabel('Dest. Area:'), 4, 2, 1, 1, QtCore.Qt.AlignmentFlag.AlignRight)
+        layout.addWidget(self.destArea, 4, 3)
         layout.addWidget(self.enterableCheckbox, 5, 0, 1, 2, QtCore.Qt.AlignmentFlag.AlignRight)
         layout.addWidget(self.unknownFlagCheckbox, 5, 2, 1, 2, QtCore.Qt.AlignmentFlag.AlignRight)
-        layout.addWidget(self.spawnHalfTileLeftCheckbox, 6, 0, 1, 4, QtCore.Qt.AlignmentFlag.AlignRight)
-        layout.addWidget(self.forwardPipeCheckbox, 7, 0, 1, 2, QtCore.Qt.AlignmentFlag.AlignRight)
-        layout.addWidget(self.connectedPipeCheckbox, 7, 2, 1, 2, QtCore.Qt.AlignmentFlag.AlignRight)
-        layout.addWidget(self.connectedPipeReverseCheckbox, 8, 0, 1, 2, QtCore.Qt.AlignmentFlag.AlignRight)
-        layout.addWidget(self.pathID, 8, 3, 1, 1, QtCore.Qt.AlignmentFlag.AlignRight)
-        layout.addWidget(self.pathIDLabel, 8, 2, 1, 1, QtCore.Qt.AlignmentFlag.AlignRight)
 
-        layout.addWidget(self.activeLayer, 4, 1, 1, 1, QtCore.Qt.AlignmentFlag.AlignLeft)
+        # Third part: type-specific settings groupbox
+        self.typeSpecificSettingsGroup = QtWidgets.QGroupBox('Type-Specific Settings')
+        tssLayout = QtWidgets.QGridLayout(self.typeSpecificSettingsGroup)
+        layout.addWidget(self.typeSpecificSettingsGroup, 6, 0, 1, 4)
+
+        tssLayout.addWidget(self.spawnHalfTileLeftCheckbox, 0, 0, 1, 4, QtCore.Qt.AlignmentFlag.AlignLeft)
+        tssLayout.addWidget(self.forwardPipeCheckbox, 1, 0, 1, 2, QtCore.Qt.AlignmentFlag.AlignRight)
+        tssLayout.addWidget(self.connectedPipeCheckbox, 1, 2, 1, 2, QtCore.Qt.AlignmentFlag.AlignRight)
+
+        self.connectedPipeGroup = QtWidgets.QGroupBox('Connected Pipe Settings')
+        cpLayout = QtWidgets.QGridLayout(self.connectedPipeGroup)
+        tssLayout.addWidget(self.connectedPipeGroup, 2, 0, 1, 4)
+
+        cpLayout.addWidget(self.connectedPipeReverseCheckbox, 1, 0, 1, 4, QtCore.Qt.AlignmentFlag.AlignRight)
+        cpLayout.addWidget(QtWidgets.QLabel('Path ID:'), 0, 0, 1, 1, QtCore.Qt.AlignmentFlag.AlignRight)
+        cpLayout.addWidget(self.pathID, 0, 1)
+        cpLayout.addWidget(QtWidgets.QLabel('Exit Direction:'), 0, 2, 1, 1, QtCore.Qt.AlignmentFlag.AlignRight)
+        cpLayout.addWidget(self.connectedPipeDirection, 0, 3)
 
         self.ent = None
         self.UpdateFlag = False
@@ -4468,7 +4477,7 @@ class EntranceEditorWidget(QtWidgets.QWidget):
         """Change the entrance being edited by the editor, update all fields"""
         if self.ent == ent: return
 
-        self.editingLabel.setText('<b>Editing Entrance %d:</b>' % (ent.entid))
+        self.updateTitle(ent.entid)
         self.ent = ent
         self.UpdateFlag = True
 
@@ -4477,33 +4486,46 @@ class EntranceEditorWidget(QtWidgets.QWidget):
         if ent.entlayer < 0: ent.entlayer = 0
         if ent.entlayer >= 3: ent.entlayer = 2
 
-        self.entranceID.setValue(ent.entid)
         self.entranceType.setCurrentIndex(ent.enttype)
-        self.destArea.setValue(ent.destarea)
-        self.destEntrance.setValue(ent.destentrance)
 
-        self.enterableCheckbox.setChecked(((ent.entsettings & 0x80) == 0))
-        self.unknownFlagCheckbox.setChecked(((ent.entsettings & 2) != 0))
-
-        self.spawnHalfTileLeftCheckbox.setVisible(ent.enttype in self.CanUseFlag40)
-        self.spawnHalfTileLeftCheckbox.setChecked(((ent.entsettings & 0x40) != 0))
-
-        self.connectedPipeCheckbox.setVisible(ent.enttype in self.CanUseFlag8)
-        self.connectedPipeCheckbox.setChecked(((ent.entsettings & 8) != 0))
-
-        self.connectedPipeReverseCheckbox.setVisible(ent.enttype in self.CanUseFlag8 and ((ent.entsettings & 8) != 0))
-        self.connectedPipeReverseCheckbox.setChecked(((ent.entsettings & 1) != 0))
-
-        self.forwardPipeCheckbox.setVisible(ent.enttype in self.CanUseFlag4)
-        self.forwardPipeCheckbox.setChecked(((ent.entsettings & 4) != 0))
-
-        self.pathID.setVisible(ent.enttype in self.CanUseFlag8 and ((ent.entsettings & 8) != 0))
-        self.pathID.setValue(ent.entpath)
-        self.pathIDLabel.setVisible(ent.enttype in self.CanUseFlag8 and ((ent.entsettings & 8) != 0))
-
+        self.entranceID.setValue(ent.entid)
         self.activeLayer.setCurrentIndex(ent.entlayer)
+        self.destEntrance.setValue(ent.destentrance)
+        self.destArea.setValue(ent.destarea)
+
+        self.enterableCheckbox.setChecked((ent.entsettings & 0x80) == 0)
+        self.unknownFlagCheckbox.setChecked((ent.entsettings & 2) != 0)
+
+        self.spawnHalfTileLeftCheckbox.setChecked((ent.entsettings & 0x40) != 0)
+
+        self.forwardPipeCheckbox.setChecked((ent.entsettings & 4) != 0)
+
+        self.connectedPipeCheckbox.setChecked((ent.entsettings & 8) != 0)
+
+        self.connectedPipeReverseCheckbox.setChecked((ent.entsettings & 1) != 0)
+        self.pathID.setValue(ent.entpath)
+        self.connectedPipeDirection.setCurrentIndex(ent.cpdirection)
+
+        self.updateWidgetVisibilities(ent.enttype, ent.entsettings)
 
         self.UpdateFlag = False
+
+
+    def updateTitle(self, id):
+        """Update the title label with the entrance ID"""
+        self.editingLabel.setText('<b>Editing Entrance %d:</b>' % id)
+
+
+    def updateWidgetVisibilities(self, type, settings):
+        """Update visibility for all widgets as necessary"""
+        self.typeSpecificSettingsGroup.setVisible(type in (self.CanUseFlag40 | self.CanUseFlag8 | self.CanUseFlag4))
+
+        self.spawnHalfTileLeftCheckbox.setVisible(type in self.CanUseFlag40)
+
+        self.forwardPipeCheckbox.setVisible(type in self.CanUseFlag4)
+        self.connectedPipeCheckbox.setVisible(type in self.CanUseFlag8)
+
+        self.connectedPipeGroup.setVisible(type in self.CanUseFlag8 and ((settings & 8) != 0))
 
 
     @QtCoreSlot(int)
@@ -4515,17 +4537,12 @@ class EntranceEditorWidget(QtWidgets.QWidget):
         self.ent.update()
         self.ent.UpdateTooltip()
         self.ent.listitem.setText(self.ent.ListString())
+        self.updateTitle(i)
 
 
     @QtCoreSlot(int)
     def HandleEntranceTypeChanged(self, i):
         """Handler for the entrance type changing"""
-        self.spawnHalfTileLeftCheckbox.setVisible(i in self.CanUseFlag40)
-        self.connectedPipeCheckbox.setVisible(i in self.CanUseFlag8)
-        self.connectedPipeReverseCheckbox.setVisible(i in self.CanUseFlag8 and ((self.ent.entsettings & 8) != 0))
-        self.pathIDLabel.setVisible(i in self.CanUseFlag8 and ((self.ent.entsettings & 8) != 0))
-        self.pathID.setVisible(i in self.CanUseFlag8 and ((self.ent.entsettings & 8) != 0))
-        self.forwardPipeCheckbox.setVisible(i in self.CanUseFlag4)
         if self.UpdateFlag: return
         SetDirty()
         self.ent.enttype = i
@@ -4533,6 +4550,7 @@ class EntranceEditorWidget(QtWidgets.QWidget):
         self.ent.update()
         self.ent.UpdateTooltip()
         self.ent.listitem.setText(self.ent.ListString())
+        self.updateWidgetVisibilities(i, self.ent.entsettings)
 
 
     @QtCoreSlot(int)
@@ -4593,15 +4611,13 @@ class EntranceEditorWidget(QtWidgets.QWidget):
     @QtCoreSlot(bool)
     def HandleConnectedPipeClicked(self, checked):
         """Handle for the connected pipe checkbox being clicked"""
-        self.connectedPipeReverseCheckbox.setVisible(checked)
-        self.pathID.setVisible(checked)
-        self.pathIDLabel.setVisible(checked)
         if self.UpdateFlag: return
         SetDirty()
         if checked:
             self.ent.entsettings |= 8
         else:
             self.ent.entsettings &= ~8
+        self.updateWidgetVisibilities(self.ent.enttype, self.ent.entsettings)
 
     @QtCoreSlot(bool)
     def HandleConnectedPipeReverseClicked(self, checked):
@@ -4636,6 +4652,14 @@ class EntranceEditorWidget(QtWidgets.QWidget):
         if self.UpdateFlag: return
         SetDirty()
         self.ent.entlayer = i
+
+    @QtCore.pyqtSlot(int)
+    def HandleConnectedPipeDirectionChanged(self, i):
+        """Handler for CpDirection changing"""
+        if self.UpdateFlag: return
+        SetDirty()
+        self.ent.cpdirection = i
+
 
 class PathNodeEditorWidget(QtWidgets.QWidget):
     """Widget for editing path node properties"""
@@ -5225,7 +5249,7 @@ class LevelViewWidget(QtWidgets.QGraphicsView):
                 for ent in Level.entrances: getids[ent.entid] = True
                 minimumID = getids.index(False)
 
-                ent = EntranceEditorItem(clickedx, clickedy, minimumID, 0, 0, 0, 0, 0, 0, 0)
+                ent = EntranceEditorItem(clickedx, clickedy, minimumID, 0, 0, 0, 0, 0, 0, 0, 0)
                 mw = mainWindow
                 ent.positionChanged = mw.HandleEntPosChange
                 mw.scene.addItem(ent)
