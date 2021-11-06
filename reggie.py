@@ -4424,7 +4424,7 @@ class EntranceEditorWidget(QtWidgets.QWidget):
 
         self.connectedPipeDirection = QtWidgets.QComboBox()
         self.connectedPipeDirection.addItems(['Up', 'Down', 'Left', 'Right'])
-        self.connectedPipeDirection.setToolTip('<b>Exit Direction From Other Side:</b><br>Sets the direction the player will exit out of the other side of the connected pipe.')
+        self.connectedPipeDirection.setToolTip('<b>Direction of Other Side:</b><br>Sets the direction the player will exit out of the other side of the connected pipe. (This should match the "Type" setting for the other entrance.)')
         self.connectedPipeDirection.activated.connect(self.HandleConnectedPipeDirectionChanged)
 
         # create a layout
@@ -4466,7 +4466,7 @@ class EntranceEditorWidget(QtWidgets.QWidget):
         cpLayout.addWidget(QtWidgets.QLabel('Path ID:'), 0, 0, 1, 1, QtCore.Qt.AlignmentFlag.AlignRight)
         cpLayout.addWidget(self.pathID, 0, 1)
         cpLayout.addWidget(self.connectedPipeReverseCheckbox, 0, 2, 1, 2, QtCore.Qt.AlignmentFlag.AlignRight)
-        cpLayout.addWidget(QtWidgets.QLabel('Exit Direction From Other Side:'), 1, 0, 1, 3, QtCore.Qt.AlignmentFlag.AlignRight)
+        cpLayout.addWidget(QtWidgets.QLabel('Direction of Other Side:'), 1, 0, 1, 3, QtCore.Qt.AlignmentFlag.AlignRight)
         cpLayout.addWidget(self.connectedPipeDirection, 1, 3)
 
         self.ent = None
@@ -4655,7 +4655,7 @@ class EntranceEditorWidget(QtWidgets.QWidget):
 
     @QtCore.pyqtSlot(int)
     def HandleConnectedPipeDirectionChanged(self, i):
-        """Handler for CpDirection changing"""
+        """Handler for connected-pipe direction changing"""
         if self.UpdateFlag: return
         SetDirty()
         self.ent.cpdirection = i
