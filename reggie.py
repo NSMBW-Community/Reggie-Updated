@@ -4418,14 +4418,14 @@ class EntranceEditorWidget(QtWidgets.QWidget):
         self.pathID.setToolTip('<b>Path ID:</b><br>Use this option to set the path number that the connected pipe will follow.')
         self.pathID.valueChanged.connect(self.HandlePathIDChanged)
 
-        self.connectedPipeDirection = QtWidgets.QComboBox()
-        self.connectedPipeDirection.addItems(['Up', 'Down', 'Left', 'Right'])
-        self.connectedPipeDirection.setToolTip('<b>Exit Direction:</b><br>Set the direction the player will exit out of the connected pipe.')
-        self.connectedPipeDirection.activated.connect(self.HandleConnectedPipeDirectionChanged)
-
         self.connectedPipeReverseCheckbox = QtWidgets.QCheckBox('Reverse')
         self.connectedPipeReverseCheckbox.setToolTip("<b>Reverse:</b><br>This must be checked on the entrance at the end of the path.")
         self.connectedPipeReverseCheckbox.clicked.connect(self.HandleConnectedPipeReverseClicked)
+
+        self.connectedPipeDirection = QtWidgets.QComboBox()
+        self.connectedPipeDirection.addItems(['Up', 'Down', 'Left', 'Right'])
+        self.connectedPipeDirection.setToolTip('<b>Exit Direction From Other Side:</b><br>Sets the direction the player will exit out of the other side of the connected pipe.')
+        self.connectedPipeDirection.activated.connect(self.HandleConnectedPipeDirectionChanged)
 
         # create a layout
         layout = QtWidgets.QGridLayout()
@@ -4463,11 +4463,11 @@ class EntranceEditorWidget(QtWidgets.QWidget):
         cpLayout = QtWidgets.QGridLayout(self.connectedPipeGroup)
         tssLayout.addWidget(self.connectedPipeGroup, 2, 0, 1, 4)
 
-        cpLayout.addWidget(self.connectedPipeReverseCheckbox, 1, 0, 1, 4, QtCore.Qt.AlignmentFlag.AlignRight)
         cpLayout.addWidget(QtWidgets.QLabel('Path ID:'), 0, 0, 1, 1, QtCore.Qt.AlignmentFlag.AlignRight)
         cpLayout.addWidget(self.pathID, 0, 1)
-        cpLayout.addWidget(QtWidgets.QLabel('Exit Direction:'), 0, 2, 1, 1, QtCore.Qt.AlignmentFlag.AlignRight)
-        cpLayout.addWidget(self.connectedPipeDirection, 0, 3)
+        cpLayout.addWidget(self.connectedPipeReverseCheckbox, 0, 2, 1, 2, QtCore.Qt.AlignmentFlag.AlignRight)
+        cpLayout.addWidget(QtWidgets.QLabel('Exit Direction From Other Side:'), 1, 0, 1, 3, QtCore.Qt.AlignmentFlag.AlignRight)
+        cpLayout.addWidget(self.connectedPipeDirection, 1, 3)
 
         self.ent = None
         self.UpdateFlag = False
@@ -4502,8 +4502,8 @@ class EntranceEditorWidget(QtWidgets.QWidget):
 
         self.connectedPipeCheckbox.setChecked((ent.entsettings & 8) != 0)
 
-        self.connectedPipeReverseCheckbox.setChecked((ent.entsettings & 1) != 0)
         self.pathID.setValue(ent.entpath)
+        self.connectedPipeReverseCheckbox.setChecked((ent.entsettings & 1) != 0)
         self.connectedPipeDirection.setCurrentIndex(ent.cpdirection)
 
         self.updateWidgetVisibilities(ent.enttype, ent.entsettings)
