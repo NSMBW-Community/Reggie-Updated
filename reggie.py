@@ -4435,7 +4435,7 @@ class EntranceEditorWidget(QtWidgets.QWidget):
         self.editingLabel = QtWidgets.QLabel('-')
         layout.addWidget(self.editingLabel, 0, 0, 1, 4, QtCore.Qt.AlignmentFlag.AlignTop)
         layout.addWidget(QtWidgets.QLabel('Type:'), 1, 0, 1, 1, QtCore.Qt.AlignmentFlag.AlignRight)
-        layout.addWidget(self.entranceType, 1, 1, 1, 3, QtCore.Qt.AlignmentFlag.AlignLeft)
+        layout.addWidget(self.entranceType, 1, 1, 1, 3)
         layout.addWidget(createHorzLine(), 2, 0, 1, 4)
 
         # Second part: other general settings
