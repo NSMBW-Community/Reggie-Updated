@@ -208,7 +208,7 @@ def isValidGamePath(check='ug'):
     return True
 
 
-def setupDarkMode():
+def setUpDarkMode():
     """Sets up dark mode theming"""
     # Taken from https://gist.github.com/QuantumCD/6245215
 
@@ -9908,7 +9908,7 @@ def main():
     LocationsNonFrozen = (str(qm(settings.value('FreezeLocations', 'false'))).lower() == 'false')
 
     if DarkMode:
-        setupDarkMode()
+        setUpDarkMode()
 
     for arg in sys.argv:
         if arg.startswith('-gamepath='):
