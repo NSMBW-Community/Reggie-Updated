@@ -49,8 +49,20 @@ FLT_MAX = 3.402823466e+38
 FLT_DIG = 6
 
 
-LEVEL_FILE_FORMATS_FILTER_SAVE = 'Level archives (*.arc);;LZ11-compressed level archives (*.arc.LZ);;All Files (*)'
-LEVEL_FILE_FORMATS_FILTER_OPEN = 'All supported files (*.arc *.arc.LZ);;' + LEVEL_FILE_FORMATS_FILTER_SAVE
+LEVEL_FILE_FORMATS_FILTER_ALL_SUPPORTED = 'All supported files (*.arc *.arc.LZ)'
+LEVEL_FILE_FORMATS_FILTER_ARC = 'Level archives (*.arc)'
+LEVEL_FILE_FORMATS_FILTER_ARC_LZ = 'LZ11-compressed level archives (*.arc.LZ)'
+LEVEL_FILE_FORMATS_FILTER_ALL = 'All Files (*)'
+
+LEVEL_FILE_FORMATS_FILTER_SAVE = ';;'.join([
+    LEVEL_FILE_FORMATS_FILTER_ARC,
+    LEVEL_FILE_FORMATS_FILTER_ARC_LZ,
+    LEVEL_FILE_FORMATS_FILTER_ALL])
+LEVEL_FILE_FORMATS_FILTER_OPEN = ';;'.join([
+    LEVEL_FILE_FORMATS_FILTER_ALL_SUPPORTED,
+    LEVEL_FILE_FORMATS_FILTER_ARC,
+    LEVEL_FILE_FORMATS_FILTER_ARC_LZ,
+    LEVEL_FILE_FORMATS_FILTER_ALL])
 
 
 # use psyco for optimisation if available
@@ -8610,7 +8622,12 @@ class ReggieWindow(QtWidgets.QMainWindow):
     @QtCoreSlot()
     def HandleSaveAs(self):
         """Save a level back to the archive, with a new filename"""
-        fn = qm(QtWidgets.QFileDialog.getSaveFileName)(self, 'Choose a new filename', '', LEVEL_FILE_FORMATS_FILTER_SAVE)[0]
+        if Level.isCompressed:
+            default_filter = LEVEL_FILE_FORMATS_FILTER_ARC_LZ
+        else:
+            default_filter = LEVEL_FILE_FORMATS_FILTER_ARC
+
+        fn = qm(QtWidgets.QFileDialog.getSaveFileName)(self, 'Choose a new filename', '', LEVEL_FILE_FORMATS_FILTER_SAVE, default_filter)[0]
         if fn == '': return False
         fn = unicode(fn)
 
