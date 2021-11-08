@@ -84,6 +84,7 @@ except ImportError:
 if sys.version_info.major >= 3:
     unicode = str
     intsToBytes = bytes
+    unichr = chr
 
     def keyInAttribs(key, node):
         return key in node.attributes
@@ -860,6 +861,12 @@ def RenderObject(tileset, objnum, width, height, fullslope=False):
                 else:
                     RenderStandardRow(dest[y], inRepeat[(y - bc) % ic], y, width)
 
+    if TilesetSlotsModEnabled:
+        for row in dest:
+            for i, tile in enumerate(row):
+                if 0 < tile < 1024:
+                    row[i] = (tileset * 256) + (tile % 256)
+
     return dest
 
 
@@ -1484,6 +1491,7 @@ CurrentLayer = 1
 ShowLayer0 = True
 ShowLayer1 = True
 ShowLayer2 = True
+TilesetSlotsModEnabled = False
 ObjectsNonFrozen = True
 SpritesNonFrozen = True
 EntrancesNonFrozen = True
@@ -7447,6 +7455,8 @@ class ReggieWindow(QtWidgets.QMainWindow):
         self.CreateAction('showlayer0', self.HandleUpdateLayer0, None, 'Layer 0', 'Toggle viewing of object layer 0', QtGui.QKeySequence('Ctrl+1'), True)
         self.CreateAction('showlayer1', self.HandleUpdateLayer1, None, 'Layer 1', 'Toggle viewing of object layer 1', QtGui.QKeySequence('Ctrl+2'), True)
         self.CreateAction('showlayer2', self.HandleUpdateLayer2, None, 'Layer 2', 'Toggle viewing of object layer 2', QtGui.QKeySequence('Ctrl+3'), True)
+        self.CreateAction('tsetslots', self.HandleTilesetSlotsMod, GetIcon('objects'), 'Tileset Slots Mod', 'Render objects with a common code mod that lets tilesets behave the same in any slot ' + unichr(0x2014) + ' only use this if your game has that mod applied', QtGui.QKeySequence('Ctrl+T'), True)
+        self.actions['tsetslots'].setChecked(TilesetSlotsModEnabled)
         self.CreateAction('grid', self.HandleShowGrid, GetIcon('grid_white' if DarkMode else 'grid'), 'Show Grid', 'Show a grid over the level view', QtGui.QKeySequence('Ctrl+G'), True)
         self.actions['grid'].setChecked(GridEnabled)
 
@@ -7543,6 +7553,8 @@ class ReggieWindow(QtWidgets.QMainWindow):
         vmenu.addAction(self.actions['showlayer0'])
         vmenu.addAction(self.actions['showlayer1'])
         vmenu.addAction(self.actions['showlayer2'])
+        vmenu.addSeparator()
+        vmenu.addAction(self.actions['tsetslots'])
         vmenu.addSeparator()
         vmenu.addAction(self.actions['grid'])
         vmenu.addSeparator()
@@ -8705,6 +8717,23 @@ class ReggieWindow(QtWidgets.QMainWindow):
 
         for obj in Level.layers[2]:
             obj.setVisible(checked)
+
+        self.scene.update()
+
+
+    @QtCoreSlot(bool)
+    def HandleTilesetSlotsMod(self, checked):
+        """Handle toggling of the tileset-slots mod"""
+        settings.setValue('TilesetSlotsModEnabled', checked)
+
+        global TilesetSlotsModEnabled
+        TilesetSlotsModEnabled = checked
+
+        for layer in Level.layers:
+            for obj in layer:
+                obj.updateObjCache()
+
+        self.objPicker.LoadFromTilesets()
 
         self.scene.update()
 
@@ -9895,10 +9924,11 @@ def main():
     if '-clear-settings' in sys.argv:
         settings.clear()
 
-    global EnableAlpha, GridEnabled, DarkMode
+    global EnableAlpha, GridEnabled, TilesetSlotsModEnabled, DarkMode
     global ObjectsNonFrozen, SpritesNonFrozen, EntrancesNonFrozen, LocationsNonFrozen, PathsNonFrozen
 
     # note: the str().lower() is for macOS, where bools in settings aren't automatically stringified
+    TilesetSlotsModEnabled = (str(qm(settings.value('TilesetSlotsModEnabled', 'false'))).lower() == 'true')
     GridEnabled = (str(qm(settings.value('GridEnabled', 'false'))).lower() == 'true')
     DarkMode = (str(qm(settings.value('DarkMode', 'false'))).lower() == 'true')
     ObjectsNonFrozen = (str(qm(settings.value('FreezeObjects', 'false'))).lower() == 'false')
