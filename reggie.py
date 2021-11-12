@@ -9561,8 +9561,9 @@ class ReggieWindow(QtWidgets.QMainWindow):
         type_loc = LocationEditorItem
         type_aux = sprites.AuxiliaryItem
         type_aux_img = sprites.AuxiliaryImage
+        type_peline = PathEditorLineItem
         for item in hovereditems:
-            if not isinstance(item, type_zone) and not isinstance(item, type_loc) and not (isinstance(item, type_aux) and not isinstance(item, type_aux_img)):
+            if not isinstance(item, type_zone) and not isinstance(item, type_loc) and not (isinstance(item, type_aux) and not isinstance(item, type_aux_img)) and not isinstance(item, type_peline):
                 hovered = item
                 break
 
