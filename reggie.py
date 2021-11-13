@@ -1870,12 +1870,12 @@ class LevelUnit():
         """Loads block 7, the entrances"""
         entdata = self.blocks[6]
         entcount = len(entdata) // 20
-        entstruct = struct.Struct('>HHxxxxBBBBxBBBHxB')
+        entstruct = struct.Struct('>HHxxxxBBBBxBBBHBB')
         offset = 0
         entrances = []
         for i in range(entcount):
             data = entstruct.unpack_from(entdata,offset)
-            entrances.append(EntranceEditorItem(data[0], data[1], data[2], data[3], data[4], data[5], data[6], data[7], data[8], data[9], data[10]))
+            entrances.append(EntranceEditorItem(data[0], data[1], data[2], data[3], data[4], data[5], data[6], data[7], data[8], data[9], data[10], data[11]))
             offset += 20
         self.entrances = entrances
 
@@ -2083,7 +2083,7 @@ class LevelUnit():
     def SaveEntrances(self):
         """Saves the entrances back to block 7"""
         offset = 0
-        entstruct = struct.Struct('>HHxxxxBBBBxBBBHxB')
+        entstruct = struct.Struct('>HHxxxxBBBBxBBBHBB')
         buffer = create_string_buffer(len(self.entrances) * 20)
         zonelist = self.zones
         for entrance in self.entrances:
@@ -2091,7 +2091,7 @@ class LevelUnit():
             if zoneID < 0:
                 # This can happen if the level has no zones
                 zoneID = 0
-            entstruct.pack_into(buffer, offset, int(entrance.objx), int(entrance.objy), int(entrance.entid), int(entrance.destarea), int(entrance.destentrance), int(entrance.enttype), zoneID, int(entrance.entlayer), int(entrance.entpath), int(entrance.entsettings), int(entrance.cpdirection))
+            entstruct.pack_into(buffer, offset, int(entrance.objx), int(entrance.objy), int(entrance.entid), int(entrance.destarea), int(entrance.destentrance), int(entrance.enttype), zoneID, int(entrance.entlayer), int(entrance.entpath), int(entrance.entsettings), int(entrance.exittomap), int(entrance.cpdirection))
             offset += 20
         self.blocks[6] = buffer.raw
 
@@ -3196,7 +3196,7 @@ class EntranceEditorItem(LevelEditorItem):
 
     BoundingRect = QtCore.QRectF(0,0,24,24)
 
-    def __init__(self, x, y, id, destarea, destentrance, type, zone, layer, path, settings, cpd):
+    def __init__(self, x, y, id, destarea, destentrance, type, zone, layer, path, settings, exittomap, cpd):
         """Creates an entrance with specific data"""
         if EntranceEditorItem.EntranceImages is None:
             ei = []
@@ -3218,6 +3218,7 @@ class EntranceEditorItem(LevelEditorItem):
         self.entsettings = settings
         self.entlayer = layer
         self.entpath = path
+        self.exittomap = exittomap
         self.cpdirection = cpd
         self.listitem = None
 
@@ -4398,20 +4399,10 @@ class EntranceEditorWidget(QtWidgets.QWidget):
         self.entranceID.setToolTip('<b>ID:</b><br>Must be different from all other IDs')
         self.entranceID.valueChanged.connect(self.HandleEntranceIDChanged)
 
-        self.destEntrance = QtWidgets.QSpinBox()
-        self.destEntrance.setRange(0, 255)
-        self.destEntrance.setToolTip('<b>Dest. ID:</b><br>If this entrance leads nowhere, set this to 0.')
-        self.destEntrance.valueChanged.connect(self.HandleDestEntranceChanged)
-
         self.activeLayer = QtWidgets.QComboBox()
         self.activeLayer.addItems(['Layer 1', 'Layer 2', 'Layer 0'])
         self.activeLayer.setToolTip('<b>Active on:</b><br>Allows you to change the collision layer which this entrance is active on. This option is very glitchy and not used in the default levels - for almost all normal cases, you will want to use layer 1.')
         self.activeLayer.activated.connect(self.HandleActiveLayerChanged)
-
-        self.destArea = QtWidgets.QSpinBox()
-        self.destArea.setRange(0, 4)
-        self.destArea.setToolTip('<b>Dest. Area:</b><br>If this entrance leads nowhere or the destination is in this area, set this to 0.')
-        self.destArea.valueChanged.connect(self.HandleDestAreaChanged)
 
         self.enterableCheckbox = QtWidgets.QCheckBox('Enterable')
         self.enterableCheckbox.setToolTip("<b>Enterable:</b><br>If this box is checked on a pipe or door entrance, Mario will be able to enter the pipe/door. If it's not checked, he won't be able to enter it. Behaviour on other types of entrances is unknown/undefined.")
@@ -4420,6 +4411,29 @@ class EntranceEditorWidget(QtWidgets.QWidget):
         self.unknownFlagCheckbox = QtWidgets.QCheckBox('Unknown Flag')
         self.unknownFlagCheckbox.setToolTip("<b>Unknown Flag:</b><br>This box is checked on a few entrances in the game, but we haven't managed to figure out what it does (or if it does anything).")
         self.unknownFlagCheckbox.clicked.connect(self.HandleUnknownFlagClicked)
+
+        self.destEntranceLabel = QtWidgets.QLabel('Dest. ID:')
+        self.destEntrance = QtWidgets.QSpinBox()
+        self.destEntrance.setRange(0, 255)
+        self.destEntrance.setToolTip('<b>Dest. ID:</b><br>If this entrance leads nowhere, set this to 0.')
+        self.destEntrance.valueChanged.connect(self.HandleDestEntranceChanged)
+
+        self.destAreaLabel = QtWidgets.QLabel('Dest. Area:')
+        self.destArea = QtWidgets.QSpinBox()
+        self.destArea.setRange(0, 4)
+        self.destArea.setToolTip('<b>Dest. Area:</b><br>If this entrance leads nowhere or the destination is in this area, set this to 0.')
+        self.destArea.valueChanged.connect(self.HandleDestAreaChanged)
+
+        self.sendToEntrance = QtWidgets.QRadioButton('Send to Entrance')
+        self.sendToEntrance.setToolTip('<b>Send to Entrance:</b><br>If this is chosen, this entrance will send Mario to a different entrance in the same level when entered.')
+
+        self.sendToWorldMap = QtWidgets.QRadioButton('Send to World Map')
+        self.sendToWorldMap.setToolTip('<b>Send to World Map:</b><br>If this is chosen, this entrance will send Mario back to the world map when entered, without finishing the level.')
+
+        self.sendToEntranceOrWMGroup = QtWidgets.QButtonGroup(self)
+        self.sendToEntranceOrWMGroup.addButton(self.sendToEntrance, 0)
+        self.sendToEntranceOrWMGroup.addButton(self.sendToWorldMap, 1)
+        qm(self.sendToEntranceOrWMGroup).idClicked.connect(self.SendToEntranceOrWMChanged)
 
         self.spawnHalfTileLeftCheckbox = QtWidgets.QCheckBox('Spawn Half a Tile Left')
         self.spawnHalfTileLeftCheckbox.setToolTip("<b>Spawn Half a Tile Left:</b><br>If this is checked, the entrance will spawn Mario half a tile to the left.")
@@ -4461,19 +4475,21 @@ class EntranceEditorWidget(QtWidgets.QWidget):
         # Second part: other general settings
         layout.addWidget(QtWidgets.QLabel('ID:'), 3, 0, 1, 1, QtCore.Qt.AlignmentFlag.AlignRight)
         layout.addWidget(self.entranceID, 3, 1)
-        layout.addWidget(QtWidgets.QLabel('Dest. ID:'), 3, 2, 1, 1, QtCore.Qt.AlignmentFlag.AlignRight)
-        layout.addWidget(self.destEntrance, 3, 3)
         layout.addWidget(QtWidgets.QLabel('Active on:'), 4, 0, 1, 1, QtCore.Qt.AlignmentFlag.AlignRight)
         layout.addWidget(self.activeLayer, 4, 1)
-        layout.addWidget(QtWidgets.QLabel('Dest. Area:'), 4, 2, 1, 1, QtCore.Qt.AlignmentFlag.AlignRight)
-        layout.addWidget(self.destArea, 4, 3)
         layout.addWidget(self.enterableCheckbox, 5, 0, 1, 2, QtCore.Qt.AlignmentFlag.AlignRight)
-        layout.addWidget(self.unknownFlagCheckbox, 5, 2, 1, 2, QtCore.Qt.AlignmentFlag.AlignRight)
+        layout.addWidget(self.unknownFlagCheckbox, 6, 0, 1, 2, QtCore.Qt.AlignmentFlag.AlignRight)
+        layout.addWidget(self.destEntranceLabel, 3, 2, 1, 1, QtCore.Qt.AlignmentFlag.AlignRight)
+        layout.addWidget(self.destEntrance, 3, 3)
+        layout.addWidget(self.destAreaLabel, 4, 2, 1, 1, QtCore.Qt.AlignmentFlag.AlignRight)
+        layout.addWidget(self.destArea, 4, 3)
+        layout.addWidget(self.sendToEntrance, 5, 2, 1, 2)
+        layout.addWidget(self.sendToWorldMap, 6, 2, 1, 2)
 
         # Third part: type-specific settings groupbox
         self.typeSpecificSettingsGroup = QtWidgets.QGroupBox('Type-Specific Settings')
         tssLayout = QtWidgets.QGridLayout(self.typeSpecificSettingsGroup)
-        layout.addWidget(self.typeSpecificSettingsGroup, 6, 0, 1, 4)
+        layout.addWidget(self.typeSpecificSettingsGroup, 7, 0, 1, 4)
 
         tssLayout.addWidget(self.spawnHalfTileLeftCheckbox, 0, 0, 1, 4, QtCore.Qt.AlignmentFlag.AlignLeft)
         tssLayout.addWidget(self.forwardPipeCheckbox, 1, 0, 1, 2, QtCore.Qt.AlignmentFlag.AlignRight)
@@ -4510,8 +4526,11 @@ class EntranceEditorWidget(QtWidgets.QWidget):
 
         self.entranceID.setValue(ent.entid)
         self.activeLayer.setCurrentIndex(ent.entlayer)
+
         self.destEntrance.setValue(ent.destentrance)
         self.destArea.setValue(ent.destarea)
+        self.sendToEntrance.setChecked(ent.exittomap == 0)
+        self.sendToWorldMap.setChecked(ent.exittomap != 0)
 
         self.enterableCheckbox.setChecked((ent.entsettings & 0x80) == 0)
         self.unknownFlagCheckbox.setChecked((ent.entsettings & 2) != 0)
@@ -4526,7 +4545,7 @@ class EntranceEditorWidget(QtWidgets.QWidget):
         self.connectedPipeReverseCheckbox.setChecked((ent.entsettings & 1) != 0)
         self.connectedPipeDirection.setCurrentIndex(ent.cpdirection)
 
-        self.updateWidgetVisibilities(ent.enttype, ent.entsettings)
+        self.updateWidgetVisibilities(ent.enttype, ent.entsettings, ent.exittomap)
 
         self.UpdateFlag = False
 
@@ -4536,8 +4555,13 @@ class EntranceEditorWidget(QtWidgets.QWidget):
         self.editingLabel.setText('<b>Editing Entrance %d:</b>' % id)
 
 
-    def updateWidgetVisibilities(self, type, settings):
+    def updateWidgetVisibilities(self, type, settings, exitToWorldMap):
         """Update visibility for all widgets as necessary"""
+        self.destEntranceLabel.setVisible(not exitToWorldMap)
+        self.destEntrance.setVisible(not exitToWorldMap)
+        self.destAreaLabel.setVisible(not exitToWorldMap)
+        self.destArea.setVisible(not exitToWorldMap)
+
         self.typeSpecificSettingsGroup.setVisible(type in (self.CanUseFlag40 | self.CanUseFlag8 | self.CanUseFlag4))
 
         self.spawnHalfTileLeftCheckbox.setVisible(type in self.CanUseFlag40)
@@ -4570,7 +4594,7 @@ class EntranceEditorWidget(QtWidgets.QWidget):
         self.ent.update()
         self.ent.UpdateTooltip()
         self.ent.listitem.setText(self.ent.ListString())
-        self.updateWidgetVisibilities(i, self.ent.entsettings)
+        self.updateWidgetVisibilities(i, self.ent.entsettings, self.ent.exittomap)
 
 
     @QtCoreSlot(int)
@@ -4617,6 +4641,18 @@ class EntranceEditorWidget(QtWidgets.QWidget):
             self.ent.entsettings &= ~2
 
 
+    @QtCoreSlot(int)
+    def SendToEntranceOrWMChanged(self, id):
+        """Handle for the "Send to Entrance"/"Send to World Map" setting being changed"""
+        if self.UpdateFlag: return
+        SetDirty()
+        if id != 0:
+            self.ent.exittomap = 1
+        else:
+            self.ent.exittomap = 0
+        self.updateWidgetVisibilities(self.ent.enttype, self.ent.entsettings, self.ent.exittomap)
+
+
     @QtCoreSlot(bool)
     def HandleSpawnHalfTileLeftClicked(self, checked):
         """Handle for the Spawn Half a Tile Left checkbox being clicked"""
@@ -4637,7 +4673,7 @@ class EntranceEditorWidget(QtWidgets.QWidget):
             self.ent.entsettings |= 8
         else:
             self.ent.entsettings &= ~8
-        self.updateWidgetVisibilities(self.ent.enttype, self.ent.entsettings)
+        self.updateWidgetVisibilities(self.ent.enttype, self.ent.entsettings, self.ent.exittomap)
 
     @QtCoreSlot(bool)
     def HandleConnectedPipeReverseClicked(self, checked):
@@ -5269,7 +5305,7 @@ class LevelViewWidget(QtWidgets.QGraphicsView):
                 for ent in Level.entrances: getids[ent.entid] = True
                 minimumID = getids.index(False)
 
-                ent = EntranceEditorItem(clickedx, clickedy, minimumID, 0, 0, 0, 0, 0, 0, 0, 0)
+                ent = EntranceEditorItem(clickedx, clickedy, minimumID, 0, 0, 0, 0, 0, 0, 0, 0, 0)
                 mw = mainWindow
                 ent.positionChanged = mw.HandleEntPosChange
                 mw.scene.addItem(ent)
