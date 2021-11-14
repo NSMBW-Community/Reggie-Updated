@@ -3254,11 +3254,12 @@ class EntranceEditorItem(LevelEditorItem):
 
         if (self.entsettings & 0x80) != 0:
             destination = '(cannot be entered)'
+        elif self.exittomap != 0:
+            destination = '(goes to world map)'
+        elif self.destarea == 0:
+            destination = '(arrives at entrance %d in this area)' % self.destentrance
         else:
-            if self.destarea == 0:
-                destination = '(arrives at entrance %d in this area)' % self.destentrance
-            else:
-                destination = '(arrives at entrance %d in area %d)' % (self.destentrance,self.destarea)
+            destination = '(arrives at entrance %d in area %d)' % (self.destentrance,self.destarea)
 
         self.name = name
         self.destination = destination
@@ -4650,6 +4651,7 @@ class EntranceEditorWidget(QtWidgets.QWidget):
             self.ent.exittomap = 1
         else:
             self.ent.exittomap = 0
+        self.ent.UpdateTooltip()
         self.updateWidgetVisibilities(self.ent.enttype, self.ent.entsettings, self.ent.exittomap)
 
 
