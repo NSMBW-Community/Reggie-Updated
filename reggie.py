@@ -5176,9 +5176,9 @@ class LevelViewViewportEventFilter(QtCore.QObject):
                 and event.type() == QtCore.QEvent.Type.Wheel
                 and event.modifiers() & QtCore.Qt.KeyboardModifier.ControlModifier):
             if event.angleDelta().y() > 0:
-                mainWindow.HandleZoomIn()
+                mainWindow.HandleZoomIn(towardsCursor=True)
             else:
-                mainWindow.HandleZoomOut()
+                mainWindow.HandleZoomOut(towardsCursor=True)
             return True
         return QtCore.QObject.eventFilter(self, source, event)
 
@@ -8917,23 +8917,23 @@ class ReggieWindow(QtWidgets.QMainWindow):
 
 
     @QtCoreSlot()
-    def HandleZoomIn(self):
+    def HandleZoomIn(self, *, towardsCursor=False):
         """Handle zooming in"""
         z = self.ZoomLevel
         zi = self.ZoomLevels.index(z)
         zi += 1
         if zi < len(self.ZoomLevels):
-            self.ZoomTo(self.ZoomLevels[zi])
+            self.ZoomTo(self.ZoomLevels[zi], towardsCursor=towardsCursor)
 
 
     @QtCoreSlot()
-    def HandleZoomOut(self):
+    def HandleZoomOut(self, *, towardsCursor=False):
         """Handle zooming out"""
         z = self.ZoomLevel
         zi = self.ZoomLevels.index(z)
         zi -= 1
         if zi >= 0:
-            self.ZoomTo(self.ZoomLevels[zi])
+            self.ZoomTo(self.ZoomLevels[zi], towardsCursor=towardsCursor)
 
 
     @QtCoreSlot()
@@ -8952,13 +8952,20 @@ class ReggieWindow(QtWidgets.QMainWindow):
         self.ZoomTo(300.0)
 
 
-    def ZoomTo(self, z):
+    def ZoomTo(self, z, *, towardsCursor=False):
         """Zoom to a specific level"""
+        if towardsCursor:
+            self.view.setTransformationAnchor(QtWidgets.QGraphicsView.ViewportAnchor.AnchorUnderMouse)
+
         tr = QtGui.QTransform()
         tr.scale(z / 100.0, z / 100.0)
         self.ZoomLevel = z
         self.view.setTransform(tr)
         self.levelOverview.mainWindowScale = z/100.0
+
+        if towardsCursor:
+            # (reset back to original transformation anchor)
+            self.view.setTransformationAnchor(QtWidgets.QGraphicsView.ViewportAnchor.AnchorViewCenter)
 
         zi = self.ZoomLevels.index(z)
         self.actions['zoomin'].setEnabled(zi < len(self.ZoomLevels) - 1)
