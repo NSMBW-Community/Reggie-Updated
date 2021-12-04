@@ -5158,6 +5158,30 @@ class LevelScene(QtWidgets.QGraphicsScene):
             painter.restore()
 
 
+class LevelViewViewportEventFilter(QtCore.QObject):
+    """Event filter for level view viewport events"""
+    def __init__(self, graphicsView):
+        QtCore.QObject.__init__(self)
+        self.graphicsView = graphicsView
+
+    def eventFilter(self, source, event):
+        try:
+            viewport = self.graphicsView.viewport()
+        except RuntimeError:
+            # must catch this error: sometimes when you close the app,
+            # you get a RuntimeError about the "underlying C++ object being deleted"
+            return
+
+        if (source is viewport
+                and event.type() == QtCore.QEvent.Type.Wheel
+                and event.modifiers() & QtCore.Qt.KeyboardModifier.ControlModifier):
+            if event.angleDelta().y() > 0:
+                mainWindow.HandleZoomIn()
+            else:
+                mainWindow.HandleZoomOut()
+            return True
+        return QtCore.QObject.eventFilter(self, source, event)
+
 
 class LevelViewWidget(QtWidgets.QGraphicsView):
     """GraphicsView subclass for the level view"""
@@ -5178,6 +5202,9 @@ class LevelViewWidget(QtWidgets.QGraphicsView):
         self.XScrollBar = QtWidgets.QScrollBar(QtCore.Qt.Orientation.Horizontal, parent)
         self.setVerticalScrollBar(self.YScrollBar)
         self.setHorizontalScrollBar(self.XScrollBar)
+
+        self.viewportEventFilter = LevelViewViewportEventFilter(self)
+        self.viewport().installEventFilter(self.viewportEventFilter)
 
         self.currentobj = None
         self.lastCursorPosForMidButtonScroll = None
