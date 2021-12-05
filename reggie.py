@@ -5497,13 +5497,18 @@ class LevelViewWidget(QtWidgets.QGraphicsView):
     def wheelEvent(self, event):
         """Handle wheel events for zooming in/out"""
         if event.modifiers() & QtCore.Qt.KeyboardModifier.ControlModifier:
-            if event.angleDelta().y() > 0:
+            if QtCompatVersion >= (5,0,0):
+                angleDelta = event.angleDelta().y()
+            else:
+                angleDelta = event.delta()
+
+            if angleDelta > 0:
                 mainWindow.HandleZoomIn(towardsCursor=True)
             else:
                 mainWindow.HandleZoomOut(towardsCursor=True)
 
         else:
-            super().wheelEvent(event)
+            QtWidgets.QGraphicsView.wheelEvent(self, event)
 
 
     def updatePaintDraggedItems(self):
@@ -8959,7 +8964,7 @@ class ReggieWindow(QtWidgets.QMainWindow):
 
 
     @QtCoreSlot()
-    def HandleZoomIn(self, *, towardsCursor=False):
+    def HandleZoomIn(self, towardsCursor=False):
         """Handle zooming in"""
         z = self.ZoomLevel
         zi = self.ZoomLevels.index(z)
@@ -8969,7 +8974,7 @@ class ReggieWindow(QtWidgets.QMainWindow):
 
 
     @QtCoreSlot()
-    def HandleZoomOut(self, *, towardsCursor=False):
+    def HandleZoomOut(self, towardsCursor=False):
         """Handle zooming out"""
         z = self.ZoomLevel
         zi = self.ZoomLevels.index(z)
@@ -8994,7 +8999,7 @@ class ReggieWindow(QtWidgets.QMainWindow):
         self.ZoomTo(300.0)
 
 
-    def ZoomTo(self, z, *, towardsCursor=False):
+    def ZoomTo(self, z, towardsCursor=False):
         """Zoom to a specific level"""
         if towardsCursor:
             self.view.setTransformationAnchor(QtWidgets.QGraphicsView.ViewportAnchor.AnchorUnderMouse)
