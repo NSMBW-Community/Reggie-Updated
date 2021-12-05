@@ -5208,6 +5208,7 @@ class LevelViewWidget(QtWidgets.QGraphicsView):
 
         self.currentobj = None
         self.lastCursorPosForMidButtonScroll = None
+        self.cursorEdgeScrollTimer = None
 
 
     def mousePressEvent(self, event):
@@ -5481,157 +5482,17 @@ class LevelViewWidget(QtWidgets.QGraphicsView):
         if pos.y() < 0: pos.setY(0)
         self.PositionHover.emit(int(pos.x()), int(pos.y()))
 
-        if event.buttons() == QtCore.Qt.MouseButton.RightButton and self.currentobj is not None:
-            obj = self.currentobj
+        if ((event.buttons() & (QtCore.Qt.MouseButton.LeftButton | QtCore.Qt.MouseButton.RightButton))
+                and not self.cursorEdgeScrollTimer):
+            # We set this up here instead of in mousePressEvent because
+            # otherwise the view would jerk to one side if you clicked
+            # near its edge. This way, it'll only scroll if you click
+            # and drag.
+            self.cursorEdgeScrollTimer = QtCore.QTimer()
+            self.cursorEdgeScrollTimer.timeout.connect(self.scrollIfCursorNearEdge)
+            self.cursorEdgeScrollTimer.start(1000 // 60)  # ~ 60 fps
 
-            # possibly a small optimisation
-            type_obj = LevelObjectEditorItem
-            type_spr = SpriteEditorItem
-            type_ent = EntranceEditorItem
-            type_loc = LocationEditorItem
-            type_path = PathEditorItem
-
-            if isinstance(obj, type_obj):
-                # resize/move the current object
-                cx = obj.objx
-                cy = obj.objy
-                cwidth = obj.width
-                cheight = obj.height
-
-                dsx = self.dragstartx
-                dsy = self.dragstarty
-                clicked = mainWindow.view.mapToScene(qm(event).position().toPoint())
-                if clicked.x() < 0: clicked.setX(0)
-                if clicked.y() < 0: clicked.setY(0)
-                clickx = int(clicked.x() / 24)
-                clicky = int(clicked.y() / 24)
-
-                # allow negative width/height and treat it properly :D
-                if clickx >= dsx:
-                    x = dsx
-                    width = clickx - dsx + 1
-                else:
-                    x = clickx
-                    width = dsx - clickx + 1
-
-                if clicky >= dsy:
-                    y = dsy
-                    height = clicky - dsy + 1
-                else:
-                    y = clicky
-                    height = dsy - clicky + 1
-
-                # if the position changed, set the new one
-                if cx != x or cy != y:
-                    obj.objx = x
-                    obj.objy = y
-                    obj.setPos(x * 24, y * 24)
-
-                # if the size changed, recache it and update the area
-                if cwidth != width or cheight != height:
-                    obj.width = width
-                    obj.height = height
-                    obj.updateObjCache()
-
-                    oldrect = obj.BoundingRect
-                    oldrect.translate(cx * 24, cy * 24)
-                    newrect = QtCore.QRectF(obj.x(), obj.y(), obj.width * 24, obj.height * 24)
-                    updaterect = oldrect.united(newrect)
-
-                    obj.UpdateRects()
-                    obj.scene().update(updaterect)
-
-            elif isinstance(obj, type_loc):
-                # resize/move the current location
-                cx = obj.objx
-                cy = obj.objy
-                cwidth = obj.width
-                cheight = obj.height
-
-                dsx = self.dragstartx
-                dsy = self.dragstarty
-                clicked = mainWindow.view.mapToScene(qm(event).position().toPoint())
-                if clicked.x() < 0: clicked.setX(0)
-                if clicked.y() < 0: clicked.setY(0)
-                clickx = int(clicked.x() / 1.5)
-                clicky = int(clicked.y() / 1.5)
-
-                # allow negative width/height and treat it properly :D
-                if clickx >= dsx:
-                    x = dsx
-                    width = clickx - dsx + 1
-                else:
-                    x = clickx
-                    width = dsx - clickx + 1
-
-                if clicky >= dsy:
-                    y = dsy
-                    height = clicky - dsy + 1
-                else:
-                    y = clicky
-                    height = dsy - clicky + 1
-
-                # if the position changed, set the new one
-                if cx != x or cy != y:
-                    obj.objx = x
-                    obj.objy = y
-
-                    global OverrideSnapping
-                    OverrideSnapping = True
-                    obj.setPos(x * 1.5, y * 1.5)
-                    OverrideSnapping = False
-
-                # if the size changed, recache it and update the area
-                if cwidth != width or cheight != height:
-                    obj.width = width
-                    obj.height = height
-#                    obj.updateObjCache()
-
-                    oldrect = obj.BoundingRect
-                    oldrect.translate(cx * 1.5, cy * 1.5)
-                    newrect = QtCore.QRectF(obj.x(), obj.y(), obj.width * 1.5, obj.height * 1.5)
-                    updaterect = oldrect.united(newrect)
-
-                    obj.UpdateRects()
-                    obj.scene().update(updaterect)
-
-
-            elif isinstance(obj, type_spr):
-                # move the created sprite
-                clicked = mainWindow.view.mapToScene(qm(event).position().toPoint())
-                if clicked.x() < 0: clicked.setX(0)
-                if clicked.y() < 0: clicked.setY(0)
-                clickedx = int((clicked.x() - 12) / 12) * 8
-                clickedy = int((clicked.y() - 12) / 12) * 8
-                if obj.objx != clickedx or obj.objy != clickedy:
-                    obj.objx = clickedx
-                    obj.objy = clickedy
-                    obj.setPos(int((clickedx+obj.xoffset) * 1.5), int((clickedy+obj.yoffset) * 1.5))
-
-            elif isinstance(obj, type_ent):
-                # move the created entrance
-                clicked = mainWindow.view.mapToScene(qm(event).position().toPoint())
-                if clicked.x() < 0: clicked.setX(0)
-                if clicked.y() < 0: clicked.setY(0)
-                clickedx = int((clicked.x() - 12) / 1.5)
-                clickedy = int((clicked.y() - 12) / 1.5)
-
-                if obj.objx != clickedx or obj.objy != clickedy:
-                    obj.objx = clickedx
-                    obj.objy = clickedy
-                    obj.setPos(int(clickedx * 1.5), int(clickedy * 1.5))
-            elif isinstance(obj, type_path):
-                # move the created path
-                clicked = mainWindow.view.mapToScene(qm(event).position().toPoint())
-                if clicked.x() < 0: clicked.setX(0)
-                if clicked.y() < 0: clicked.setY(0)
-                clickedx = int((clicked.x() - 12) / 1.5)
-                clickedy = int((clicked.y() - 12) / 1.5)
-
-                if obj.objx != clickedx or obj.objy != clickedy:
-                    obj.objx = clickedx
-                    obj.objy = clickedy
-                    obj.setPos(int(clickedx * 1.5), int(clickedy * 1.5))
+        if self.updatePaintDraggedItems():
             event.accept()
 
         elif event.buttons() == QtCore.Qt.MouseButton.MiddleButton and self.lastCursorPosForMidButtonScroll is not None:
@@ -5653,7 +5514,203 @@ class LevelViewWidget(QtWidgets.QGraphicsView):
         if (not event.buttons() & QtCore.Qt.MouseButton.MiddleButton) and (not event.buttons() & QtCore.Qt.MouseButton.RightButton):
             self.setDragMode(QtWidgets.QGraphicsView.DragMode.RubberBandDrag)
 
+        if self.cursorEdgeScrollTimer:
+            self.cursorEdgeScrollTimer.stop()
+            self.cursorEdgeScrollTimer = None
+
         QtWidgets.QGraphicsView.mouseReleaseEvent(self, event)
+
+
+    def updatePaintDraggedItems(self):
+        """Update items that are being paint-dragged (painted with
+        right-click, and dragged while it's still held down). Returns
+        True if any items are being paint-dragged, False otherwise"""
+        if app.mouseButtons() != QtCore.Qt.MouseButton.RightButton or self.currentobj is None:
+            return False
+
+        obj = self.currentobj
+
+        # possibly a small optimisation
+        type_obj = LevelObjectEditorItem
+        type_spr = SpriteEditorItem
+        type_ent = EntranceEditorItem
+        type_loc = LocationEditorItem
+        type_path = PathEditorItem
+
+        if isinstance(obj, type_obj):
+            # resize/move the current object
+            cx = obj.objx
+            cy = obj.objy
+            cwidth = obj.width
+            cheight = obj.height
+
+            dsx = self.dragstartx
+            dsy = self.dragstarty
+            clicked = mainWindow.view.mapToScene(self.mapFromGlobal(QtGui.QCursor.pos()))
+            if clicked.x() < 0: clicked.setX(0)
+            if clicked.y() < 0: clicked.setY(0)
+            clickx = int(clicked.x() / 24)
+            clicky = int(clicked.y() / 24)
+
+            # allow negative width/height and treat it properly :D
+            if clickx >= dsx:
+                x = dsx
+                width = clickx - dsx + 1
+            else:
+                x = clickx
+                width = dsx - clickx + 1
+
+            if clicky >= dsy:
+                y = dsy
+                height = clicky - dsy + 1
+            else:
+                y = clicky
+                height = dsy - clicky + 1
+
+            # if the position changed, set the new one
+            if cx != x or cy != y:
+                obj.objx = x
+                obj.objy = y
+                obj.setPos(x * 24, y * 24)
+
+            # if the size changed, recache it and update the area
+            if cwidth != width or cheight != height:
+                obj.width = width
+                obj.height = height
+                obj.updateObjCache()
+
+                oldrect = obj.BoundingRect
+                oldrect.translate(cx * 24, cy * 24)
+                newrect = QtCore.QRectF(obj.x(), obj.y(), obj.width * 24, obj.height * 24)
+                updaterect = oldrect.united(newrect)
+
+                obj.UpdateRects()
+                obj.scene().update(updaterect)
+
+        elif isinstance(obj, type_loc):
+            # resize/move the current location
+            cx = obj.objx
+            cy = obj.objy
+            cwidth = obj.width
+            cheight = obj.height
+
+            dsx = self.dragstartx
+            dsy = self.dragstarty
+            clicked = mainWindow.view.mapToScene(self.mapFromGlobal(QtGui.QCursor.pos()))
+            if clicked.x() < 0: clicked.setX(0)
+            if clicked.y() < 0: clicked.setY(0)
+            clickx = int(clicked.x() / 1.5)
+            clicky = int(clicked.y() / 1.5)
+
+            # allow negative width/height and treat it properly :D
+            if clickx >= dsx:
+                x = dsx
+                width = clickx - dsx + 1
+            else:
+                x = clickx
+                width = dsx - clickx + 1
+
+            if clicky >= dsy:
+                y = dsy
+                height = clicky - dsy + 1
+            else:
+                y = clicky
+                height = dsy - clicky + 1
+
+            # if the position changed, set the new one
+            if cx != x or cy != y:
+                obj.objx = x
+                obj.objy = y
+
+                global OverrideSnapping
+                OverrideSnapping = True
+                obj.setPos(x * 1.5, y * 1.5)
+                OverrideSnapping = False
+
+            # if the size changed, recache it and update the area
+            if cwidth != width or cheight != height:
+                obj.width = width
+                obj.height = height
+#                    obj.updateObjCache()
+
+                oldrect = obj.BoundingRect
+                oldrect.translate(cx * 1.5, cy * 1.5)
+                newrect = QtCore.QRectF(obj.x(), obj.y(), obj.width * 1.5, obj.height * 1.5)
+                updaterect = oldrect.united(newrect)
+
+                obj.UpdateRects()
+                obj.scene().update(updaterect)
+
+
+        elif isinstance(obj, type_spr):
+            # move the created sprite
+            clicked = mainWindow.view.mapToScene(self.mapFromGlobal(QtGui.QCursor.pos()))
+            if clicked.x() < 0: clicked.setX(0)
+            if clicked.y() < 0: clicked.setY(0)
+            clickedx = int((clicked.x() - 12) / 12) * 8
+            clickedy = int((clicked.y() - 12) / 12) * 8
+            if obj.objx != clickedx or obj.objy != clickedy:
+                obj.objx = clickedx
+                obj.objy = clickedy
+                obj.setPos(int((clickedx+obj.xoffset) * 1.5), int((clickedy+obj.yoffset) * 1.5))
+
+        elif isinstance(obj, type_ent):
+            # move the created entrance
+            clicked = mainWindow.view.mapToScene(self.mapFromGlobal(QtGui.QCursor.pos()))
+            if clicked.x() < 0: clicked.setX(0)
+            if clicked.y() < 0: clicked.setY(0)
+            clickedx = int((clicked.x() - 12) / 1.5)
+            clickedy = int((clicked.y() - 12) / 1.5)
+
+            if obj.objx != clickedx or obj.objy != clickedy:
+                obj.objx = clickedx
+                obj.objy = clickedy
+                obj.setPos(int(clickedx * 1.5), int(clickedy * 1.5))
+        elif isinstance(obj, type_path):
+            # move the created path
+            clicked = mainWindow.view.mapToScene(self.mapFromGlobal(QtGui.QCursor.pos()))
+            if clicked.x() < 0: clicked.setX(0)
+            if clicked.y() < 0: clicked.setY(0)
+            clickedx = int((clicked.x() - 12) / 1.5)
+            clickedy = int((clicked.y() - 12) / 1.5)
+
+            if obj.objx != clickedx or obj.objy != clickedy:
+                obj.objx = clickedx
+                obj.objy = clickedy
+                obj.setPos(int(clickedx * 1.5), int(clickedy * 1.5))
+
+        return True
+
+
+    def scrollIfCursorNearEdge(self):
+        """Scroll the view if the cursor is dragging and near the edge"""
+        pos = self.mapFromGlobal(QtGui.QCursor.pos())
+
+        distFromL = pos.x()
+        distFromR = self.width() - self.YScrollBar.width() - pos.x()
+        distFromT = pos.y()
+        distFromB = self.height() - self.XScrollBar.height() - pos.y()
+
+        EDGE_PAD = 60
+        SCALE_FACTOR = 0.3
+
+        scrollDx = scrollDy = 0
+
+        if distFromL < EDGE_PAD:
+            scrollDx = -(EDGE_PAD - distFromL) * SCALE_FACTOR
+        if distFromR < EDGE_PAD:
+            scrollDx = (EDGE_PAD - distFromR) * SCALE_FACTOR
+        if distFromT < EDGE_PAD:
+            scrollDy = -(EDGE_PAD - distFromT) * SCALE_FACTOR
+        if distFromB < EDGE_PAD:
+            scrollDy = (EDGE_PAD - distFromB) * SCALE_FACTOR
+
+        if scrollDx:
+            self.XScrollBar.setValue(int(self.XScrollBar.value() + scrollDx))
+        if scrollDy:
+            self.YScrollBar.setValue(int(self.YScrollBar.value() + scrollDy))
+
+        self.updatePaintDraggedItems()
 
 
     def drawForeground(self, painter, rect):
