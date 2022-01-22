@@ -51,10 +51,11 @@ If you get the error "Reggie! Level Editor is damaged and can't be opened.",
 it's because the release builds are unsigned. To fix it, launch a Terminal
 window and run
 
-    sudo xattr -rd com.apple.quarantine /path/to/Reggie!\ Level\ Editor.app
+    sudo xattr -rd com.apple.quarantine "/path/to/Reggie! Level Editor.app"
     
-which will override the application signature requirement. Then you should be
-able to launch the app.
+...with the example path above replaced with the actual path to the app. This
+will override the application signature requirement, which should allow you to
+launch the app.
 
 
 Reggie! Team
