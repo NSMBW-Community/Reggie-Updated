@@ -6504,6 +6504,8 @@ class ZonesDialog(QtWidgets.QDialog):
             for tab in range(0, self.tabWidget.count()):
                 self.tabWidget.setTabText(tab, str(tab + 1))
 
+        self.tabWidget.setCurrentIndex(self.tabWidget.count() - 1)
+
         #self.NewButton.setEnabled(len(self.zoneTabs) < 8)
 
 
