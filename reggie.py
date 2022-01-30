@@ -5427,7 +5427,7 @@ class LevelViewWidget(QtWidgets.QGraphicsView):
             pos = mw.view.mapToScene(qm(event).position().toPoint())
             addsel = mw.scene.items(pos)
             for i in addsel:
-                if (int(i.flags()) & i.ItemIsSelectable) != 0:
+                if i.flags() & QtWidgets.QGraphicsItem.GraphicsItemFlag.ItemIsSelectable:
                     i.setSelected(not i.isSelected())
                     break
 
