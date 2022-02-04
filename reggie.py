@@ -6154,7 +6154,7 @@ class LoadingTab(QtWidgets.QWidget):
 
         self.entrance = QtWidgets.QSpinBox()
         self.entrance.setRange(0, 255)
-        self.entrance.setToolTip('<b>Entrance ID:</b><br>Sets the entrance ID to load into when loading from the World Map')
+        self.entrance.setToolTip('<b>Starting Entrance ID:</b><br>Sets the entrance ID to load into when loading from the world map.')
         self.entrance.setValue(Level.startEntrance)
 
         self.wrap = QtWidgets.QCheckBox('Wrap across Edges')
@@ -6163,7 +6163,7 @@ class LoadingTab(QtWidgets.QWidget):
 
         settingsLayout = QtWidgets.QFormLayout()
         settingsLayout.addRow('Timer:', self.timer)
-        settingsLayout.addRow('Entrance ID:', self.entrance)
+        settingsLayout.addRow('Starting Entrance ID:', self.entrance)
         settingsLayout.addRow(self.wrap)
 
         self.eventChooser = QtWidgets.QListWidget()
