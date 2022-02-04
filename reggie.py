@@ -6158,7 +6158,7 @@ class LoadingTab(QtWidgets.QWidget):
         self.entrance.setValue(Level.startEntrance)
 
         self.wrap = QtWidgets.QCheckBox('Wrap across Edges')
-        self.wrap.setToolTip('<b>Wrap across Edges:</b><br>Makes the stage edges wrap<br>Warning: This option may cause the game to crash or behave weirdly. Wrapping only works correctly where the area is set up in the right way; see Coin Battle 1 for an example.')
+        self.wrap.setToolTip('<b>Wrap across Edges:</b><br>Makes the stage edges wrap.<br>Warning: This option may cause the game to crash or behave weirdly. Wrapping only works correctly where the area is set up in the right way; see Coin Battle 1 for an example.')
         self.wrap.setChecked((Level.wrapFlag & 1) != 0)
 
         settingsLayout = QtWidgets.QFormLayout()
