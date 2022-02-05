@@ -61,10 +61,10 @@ print('>> Detecting environment...')
 print('>>')
 
 # Python optimization level
-if sys.flags.optimize == 2:
-    print('>>   [X] Python optimization level is -OO')
+if sys.flags.optimize >= 1:
+    print('>>   [X] Python optimization level is -O')
 else:
-    print('>>   [ ] Python optimization level is -OO')
+    print('>>   [ ] Python optimization level is -O')
 
 # NSMBLib being installed
 if config.USE_NSMBLIB:
@@ -77,9 +77,8 @@ if config.USE_NSMBLIB:
 
 
 # Now show big warning messages if any of those failed
-if sys.flags.optimize < 2:
-    msg = 'without' if sys.flags.optimize == 0 else 'with only one level of'
-    print_emphasis('>> WARNING: Python is being run ' + msg + ' optimizations enabled! Please consider building with -OO.')
+if sys.flags.optimize < 1:
+    print_emphasis('>> WARNING: Python is being run without optimizations enabled! Please consider building with -O.')
 
 if config.USE_NSMBLIB and nsmblib is None:
     print_emphasis('>> WARNING: NSMBLib does not seem to be installed! Please consider installing it prior to building.')
@@ -100,8 +99,6 @@ excludes = ['calendar', 'datetime', 'difflib', 'doctest', 'inspect',
 
 if config.EXCLUDE_SELECT:
     excludes.append('select')
-if config.EXCLUDE_THREADING:
-    excludes.append('threading')
 if config.EXCLUDE_HASHLIB:
     excludes.append('hashlib')
 if config.EXCLUDE_LOCALE:
