@@ -3548,6 +3548,9 @@ class PathEditorLineItem(LevelEditorItem):
 
     def paint(self, painter, option, widget):
         """Paints the object"""
+        if not self.nodelist:
+            return
+
         painter.setRenderHint(QtGui.QPainter.RenderHint.Antialiasing)
         painter.setClipRect(option.exposedRect)
 
