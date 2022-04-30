@@ -8719,7 +8719,12 @@ class ReggieWindow(QtWidgets.QMainWindow):
         """Open a level using the filename"""
         if self.CheckDirty(): return
 
-        fn = qm(QtWidgets.QFileDialog.getOpenFileName)(self, 'Choose a level archive', '', LEVEL_FILE_FORMATS_FILTER_OPEN)[0]
+        if Level.hasName:
+            dirname = os.path.dirname(Level.arcname)
+        else:
+            dirname = ''
+
+        fn = qm(QtWidgets.QFileDialog.getOpenFileName)(self, 'Choose a level archive', dirname, LEVEL_FILE_FORMATS_FILTER_OPEN)[0]
         if fn == '': return
         self.LoadLevel(unicode(fn), 1)
 
