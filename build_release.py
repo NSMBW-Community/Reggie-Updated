@@ -61,10 +61,10 @@ print('>> Detecting environment...')
 print('>>')
 
 # Python optimization level
-if sys.flags.optimize == 2:
-    print('>>   [X] Python optimization level is -OO')
+if sys.flags.optimize >= 1:
+    print('>>   [X] Python optimization level is -O')
 else:
-    print('>>   [ ] Python optimization level is -OO')
+    print('>>   [ ] Python optimization level is -O')
 
 # NSMBLib being installed
 if config.USE_NSMBLIB:
@@ -77,9 +77,8 @@ if config.USE_NSMBLIB:
 
 
 # Now show big warning messages if any of those failed
-if sys.flags.optimize < 2:
-    msg = 'without' if sys.flags.optimize == 0 else 'with only one level of'
-    print_emphasis('>> WARNING: Python is being run ' + msg + ' optimizations enabled! Please consider building with -OO.')
+if sys.flags.optimize < 1:
+    print_emphasis('>> WARNING: Python is being run without optimizations enabled! Please consider building with -O.')
 
 if config.USE_NSMBLIB and nsmblib is None:
     print_emphasis('>> WARNING: NSMBLib does not seem to be installed! Please consider installing it prior to building.')
@@ -100,8 +99,6 @@ excludes = ['calendar', 'datetime', 'difflib', 'doctest', 'inspect',
 
 if config.EXCLUDE_SELECT:
     excludes.append('select')
-if config.EXCLUDE_THREADING:
-    excludes.append('threading')
 if config.EXCLUDE_HASHLIB:
     excludes.append('hashlib')
 if config.EXCLUDE_LOCALE:
@@ -246,6 +243,7 @@ with open(SPECFILE, 'r', encoding='utf-8') as f:
 
 # Iterate over its lines, and potentially add new ones
 new_lines = []
+found_bundle_line = False
 for line in lines:
     if 'PYZ(' in line and excludes_binaries:
         new_lines.append('EXCLUDES = ' + repr(excludes_binaries))
@@ -259,10 +257,13 @@ for line in lines:
         new_lines.append('        new_binaries.append((x, y, z))')
         new_lines.append('a.binaries = new_binaries')
 
-    new_lines.append(line)
+    if 'BUNDLE(' in line:
+        found_bundle_line = True
+    if found_bundle_line and sys.platform == 'darwin' and line.strip() == ')':
+        new_lines.append('    info_plist=' + json.dumps(info_plist) + ',')
+        found_bundle_line = False
 
-    if sys.platform == 'darwin' and 'BUNDLE(' in line:
-        new_lines.append('info_plist=' + json.dumps(info_plist) + ',')
+    new_lines.append(line)
 
 # Save new specfile
 with open(SPECFILE, 'w', encoding='utf-8') as f:
@@ -281,9 +282,6 @@ args = [
     '--distpath=' + DIR,
     '--workpath=' + WORKPATH,
 ]
-
-if config.USE_PYQT:
-    args.append('--windowed')
 
 args.append(SPECFILE)
 

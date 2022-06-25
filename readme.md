@@ -51,10 +51,11 @@ If you get the error "Reggie! Level Editor is damaged and can't be opened.",
 it's because the release builds are unsigned. To fix it, launch a Terminal
 window and run
 
-    sudo xattr -rd com.apple.quarantine /path/to/Reggie!\ Level\ Editor.app
+    sudo xattr -rd com.apple.quarantine "/path/to/Reggie! Level Editor.app"
     
-which will override the application signature requirement. Then you should be
-able to launch the app.
+...with the example path above replaced with the actual path to the app. This
+will override the application signature requirement, which should allow you to
+launch the app.
 
 
 Reggie! Team
@@ -99,9 +100,26 @@ See the license file in the distribution for information.
 Changelog
 =========
 
+Reggie-Updated 2021.12.04.0:
+----------------------------
+- New feature in the View menu: "Tileset Slots Mod" -- simulates Newer's code
+  patch that lets tilesets work correctly in any tileset slot. Only use this if
+  your mod actually includes that code patch, though!
+- The layout of the Entrance editor has been changed to make type-specific
+  settings clearer.
+- Added the "Direction of Other Side" connected-pipe entrance setting.
+- Added the recently discovered "Send to World Map" entrance setting.
+- Scrolling while holding the Control key now zooms the level view, like in
+  most other programs.
+- If you drag something near the edge of the level view, it now automatically
+  scrolls in that direction.
+- "Save As..." now defaults to .arc.LZ if the currently-opened level file is
+  compressed.
+- Other smaller changes and bugfixes.
+
+
 Reggie-Updated 2021.11.03.0:
 ----------------------------
-
 - Reggie Updated can now load and saved LZ11-compressed levels (.arc.LZ). These
   will be found in the upcoming Newer Super Mario Bros. Wii 1.30 update.
 - Release builds (apart from the 32-bit/Windows-7 build) are now built with

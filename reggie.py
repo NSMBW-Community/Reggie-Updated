@@ -49,8 +49,20 @@ FLT_MAX = 3.402823466e+38
 FLT_DIG = 6
 
 
-LEVEL_FILE_FORMATS_FILTER_SAVE = 'Level archives (*.arc);;LZ11-compressed level archives (*.arc.LZ);;All Files (*)'
-LEVEL_FILE_FORMATS_FILTER_OPEN = 'All supported files (*.arc *.arc.LZ);;' + LEVEL_FILE_FORMATS_FILTER_SAVE
+LEVEL_FILE_FORMATS_FILTER_ALL_SUPPORTED = 'All supported files (*.arc *.arc.LZ)'
+LEVEL_FILE_FORMATS_FILTER_ARC = 'Level archives (*.arc)'
+LEVEL_FILE_FORMATS_FILTER_ARC_LZ = 'LZ11-compressed level archives (*.arc.LZ)'
+LEVEL_FILE_FORMATS_FILTER_ALL = 'All Files (*)'
+
+LEVEL_FILE_FORMATS_FILTER_SAVE = ';;'.join([
+    LEVEL_FILE_FORMATS_FILTER_ARC,
+    LEVEL_FILE_FORMATS_FILTER_ARC_LZ,
+    LEVEL_FILE_FORMATS_FILTER_ALL])
+LEVEL_FILE_FORMATS_FILTER_OPEN = ';;'.join([
+    LEVEL_FILE_FORMATS_FILTER_ALL_SUPPORTED,
+    LEVEL_FILE_FORMATS_FILTER_ARC,
+    LEVEL_FILE_FORMATS_FILTER_ARC_LZ,
+    LEVEL_FILE_FORMATS_FILTER_ALL])
 
 
 # use psyco for optimisation if available
@@ -72,6 +84,7 @@ except ImportError:
 if sys.version_info.major >= 3:
     unicode = str
     intsToBytes = bytes
+    unichr = chr
 
     def keyInAttribs(key, node):
         return key in node.attributes
@@ -190,13 +203,31 @@ def isValidGamePath(check='ug'):
 
     if check is None or check == '': return False
     if not os.path.isdir(check): return False
-    if not os.path.isdir(os.path.join(check, 'Texture')): return False
-    if not os.path.isfile(os.path.join(check, '01-01.arc')) or os.path.isfile(os.path.join(check, '01-01.arc.LZ')): return False
+    if not (os.path.isdir(os.path.join(check, 'Texture')) or os.path.isdir(os.path.join(check, '../Tilesets'))): return False
+    if not (os.path.isfile(os.path.join(check, '01-01.arc')) or os.path.isfile(os.path.join(check, '01-01.arc.LZ'))): return False
 
     return True
 
 
-def setupDarkMode():
+def PromptUserForNewGamePath():
+    """Repeatedly prompt the user until they select a game path or cancel"""
+    path = None
+    while True:
+        path = QtWidgets.QFileDialog.getExistingDirectory(None, "Choose the game's Stage folder")
+        if not path:
+            return None
+
+        path = unicode(path)
+
+        if isValidGamePath(path):
+            return path
+        else:
+            result = QtWidgets.QMessageBox.warning(None, 'Warning',  "This folder doesn't have all of the files from the extracted <i>New Super Mario Bros. Wii</i> Stage folder. You've probably selected the wrong folder.<br><br>Are you sure you want to choose this folder?", QtWidgets.QMessageBox.StandardButton.Yes | QtWidgets.QMessageBox.StandardButton.Cancel)
+            if result == QtWidgets.QMessageBox.StandardButton.Yes:
+                return path
+
+
+def setUpDarkMode():
     """Sets up dark mode theming"""
     # Taken from https://gist.github.com/QuantumCD/6245215
 
@@ -848,6 +879,12 @@ def RenderObject(tileset, objnum, width, height, fullslope=False):
                 else:
                     RenderStandardRow(dest[y], inRepeat[(y - bc) % ic], y, width)
 
+    if TilesetSlotsModEnabled:
+        for row in dest:
+            for i, tile in enumerate(row):
+                if 0 < tile < 1024:
+                    row[i] = (tileset * 256) + (tile % 256)
+
     return dest
 
 
@@ -1037,7 +1074,7 @@ def LoadTileset(idx, name):
     try:
         return _LoadTileset(idx, name)
     except:
-        QtWidgets.QMessageBox.warning(None, 'Error',  'An error occurred while trying to load %s.arc. Check your Texture folder to make sure it is complete and not corrupted. The editor may run in a broken state or crash after this.' % name)
+        QtWidgets.QMessageBox.warning(None, 'Error',  'An error occurred while trying to load %s.arc. Check your Texture or Tilesets folder to make sure it is complete and not corrupted. The editor may run in a broken state or crash after this.' % name)
         return False
 
 
@@ -1047,7 +1084,10 @@ def _LoadTileset(idx, name):
     arcname = os.path.join(gamePath, 'Texture', name+'.arc')
 
     if not os.path.isfile(arcname):
-        QtWidgets.QMessageBox.warning(None, 'Error',  'Cannot find the required tileset file %s.arc for this level. Check your Texture folder and make sure it contains the required file.' % name)
+        arcname = os.path.join(gamePath, '../Tilesets', name+'.arc')
+
+    if not os.path.isfile(arcname):
+        QtWidgets.QMessageBox.warning(None, 'Error',  'Cannot find the required tileset file %s.arc for this level. Check your Texture or Tilesets folder and make sure it contains the required file.' % name)
         return False
 
     with open(arcname, 'rb') as arcf:
@@ -1472,6 +1512,7 @@ CurrentLayer = 1
 ShowLayer0 = True
 ShowLayer1 = True
 ShowLayer2 = True
+TilesetSlotsModEnabled = False
 ObjectsNonFrozen = True
 SpritesNonFrozen = True
 EntrancesNonFrozen = True
@@ -1850,12 +1891,12 @@ class LevelUnit():
         """Loads block 7, the entrances"""
         entdata = self.blocks[6]
         entcount = len(entdata) // 20
-        entstruct = struct.Struct('>HHxxxxBBBBxBBBHxx')
+        entstruct = struct.Struct('>HHxxxxBBBBxBBBHBB')
         offset = 0
         entrances = []
         for i in range(entcount):
             data = entstruct.unpack_from(entdata,offset)
-            entrances.append(EntranceEditorItem(data[0], data[1], data[2], data[3], data[4], data[5], data[6], data[7], data[8], data[9]))
+            entrances.append(EntranceEditorItem(data[0], data[1], data[2], data[3], data[4], data[5], data[6], data[7], data[8], data[9], data[10], data[11]))
             offset += 20
         self.entrances = entrances
 
@@ -2063,7 +2104,7 @@ class LevelUnit():
     def SaveEntrances(self):
         """Saves the entrances back to block 7"""
         offset = 0
-        entstruct = struct.Struct('>HHxxxxBBBBxBBBHxx')
+        entstruct = struct.Struct('>HHxxxxBBBBxBBBHBB')
         buffer = create_string_buffer(len(self.entrances) * 20)
         zonelist = self.zones
         for entrance in self.entrances:
@@ -2071,7 +2112,7 @@ class LevelUnit():
             if zoneID < 0:
                 # This can happen if the level has no zones
                 zoneID = 0
-            entstruct.pack_into(buffer, offset, int(entrance.objx), int(entrance.objy), int(entrance.entid), int(entrance.destarea), int(entrance.destentrance), int(entrance.enttype), zoneID, int(entrance.entlayer), int(entrance.entpath), int(entrance.entsettings))
+            entstruct.pack_into(buffer, offset, int(entrance.objx), int(entrance.objy), int(entrance.entid), int(entrance.destarea), int(entrance.destentrance), int(entrance.enttype), zoneID, int(entrance.entlayer), int(entrance.entpath), int(entrance.entsettings), int(entrance.exittomap), int(entrance.cpdirection))
             offset += 20
         self.blocks[6] = buffer.raw
 
@@ -3177,7 +3218,7 @@ class EntranceEditorItem(LevelEditorItem):
 
     BoundingRect = QtCore.QRectF(0,0,24,24)
 
-    def __init__(self, x, y, id, destarea, destentrance, type, zone, layer, path, settings):
+    def __init__(self, x, y, id, destarea, destentrance, type, zone, layer, path, settings, exittomap, cpd):
         """Creates an entrance with specific data"""
         if EntranceEditorItem.EntranceImages is None:
             ei = []
@@ -3199,6 +3240,8 @@ class EntranceEditorItem(LevelEditorItem):
         self.entsettings = settings
         self.entlayer = layer
         self.entpath = path
+        self.exittomap = exittomap
+        self.cpdirection = cpd
         self.listitem = None
 
         self.setFlag(QtWidgets.QGraphicsItem.GraphicsItemFlag.ItemIsMovable, EntrancesNonFrozen)
@@ -3233,11 +3276,12 @@ class EntranceEditorItem(LevelEditorItem):
 
         if (self.entsettings & 0x80) != 0:
             destination = '(cannot be entered)'
+        elif self.exittomap != 0:
+            destination = '(goes to world map)'
+        elif self.destarea == 0:
+            destination = '(arrives at entrance %d in this area)' % self.destentrance
         else:
-            if self.destarea == 0:
-                destination = '(arrives at entrance %d in this area)' % self.destentrance
-            else:
-                destination = '(arrives at entrance %d in area %d)' % (self.destentrance,self.destarea)
+            destination = '(arrives at entrance %d in area %d)' % (self.destentrance,self.destarea)
 
         self.name = name
         self.destination = destination
@@ -3526,6 +3570,9 @@ class PathEditorLineItem(LevelEditorItem):
 
     def paint(self, painter, option, widget):
         """Paints the object"""
+        if not self.nodelist:
+            return
+
         painter.setRenderHint(QtGui.QPainter.RenderHint.Antialiasing)
         painter.setClipRect(option.exposedRect)
 
@@ -4362,31 +4409,26 @@ class EntranceEditorWidget(QtWidgets.QWidget):
         super(EntranceEditorWidget, self).__init__()
         self.setSizePolicy(QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Policy.Minimum, QtWidgets.QSizePolicy.Policy.Fixed))
 
-        self.CanUseFlag40 = set([0,1,7,8,9,12,20,21,22,23,24,27])
-        self.CanUseFlag8 = set([3,4,5,6,16,17,18,19])
-        self.CanUseFlag4 = set([3,4,5,6])
+        self.CanUseFlag40 = {0,1,7,8,9,12,20,21,22,23,24,27}
+        self.CanUseFlag8 = {3,4,5,6,16,17,18,19}
+        self.CanUseFlag4 = {3,4,5,6}
 
         # create widgets
-        self.entranceID = QtWidgets.QSpinBox()
-        self.entranceID.setRange(0, 255)
-        self.entranceID.setToolTip('<b>ID:</b><br>Must be different from all other IDs')
-        self.entranceID.valueChanged.connect(self.HandleEntranceIDChanged)
-
         self.entranceType = QtWidgets.QComboBox()
         LoadEntranceNames()
         self.entranceType.addItems(EntranceTypeNames)
         self.entranceType.setToolTip('<b>Type:</b><br>Sets how the entrance behaves')
         self.entranceType.activated.connect(self.HandleEntranceTypeChanged)
 
-        self.destArea = QtWidgets.QSpinBox()
-        self.destArea.setRange(0, 4)
-        self.destArea.setToolTip('<b>Dest. Area:</b><br>If this entrance leads nowhere or the destination is in this area, set this to 0.')
-        self.destArea.valueChanged.connect(self.HandleDestAreaChanged)
+        self.entranceID = QtWidgets.QSpinBox()
+        self.entranceID.setRange(0, 255)
+        self.entranceID.setToolTip('<b>ID:</b><br>Must be different from all other IDs')
+        self.entranceID.valueChanged.connect(self.HandleEntranceIDChanged)
 
-        self.destEntrance = QtWidgets.QSpinBox()
-        self.destEntrance.setRange(0, 255)
-        self.destEntrance.setToolTip('<b>Dest. ID:</b><br>If this entrance leads nowhere, set this to 0.')
-        self.destEntrance.valueChanged.connect(self.HandleDestEntranceChanged)
+        self.activeLayer = QtWidgets.QComboBox()
+        self.activeLayer.addItems(['Layer 1', 'Layer 2', 'Layer 0'])
+        self.activeLayer.setToolTip('<b>Active on:</b><br>Allows you to change the collision layer which this entrance is active on. This option is very glitchy and not used in the default levels - for almost all normal cases, you will want to use layer 1.')
+        self.activeLayer.activated.connect(self.HandleActiveLayerChanged)
 
         self.enterableCheckbox = QtWidgets.QCheckBox('Enterable')
         self.enterableCheckbox.setToolTip("<b>Enterable:</b><br>If this box is checked on a pipe or door entrance, Mario will be able to enter the pipe/door. If it's not checked, he won't be able to enter it. Behaviour on other types of entrances is unknown/undefined.")
@@ -4396,70 +4438,98 @@ class EntranceEditorWidget(QtWidgets.QWidget):
         self.unknownFlagCheckbox.setToolTip("<b>Unknown Flag:</b><br>This box is checked on a few entrances in the game, but we haven't managed to figure out what it does (or if it does anything).")
         self.unknownFlagCheckbox.clicked.connect(self.HandleUnknownFlagClicked)
 
+        self.destEntranceLabel = QtWidgets.QLabel('Dest. ID:')
+        self.destEntrance = QtWidgets.QSpinBox()
+        self.destEntrance.setRange(0, 255)
+        self.destEntrance.setToolTip('<b>Dest. ID:</b><br>If this entrance leads nowhere, set this to 0.')
+        self.destEntrance.valueChanged.connect(self.HandleDestEntranceChanged)
+
+        self.destAreaLabel = QtWidgets.QLabel('Dest. Area:')
+        self.destArea = QtWidgets.QSpinBox()
+        self.destArea.setRange(0, 4)
+        self.destArea.setToolTip('<b>Dest. Area:</b><br>If this entrance leads nowhere or the destination is in this area, set this to 0.')
+        self.destArea.valueChanged.connect(self.HandleDestAreaChanged)
+
+        self.sendToEntrance = QtWidgets.QRadioButton('Send to Entrance')
+        self.sendToEntrance.setToolTip('<b>Send to Entrance:</b><br>If this is chosen, this entrance will send Mario to a different entrance in the same level when entered.')
+
+        self.sendToWorldMap = QtWidgets.QRadioButton('Send to World Map')
+        self.sendToWorldMap.setToolTip('<b>Send to World Map:</b><br>If this is chosen, this entrance will send Mario back to the world map when entered, without finishing the level.')
+
+        self.sendToEntranceOrWMGroup = QtWidgets.QButtonGroup(self)
+        self.sendToEntranceOrWMGroup.addButton(self.sendToEntrance, 0)
+        self.sendToEntranceOrWMGroup.addButton(self.sendToWorldMap, 1)
+        qm(self.sendToEntranceOrWMGroup).idClicked.connect(self.SendToEntranceOrWMChanged)
+
         self.spawnHalfTileLeftCheckbox = QtWidgets.QCheckBox('Spawn Half a Tile Left')
         self.spawnHalfTileLeftCheckbox.setToolTip("<b>Spawn Half a Tile Left:</b><br>If this is checked, the entrance will spawn Mario half a tile to the left.")
         self.spawnHalfTileLeftCheckbox.clicked.connect(self.HandleSpawnHalfTileLeftClicked)
 
-        self.connectedPipeCheckbox = QtWidgets.QCheckBox('Connected Pipe')
-        self.connectedPipeCheckbox.setToolTip("<b>Connected Pipe:</b><br>This box allows you to enable an unused/broken feature in the game. It allows the pipe to function like the pipes in SMB3 where Mario simply goes through the pipe. However, it doesn't work correctly.")
-        self.connectedPipeCheckbox.clicked.connect(self.HandleConnectedPipeClicked)
+        self.forwardPipeCheckbox = QtWidgets.QCheckBox('Links to Forward Pipe')
+        self.forwardPipeCheckbox.setToolTip('<b>Links to Forward Pipe:</b><br>If this option is set on a pipe, the destination entrance/area values will be ignored - Mario will pass through the pipe and then reappear several tiles ahead, coming out of a pipe that faces the screen.')
+        self.forwardPipeCheckbox.clicked.connect(self.HandleForwardPipeClicked)
 
-        self.connectedPipeReverseCheckbox = QtWidgets.QCheckBox('Connected Pipe Reverse')
-        self.connectedPipeReverseCheckbox.setToolTip("<b>Connected Pipe Reverse:</b><br>If you're using connected pipes, this flag must be set on the opposite end (the one located at the end of the path).")
-        self.connectedPipeReverseCheckbox.clicked.connect(self.HandleConnectedPipeReverseClicked)
+        self.connectedPipeCheckbox = QtWidgets.QCheckBox('Connected Pipe')
+        self.connectedPipeCheckbox.setToolTip("<b>Connected Pipe:</b><br>This box allows you to enable an unused/broken feature in the game. It allows the pipe to function like the pipes in SMB3 where Mario simply goes through the pipe. It doesn't work correctly in NSMBW, but it's been fixed in Newer SMBW.")
+        self.connectedPipeCheckbox.clicked.connect(self.HandleConnectedPipeClicked)
 
         self.pathID = QtWidgets.QSpinBox()
         self.pathID.setRange(0, 255)
         self.pathID.setToolTip('<b>Path ID:</b><br>Use this option to set the path number that the connected pipe will follow.')
         self.pathID.valueChanged.connect(self.HandlePathIDChanged)
 
-        self.forwardPipeCheckbox = QtWidgets.QCheckBox('Links to Forward Pipe')
-        self.forwardPipeCheckbox.setToolTip('<b>Links to Forward Pipe:</b><br>If this option is set on a pipe, the destination entrance/area values will be ignored - Mario will pass through the pipe and then reappear several tiles ahead, coming out of a pipe that faces the screen.')
-        self.forwardPipeCheckbox.clicked.connect(self.HandleForwardPipeClicked)
+        self.connectedPipeReverseCheckbox = QtWidgets.QCheckBox('Reverse')
+        self.connectedPipeReverseCheckbox.setToolTip("<b>Reverse:</b><br>This must be checked on the entrance at the end of the path.")
+        self.connectedPipeReverseCheckbox.clicked.connect(self.HandleConnectedPipeReverseClicked)
 
-        self.activeLayer = QtWidgets.QComboBox()
-        self.activeLayer.addItems(['Layer 1', 'Layer 2', 'Layer 0'])
-        self.activeLayer.setToolTip('<b>Active on:</b><br>Allows you to change the collision layer which this entrance is active on. This option is very glitchy and not used in the default levels - for almost all normal cases, you will want to use layer 1.')
-        self.activeLayer.activated.connect(self.HandleActiveLayerChanged)
+        self.connectedPipeDirection = QtWidgets.QComboBox()
+        self.connectedPipeDirection.addItems(['Up', 'Down', 'Left', 'Right'])
+        self.connectedPipeDirection.setToolTip('<b>Direction of Other Side:</b><br>Sets the direction the player will exit out of the other side of the connected pipe. (This should match the "Type" setting for the other entrance.)')
+        self.connectedPipeDirection.activated.connect(self.HandleConnectedPipeDirectionChanged)
 
         # create a layout
         layout = QtWidgets.QGridLayout()
         self.setLayout(layout)
 
-        # "Editing Entrance #" label
+        # First part: "Editing Entrance #" label, and Type box
         self.editingLabel = QtWidgets.QLabel('-')
         layout.addWidget(self.editingLabel, 0, 0, 1, 4, QtCore.Qt.AlignmentFlag.AlignTop)
-
-        # add labels
-        layout.addWidget(QtWidgets.QLabel('ID:'), 3, 0, 1, 1, QtCore.Qt.AlignmentFlag.AlignRight)
         layout.addWidget(QtWidgets.QLabel('Type:'), 1, 0, 1, 1, QtCore.Qt.AlignmentFlag.AlignRight)
-
+        layout.addWidget(self.entranceType, 1, 1, 1, 3)
         layout.addWidget(createHorzLine(), 2, 0, 1, 4)
 
-        layout.addWidget(QtWidgets.QLabel('Dest. ID:'), 3, 2, 1, 1, QtCore.Qt.AlignmentFlag.AlignRight)
-        layout.addWidget(QtWidgets.QLabel('Dest. Area:'), 4, 2, 1, 1, QtCore.Qt.AlignmentFlag.AlignRight)
-
+        # Second part: other general settings
+        layout.addWidget(QtWidgets.QLabel('ID:'), 3, 0, 1, 1, QtCore.Qt.AlignmentFlag.AlignRight)
+        layout.addWidget(self.entranceID, 3, 1)
         layout.addWidget(QtWidgets.QLabel('Active on:'), 4, 0, 1, 1, QtCore.Qt.AlignmentFlag.AlignRight)
-
-        self.pathIDLabel = QtWidgets.QLabel('Path ID:')
-
-        # add the widgets
-        layout.addWidget(self.entranceID, 3, 1, 1, 1)
-        layout.addWidget(self.entranceType, 1, 1, 1, 3)
-
-        layout.addWidget(self.destEntrance, 3, 3, 1, 1)
-        layout.addWidget(self.destArea, 4, 3, 1, 1)
-
+        layout.addWidget(self.activeLayer, 4, 1)
         layout.addWidget(self.enterableCheckbox, 5, 0, 1, 2, QtCore.Qt.AlignmentFlag.AlignRight)
-        layout.addWidget(self.unknownFlagCheckbox, 5, 2, 1, 2, QtCore.Qt.AlignmentFlag.AlignRight)
-        layout.addWidget(self.spawnHalfTileLeftCheckbox, 6, 0, 1, 4, QtCore.Qt.AlignmentFlag.AlignRight)
-        layout.addWidget(self.forwardPipeCheckbox, 7, 0, 1, 2, QtCore.Qt.AlignmentFlag.AlignRight)
-        layout.addWidget(self.connectedPipeCheckbox, 7, 2, 1, 2, QtCore.Qt.AlignmentFlag.AlignRight)
-        layout.addWidget(self.connectedPipeReverseCheckbox, 8, 0, 1, 2, QtCore.Qt.AlignmentFlag.AlignRight)
-        layout.addWidget(self.pathID, 8, 3, 1, 1, QtCore.Qt.AlignmentFlag.AlignRight)
-        layout.addWidget(self.pathIDLabel, 8, 2, 1, 1, QtCore.Qt.AlignmentFlag.AlignRight)
+        layout.addWidget(self.unknownFlagCheckbox, 6, 0, 1, 2, QtCore.Qt.AlignmentFlag.AlignRight)
+        layout.addWidget(self.destEntranceLabel, 3, 2, 1, 1, QtCore.Qt.AlignmentFlag.AlignRight)
+        layout.addWidget(self.destEntrance, 3, 3)
+        layout.addWidget(self.destAreaLabel, 4, 2, 1, 1, QtCore.Qt.AlignmentFlag.AlignRight)
+        layout.addWidget(self.destArea, 4, 3)
+        layout.addWidget(self.sendToEntrance, 5, 2, 1, 2)
+        layout.addWidget(self.sendToWorldMap, 6, 2, 1, 2)
 
-        layout.addWidget(self.activeLayer, 4, 1, 1, 1, QtCore.Qt.AlignmentFlag.AlignLeft)
+        # Third part: type-specific settings groupbox
+        self.typeSpecificSettingsGroup = QtWidgets.QGroupBox('Type-Specific Settings')
+        tssLayout = QtWidgets.QGridLayout(self.typeSpecificSettingsGroup)
+        layout.addWidget(self.typeSpecificSettingsGroup, 7, 0, 1, 4)
+
+        tssLayout.addWidget(self.spawnHalfTileLeftCheckbox, 0, 0, 1, 4, QtCore.Qt.AlignmentFlag.AlignLeft)
+        tssLayout.addWidget(self.forwardPipeCheckbox, 1, 0, 1, 2, QtCore.Qt.AlignmentFlag.AlignRight)
+        tssLayout.addWidget(self.connectedPipeCheckbox, 1, 2, 1, 2, QtCore.Qt.AlignmentFlag.AlignRight)
+
+        self.connectedPipeGroup = QtWidgets.QGroupBox('Connected Pipe Settings')
+        cpLayout = QtWidgets.QGridLayout(self.connectedPipeGroup)
+        tssLayout.addWidget(self.connectedPipeGroup, 2, 0, 1, 4)
+
+        cpLayout.addWidget(QtWidgets.QLabel('Path ID:'), 0, 0, 1, 1, QtCore.Qt.AlignmentFlag.AlignRight)
+        cpLayout.addWidget(self.pathID, 0, 1)
+        cpLayout.addWidget(self.connectedPipeReverseCheckbox, 0, 2, 1, 2, QtCore.Qt.AlignmentFlag.AlignRight)
+        cpLayout.addWidget(QtWidgets.QLabel('Direction of Other Side:'), 1, 0, 1, 3, QtCore.Qt.AlignmentFlag.AlignRight)
+        cpLayout.addWidget(self.connectedPipeDirection, 1, 3)
 
         self.ent = None
         self.UpdateFlag = False
@@ -4469,7 +4539,7 @@ class EntranceEditorWidget(QtWidgets.QWidget):
         """Change the entrance being edited by the editor, update all fields"""
         if self.ent == ent: return
 
-        self.editingLabel.setText('<b>Editing Entrance %d:</b>' % (ent.entid))
+        self.updateTitle(ent.entid)
         self.ent = ent
         self.UpdateFlag = True
 
@@ -4478,33 +4548,54 @@ class EntranceEditorWidget(QtWidgets.QWidget):
         if ent.entlayer < 0: ent.entlayer = 0
         if ent.entlayer >= 3: ent.entlayer = 2
 
-        self.entranceID.setValue(ent.entid)
         self.entranceType.setCurrentIndex(ent.enttype)
-        self.destArea.setValue(ent.destarea)
-        self.destEntrance.setValue(ent.destentrance)
 
-        self.enterableCheckbox.setChecked(((ent.entsettings & 0x80) == 0))
-        self.unknownFlagCheckbox.setChecked(((ent.entsettings & 2) != 0))
-
-        self.spawnHalfTileLeftCheckbox.setVisible(ent.enttype in self.CanUseFlag40)
-        self.spawnHalfTileLeftCheckbox.setChecked(((ent.entsettings & 0x40) != 0))
-
-        self.connectedPipeCheckbox.setVisible(ent.enttype in self.CanUseFlag8)
-        self.connectedPipeCheckbox.setChecked(((ent.entsettings & 8) != 0))
-
-        self.connectedPipeReverseCheckbox.setVisible(ent.enttype in self.CanUseFlag8 and ((ent.entsettings & 8) != 0))
-        self.connectedPipeReverseCheckbox.setChecked(((ent.entsettings & 1) != 0))
-
-        self.forwardPipeCheckbox.setVisible(ent.enttype in self.CanUseFlag4)
-        self.forwardPipeCheckbox.setChecked(((ent.entsettings & 4) != 0))
-
-        self.pathID.setVisible(ent.enttype in self.CanUseFlag8 and ((ent.entsettings & 8) != 0))
-        self.pathID.setValue(ent.entpath)
-        self.pathIDLabel.setVisible(ent.enttype in self.CanUseFlag8 and ((ent.entsettings & 8) != 0))
-
+        self.entranceID.setValue(ent.entid)
         self.activeLayer.setCurrentIndex(ent.entlayer)
 
+        self.destEntrance.setValue(ent.destentrance)
+        self.destArea.setValue(ent.destarea)
+        self.sendToEntrance.setChecked(ent.exittomap == 0)
+        self.sendToWorldMap.setChecked(ent.exittomap != 0)
+
+        self.enterableCheckbox.setChecked((ent.entsettings & 0x80) == 0)
+        self.unknownFlagCheckbox.setChecked((ent.entsettings & 2) != 0)
+
+        self.spawnHalfTileLeftCheckbox.setChecked((ent.entsettings & 0x40) != 0)
+
+        self.forwardPipeCheckbox.setChecked((ent.entsettings & 4) != 0)
+
+        self.connectedPipeCheckbox.setChecked((ent.entsettings & 8) != 0)
+
+        self.pathID.setValue(ent.entpath)
+        self.connectedPipeReverseCheckbox.setChecked((ent.entsettings & 1) != 0)
+        self.connectedPipeDirection.setCurrentIndex(ent.cpdirection)
+
+        self.updateWidgetVisibilities(ent.enttype, ent.entsettings, ent.exittomap)
+
         self.UpdateFlag = False
+
+
+    def updateTitle(self, id):
+        """Update the title label with the entrance ID"""
+        self.editingLabel.setText('<b>Editing Entrance %d:</b>' % id)
+
+
+    def updateWidgetVisibilities(self, type, settings, exitToWorldMap):
+        """Update visibility for all widgets as necessary"""
+        self.destEntranceLabel.setVisible(not exitToWorldMap)
+        self.destEntrance.setVisible(not exitToWorldMap)
+        self.destAreaLabel.setVisible(not exitToWorldMap)
+        self.destArea.setVisible(not exitToWorldMap)
+
+        self.typeSpecificSettingsGroup.setVisible(type in (self.CanUseFlag40 | self.CanUseFlag8 | self.CanUseFlag4))
+
+        self.spawnHalfTileLeftCheckbox.setVisible(type in self.CanUseFlag40)
+
+        self.forwardPipeCheckbox.setVisible(type in self.CanUseFlag4)
+        self.connectedPipeCheckbox.setVisible(type in self.CanUseFlag8)
+
+        self.connectedPipeGroup.setVisible(type in self.CanUseFlag8 and ((settings & 8) != 0))
 
 
     @QtCoreSlot(int)
@@ -4516,17 +4607,12 @@ class EntranceEditorWidget(QtWidgets.QWidget):
         self.ent.update()
         self.ent.UpdateTooltip()
         self.ent.listitem.setText(self.ent.ListString())
+        self.updateTitle(i)
 
 
     @QtCoreSlot(int)
     def HandleEntranceTypeChanged(self, i):
         """Handler for the entrance type changing"""
-        self.spawnHalfTileLeftCheckbox.setVisible(i in self.CanUseFlag40)
-        self.connectedPipeCheckbox.setVisible(i in self.CanUseFlag8)
-        self.connectedPipeReverseCheckbox.setVisible(i in self.CanUseFlag8 and ((self.ent.entsettings & 8) != 0))
-        self.pathIDLabel.setVisible(i in self.CanUseFlag8 and ((self.ent.entsettings & 8) != 0))
-        self.pathID.setVisible(i in self.CanUseFlag8 and ((self.ent.entsettings & 8) != 0))
-        self.forwardPipeCheckbox.setVisible(i in self.CanUseFlag4)
         if self.UpdateFlag: return
         SetDirty()
         self.ent.enttype = i
@@ -4534,6 +4620,7 @@ class EntranceEditorWidget(QtWidgets.QWidget):
         self.ent.update()
         self.ent.UpdateTooltip()
         self.ent.listitem.setText(self.ent.ListString())
+        self.updateWidgetVisibilities(i, self.ent.entsettings, self.ent.exittomap)
 
 
     @QtCoreSlot(int)
@@ -4580,6 +4667,19 @@ class EntranceEditorWidget(QtWidgets.QWidget):
             self.ent.entsettings &= ~2
 
 
+    @QtCoreSlot(int)
+    def SendToEntranceOrWMChanged(self, id):
+        """Handle for the "Send to Entrance"/"Send to World Map" setting being changed"""
+        if self.UpdateFlag: return
+        SetDirty()
+        if id != 0:
+            self.ent.exittomap = 1
+        else:
+            self.ent.exittomap = 0
+        self.ent.UpdateTooltip()
+        self.updateWidgetVisibilities(self.ent.enttype, self.ent.entsettings, self.ent.exittomap)
+
+
     @QtCoreSlot(bool)
     def HandleSpawnHalfTileLeftClicked(self, checked):
         """Handle for the Spawn Half a Tile Left checkbox being clicked"""
@@ -4594,15 +4694,13 @@ class EntranceEditorWidget(QtWidgets.QWidget):
     @QtCoreSlot(bool)
     def HandleConnectedPipeClicked(self, checked):
         """Handle for the connected pipe checkbox being clicked"""
-        self.connectedPipeReverseCheckbox.setVisible(checked)
-        self.pathID.setVisible(checked)
-        self.pathIDLabel.setVisible(checked)
         if self.UpdateFlag: return
         SetDirty()
         if checked:
             self.ent.entsettings |= 8
         else:
             self.ent.entsettings &= ~8
+        self.updateWidgetVisibilities(self.ent.enttype, self.ent.entsettings, self.ent.exittomap)
 
     @QtCoreSlot(bool)
     def HandleConnectedPipeReverseClicked(self, checked):
@@ -4637,6 +4735,14 @@ class EntranceEditorWidget(QtWidgets.QWidget):
         if self.UpdateFlag: return
         SetDirty()
         self.ent.entlayer = i
+
+    @QtCore.pyqtSlot(int)
+    def HandleConnectedPipeDirectionChanged(self, i):
+        """Handler for connected-pipe direction changing"""
+        if self.UpdateFlag: return
+        SetDirty()
+        self.ent.cpdirection = i
+
 
 class PathNodeEditorWidget(QtWidgets.QWidget):
     """Widget for editing path node properties"""
@@ -5100,6 +5206,7 @@ class LevelViewWidget(QtWidgets.QGraphicsView):
 
         self.currentobj = None
         self.lastCursorPosForMidButtonScroll = None
+        self.cursorEdgeScrollTimer = None
 
 
     def mousePressEvent(self, event):
@@ -5226,7 +5333,7 @@ class LevelViewWidget(QtWidgets.QGraphicsView):
                 for ent in Level.entrances: getids[ent.entid] = True
                 minimumID = getids.index(False)
 
-                ent = EntranceEditorItem(clickedx, clickedy, minimumID, 0, 0, 0, 0, 0, 0, 0)
+                ent = EntranceEditorItem(clickedx, clickedy, minimumID, 0, 0, 0, 0, 0, 0, 0, 0, 0)
                 mw = mainWindow
                 ent.positionChanged = mw.HandleEntPosChange
                 mw.scene.addItem(ent)
@@ -5345,7 +5452,7 @@ class LevelViewWidget(QtWidgets.QGraphicsView):
             pos = mw.view.mapToScene(qm(event).position().toPoint())
             addsel = mw.scene.items(pos)
             for i in addsel:
-                if (int(i.flags()) & i.ItemIsSelectable) != 0:
+                if i.flags() & QtWidgets.QGraphicsItem.GraphicsItemFlag.ItemIsSelectable:
                     i.setSelected(not i.isSelected())
                     break
 
@@ -5373,157 +5480,17 @@ class LevelViewWidget(QtWidgets.QGraphicsView):
         if pos.y() < 0: pos.setY(0)
         self.PositionHover.emit(int(pos.x()), int(pos.y()))
 
-        if event.buttons() == QtCore.Qt.MouseButton.RightButton and self.currentobj is not None:
-            obj = self.currentobj
+        if ((event.buttons() & (QtCore.Qt.MouseButton.LeftButton | QtCore.Qt.MouseButton.RightButton))
+                and not self.cursorEdgeScrollTimer):
+            # We set this up here instead of in mousePressEvent because
+            # otherwise the view would jerk to one side if you clicked
+            # near its edge. This way, it'll only scroll if you click
+            # and drag.
+            self.cursorEdgeScrollTimer = QtCore.QTimer()
+            self.cursorEdgeScrollTimer.timeout.connect(self.scrollIfCursorNearEdge)
+            self.cursorEdgeScrollTimer.start(1000 // 60)  # ~ 60 fps
 
-            # possibly a small optimisation
-            type_obj = LevelObjectEditorItem
-            type_spr = SpriteEditorItem
-            type_ent = EntranceEditorItem
-            type_loc = LocationEditorItem
-            type_path = PathEditorItem
-
-            if isinstance(obj, type_obj):
-                # resize/move the current object
-                cx = obj.objx
-                cy = obj.objy
-                cwidth = obj.width
-                cheight = obj.height
-
-                dsx = self.dragstartx
-                dsy = self.dragstarty
-                clicked = mainWindow.view.mapToScene(qm(event).position().toPoint())
-                if clicked.x() < 0: clicked.setX(0)
-                if clicked.y() < 0: clicked.setY(0)
-                clickx = int(clicked.x() / 24)
-                clicky = int(clicked.y() / 24)
-
-                # allow negative width/height and treat it properly :D
-                if clickx >= dsx:
-                    x = dsx
-                    width = clickx - dsx + 1
-                else:
-                    x = clickx
-                    width = dsx - clickx + 1
-
-                if clicky >= dsy:
-                    y = dsy
-                    height = clicky - dsy + 1
-                else:
-                    y = clicky
-                    height = dsy - clicky + 1
-
-                # if the position changed, set the new one
-                if cx != x or cy != y:
-                    obj.objx = x
-                    obj.objy = y
-                    obj.setPos(x * 24, y * 24)
-
-                # if the size changed, recache it and update the area
-                if cwidth != width or cheight != height:
-                    obj.width = width
-                    obj.height = height
-                    obj.updateObjCache()
-
-                    oldrect = obj.BoundingRect
-                    oldrect.translate(cx * 24, cy * 24)
-                    newrect = QtCore.QRectF(obj.x(), obj.y(), obj.width * 24, obj.height * 24)
-                    updaterect = oldrect.united(newrect)
-
-                    obj.UpdateRects()
-                    obj.scene().update(updaterect)
-
-            elif isinstance(obj, type_loc):
-                # resize/move the current location
-                cx = obj.objx
-                cy = obj.objy
-                cwidth = obj.width
-                cheight = obj.height
-
-                dsx = self.dragstartx
-                dsy = self.dragstarty
-                clicked = mainWindow.view.mapToScene(qm(event).position().toPoint())
-                if clicked.x() < 0: clicked.setX(0)
-                if clicked.y() < 0: clicked.setY(0)
-                clickx = int(clicked.x() / 1.5)
-                clicky = int(clicked.y() / 1.5)
-
-                # allow negative width/height and treat it properly :D
-                if clickx >= dsx:
-                    x = dsx
-                    width = clickx - dsx + 1
-                else:
-                    x = clickx
-                    width = dsx - clickx + 1
-
-                if clicky >= dsy:
-                    y = dsy
-                    height = clicky - dsy + 1
-                else:
-                    y = clicky
-                    height = dsy - clicky + 1
-
-                # if the position changed, set the new one
-                if cx != x or cy != y:
-                    obj.objx = x
-                    obj.objy = y
-
-                    global OverrideSnapping
-                    OverrideSnapping = True
-                    obj.setPos(x * 1.5, y * 1.5)
-                    OverrideSnapping = False
-
-                # if the size changed, recache it and update the area
-                if cwidth != width or cheight != height:
-                    obj.width = width
-                    obj.height = height
-#                    obj.updateObjCache()
-
-                    oldrect = obj.BoundingRect
-                    oldrect.translate(cx * 1.5, cy * 1.5)
-                    newrect = QtCore.QRectF(obj.x(), obj.y(), obj.width * 1.5, obj.height * 1.5)
-                    updaterect = oldrect.united(newrect)
-
-                    obj.UpdateRects()
-                    obj.scene().update(updaterect)
-
-
-            elif isinstance(obj, type_spr):
-                # move the created sprite
-                clicked = mainWindow.view.mapToScene(qm(event).position().toPoint())
-                if clicked.x() < 0: clicked.setX(0)
-                if clicked.y() < 0: clicked.setY(0)
-                clickedx = int((clicked.x() - 12) / 12) * 8
-                clickedy = int((clicked.y() - 12) / 12) * 8
-                if obj.objx != clickedx or obj.objy != clickedy:
-                    obj.objx = clickedx
-                    obj.objy = clickedy
-                    obj.setPos(int((clickedx+obj.xoffset) * 1.5), int((clickedy+obj.yoffset) * 1.5))
-
-            elif isinstance(obj, type_ent):
-                # move the created entrance
-                clicked = mainWindow.view.mapToScene(qm(event).position().toPoint())
-                if clicked.x() < 0: clicked.setX(0)
-                if clicked.y() < 0: clicked.setY(0)
-                clickedx = int((clicked.x() - 12) / 1.5)
-                clickedy = int((clicked.y() - 12) / 1.5)
-
-                if obj.objx != clickedx or obj.objy != clickedy:
-                    obj.objx = clickedx
-                    obj.objy = clickedy
-                    obj.setPos(int(clickedx * 1.5), int(clickedy * 1.5))
-            elif isinstance(obj, type_path):
-                # move the created path
-                clicked = mainWindow.view.mapToScene(qm(event).position().toPoint())
-                if clicked.x() < 0: clicked.setX(0)
-                if clicked.y() < 0: clicked.setY(0)
-                clickedx = int((clicked.x() - 12) / 1.5)
-                clickedy = int((clicked.y() - 12) / 1.5)
-
-                if obj.objx != clickedx or obj.objy != clickedy:
-                    obj.objx = clickedx
-                    obj.objy = clickedy
-                    obj.setPos(int(clickedx * 1.5), int(clickedy * 1.5))
+        if self.updatePaintDraggedItems():
             event.accept()
 
         elif event.buttons() == QtCore.Qt.MouseButton.MiddleButton and self.lastCursorPosForMidButtonScroll is not None:
@@ -5545,7 +5512,220 @@ class LevelViewWidget(QtWidgets.QGraphicsView):
         if (not event.buttons() & QtCore.Qt.MouseButton.MiddleButton) and (not event.buttons() & QtCore.Qt.MouseButton.RightButton):
             self.setDragMode(QtWidgets.QGraphicsView.DragMode.RubberBandDrag)
 
+        if self.cursorEdgeScrollTimer:
+            self.cursorEdgeScrollTimer.stop()
+            self.cursorEdgeScrollTimer = None
+
         QtWidgets.QGraphicsView.mouseReleaseEvent(self, event)
+
+
+    def wheelEvent(self, event):
+        """Handle wheel events for zooming in/out"""
+        if event.modifiers() & QtCore.Qt.KeyboardModifier.ControlModifier:
+            if QtCompatVersion >= (5,0,0):
+                angleDelta = event.angleDelta().y()
+            else:
+                angleDelta = event.delta()
+
+            if angleDelta > 0:
+                mainWindow.HandleZoomIn(towardsCursor=True)
+            else:
+                mainWindow.HandleZoomOut(towardsCursor=True)
+
+        else:
+            QtWidgets.QGraphicsView.wheelEvent(self, event)
+
+
+    def updatePaintDraggedItems(self):
+        """Update items that are being paint-dragged (painted with
+        right-click, and dragged while it's still held down). Returns
+        True if any items are being paint-dragged, False otherwise"""
+        if app.mouseButtons() != QtCore.Qt.MouseButton.RightButton or self.currentobj is None:
+            return False
+
+        obj = self.currentobj
+
+        # possibly a small optimisation
+        type_obj = LevelObjectEditorItem
+        type_spr = SpriteEditorItem
+        type_ent = EntranceEditorItem
+        type_loc = LocationEditorItem
+        type_path = PathEditorItem
+
+        if isinstance(obj, type_obj):
+            # resize/move the current object
+            cx = obj.objx
+            cy = obj.objy
+            cwidth = obj.width
+            cheight = obj.height
+
+            dsx = self.dragstartx
+            dsy = self.dragstarty
+            clicked = mainWindow.view.mapToScene(self.mapFromGlobal(QtGui.QCursor.pos()))
+            if clicked.x() < 0: clicked.setX(0)
+            if clicked.y() < 0: clicked.setY(0)
+            clickx = int(clicked.x() / 24)
+            clicky = int(clicked.y() / 24)
+
+            # allow negative width/height and treat it properly :D
+            if clickx >= dsx:
+                x = dsx
+                width = clickx - dsx + 1
+            else:
+                x = clickx
+                width = dsx - clickx + 1
+
+            if clicky >= dsy:
+                y = dsy
+                height = clicky - dsy + 1
+            else:
+                y = clicky
+                height = dsy - clicky + 1
+
+            # if the position changed, set the new one
+            if cx != x or cy != y:
+                obj.objx = x
+                obj.objy = y
+                obj.setPos(x * 24, y * 24)
+
+            # if the size changed, recache it and update the area
+            if cwidth != width or cheight != height:
+                obj.width = width
+                obj.height = height
+                obj.updateObjCache()
+
+                oldrect = obj.BoundingRect
+                oldrect.translate(cx * 24, cy * 24)
+                newrect = QtCore.QRectF(obj.x(), obj.y(), obj.width * 24, obj.height * 24)
+                updaterect = oldrect.united(newrect)
+
+                obj.UpdateRects()
+                obj.scene().update(updaterect)
+
+        elif isinstance(obj, type_loc):
+            # resize/move the current location
+            cx = obj.objx
+            cy = obj.objy
+            cwidth = obj.width
+            cheight = obj.height
+
+            dsx = self.dragstartx
+            dsy = self.dragstarty
+            clicked = mainWindow.view.mapToScene(self.mapFromGlobal(QtGui.QCursor.pos()))
+            if clicked.x() < 0: clicked.setX(0)
+            if clicked.y() < 0: clicked.setY(0)
+            clickx = int(clicked.x() / 1.5)
+            clicky = int(clicked.y() / 1.5)
+
+            # allow negative width/height and treat it properly :D
+            if clickx >= dsx:
+                x = dsx
+                width = clickx - dsx + 1
+            else:
+                x = clickx
+                width = dsx - clickx + 1
+
+            if clicky >= dsy:
+                y = dsy
+                height = clicky - dsy + 1
+            else:
+                y = clicky
+                height = dsy - clicky + 1
+
+            # if the position changed, set the new one
+            if cx != x or cy != y:
+                obj.objx = x
+                obj.objy = y
+
+                global OverrideSnapping
+                OverrideSnapping = True
+                obj.setPos(x * 1.5, y * 1.5)
+                OverrideSnapping = False
+
+            # if the size changed, recache it and update the area
+            if cwidth != width or cheight != height:
+                obj.width = width
+                obj.height = height
+#                    obj.updateObjCache()
+
+                oldrect = obj.BoundingRect
+                oldrect.translate(cx * 1.5, cy * 1.5)
+                newrect = QtCore.QRectF(obj.x(), obj.y(), obj.width * 1.5, obj.height * 1.5)
+                updaterect = oldrect.united(newrect)
+
+                obj.UpdateRects()
+                obj.scene().update(updaterect)
+
+
+        elif isinstance(obj, type_spr):
+            # move the created sprite
+            clicked = mainWindow.view.mapToScene(self.mapFromGlobal(QtGui.QCursor.pos()))
+            if clicked.x() < 0: clicked.setX(0)
+            if clicked.y() < 0: clicked.setY(0)
+            clickedx = int((clicked.x() - 12) / 12) * 8
+            clickedy = int((clicked.y() - 12) / 12) * 8
+            if obj.objx != clickedx or obj.objy != clickedy:
+                obj.objx = clickedx
+                obj.objy = clickedy
+                obj.setPos(int((clickedx+obj.xoffset) * 1.5), int((clickedy+obj.yoffset) * 1.5))
+
+        elif isinstance(obj, type_ent):
+            # move the created entrance
+            clicked = mainWindow.view.mapToScene(self.mapFromGlobal(QtGui.QCursor.pos()))
+            if clicked.x() < 0: clicked.setX(0)
+            if clicked.y() < 0: clicked.setY(0)
+            clickedx = int((clicked.x() - 12) / 1.5)
+            clickedy = int((clicked.y() - 12) / 1.5)
+
+            if obj.objx != clickedx or obj.objy != clickedy:
+                obj.objx = clickedx
+                obj.objy = clickedy
+                obj.setPos(int(clickedx * 1.5), int(clickedy * 1.5))
+        elif isinstance(obj, type_path):
+            # move the created path
+            clicked = mainWindow.view.mapToScene(self.mapFromGlobal(QtGui.QCursor.pos()))
+            if clicked.x() < 0: clicked.setX(0)
+            if clicked.y() < 0: clicked.setY(0)
+            clickedx = int((clicked.x() - 12) / 1.5)
+            clickedy = int((clicked.y() - 12) / 1.5)
+
+            if obj.objx != clickedx or obj.objy != clickedy:
+                obj.objx = clickedx
+                obj.objy = clickedy
+                obj.setPos(int(clickedx * 1.5), int(clickedy * 1.5))
+
+        return True
+
+
+    def scrollIfCursorNearEdge(self):
+        """Scroll the view if the cursor is dragging and near the edge"""
+        pos = self.mapFromGlobal(QtGui.QCursor.pos())
+
+        distFromL = pos.x()
+        distFromR = self.width() - self.YScrollBar.width() - pos.x()
+        distFromT = pos.y()
+        distFromB = self.height() - self.XScrollBar.height() - pos.y()
+
+        EDGE_PAD = 60
+        SCALE_FACTOR = 0.3
+
+        scrollDx = scrollDy = 0
+
+        if distFromL < EDGE_PAD:
+            scrollDx = -(EDGE_PAD - distFromL) * SCALE_FACTOR
+        if distFromR < EDGE_PAD:
+            scrollDx = (EDGE_PAD - distFromR) * SCALE_FACTOR
+        if distFromT < EDGE_PAD:
+            scrollDy = -(EDGE_PAD - distFromT) * SCALE_FACTOR
+        if distFromB < EDGE_PAD:
+            scrollDy = (EDGE_PAD - distFromB) * SCALE_FACTOR
+
+        if scrollDx:
+            self.XScrollBar.setValue(int(self.XScrollBar.value() + scrollDx))
+        if scrollDy:
+            self.YScrollBar.setValue(int(self.YScrollBar.value() + scrollDy))
+
+        self.updatePaintDraggedItems()
 
 
     def drawForeground(self, painter, rect):
@@ -5999,16 +6179,16 @@ class LoadingTab(QtWidgets.QWidget):
 
         self.entrance = QtWidgets.QSpinBox()
         self.entrance.setRange(0, 255)
-        self.entrance.setToolTip('<b>Entrance ID:</b><br>Sets the entrance ID to load into when loading from the World Map')
+        self.entrance.setToolTip('<b>Starting Entrance ID:</b><br>Sets the entrance ID to load into when loading from the world map.')
         self.entrance.setValue(Level.startEntrance)
 
         self.wrap = QtWidgets.QCheckBox('Wrap across Edges')
-        self.wrap.setToolTip('<b>Wrap across Edges:</b><br>Makes the stage edges wrap<br>Warning: This option may cause the game to crash or behave weirdly. Wrapping only works correctly where the area is set up in the right way; see Coin Battle 1 for an example.')
+        self.wrap.setToolTip('<b>Wrap across Edges:</b><br>Makes the stage edges wrap.<br>Warning: This option may cause the game to crash or behave weirdly. Wrapping only works correctly where the area is set up in the right way; see Coin Battle 1 for an example.')
         self.wrap.setChecked((Level.wrapFlag & 1) != 0)
 
         settingsLayout = QtWidgets.QFormLayout()
         settingsLayout.addRow('Timer:', self.timer)
-        settingsLayout.addRow('Entrance ID:', self.entrance)
+        settingsLayout.addRow('Starting Entrance ID:', self.entrance)
         settingsLayout.addRow(self.wrap)
 
         self.eventChooser = QtWidgets.QListWidget()
@@ -6134,7 +6314,7 @@ class TilesetsTab(QtWidgets.QWidget):
 
             dbox = InputBox()
             dbox.setWindowTitle('Enter a Filename')
-            dbox.label.setText('Enter the name of a custom tileset file to use. It must be placed in the game\'s Stage\\Texture folder in order for Reggie to recognise it. Do not add the ".arc" extension at the end of the filename.')
+            dbox.label.setText('Enter the name of a custom tileset file to use. It must be placed in the game\'s Stage\\Texture folder (or Tilesets folder, in Newer SMBW) in order for Reggie to recognise it. Do not add the ".arc" extension at the end of the filename.')
             dbox.textbox.setMaxLength(31)
             dbox.textbox.setText(fname)
             result = execQtObject(dbox)
@@ -6360,6 +6540,8 @@ class ZonesDialog(QtWidgets.QDialog):
         if self.tabWidget.count() > 5:
             for tab in range(0, self.tabWidget.count()):
                 self.tabWidget.setTabText(tab, str(tab + 1))
+
+        self.tabWidget.setCurrentIndex(self.tabWidget.count() - 1)
 
         #self.NewButton.setEnabled(len(self.zoneTabs) < 8)
 
@@ -7433,6 +7615,8 @@ class ReggieWindow(QtWidgets.QMainWindow):
         self.CreateAction('showlayer0', self.HandleUpdateLayer0, None, 'Layer 0', 'Toggle viewing of object layer 0', QtGui.QKeySequence('Ctrl+1'), True)
         self.CreateAction('showlayer1', self.HandleUpdateLayer1, None, 'Layer 1', 'Toggle viewing of object layer 1', QtGui.QKeySequence('Ctrl+2'), True)
         self.CreateAction('showlayer2', self.HandleUpdateLayer2, None, 'Layer 2', 'Toggle viewing of object layer 2', QtGui.QKeySequence('Ctrl+3'), True)
+        self.CreateAction('tsetslots', self.HandleTilesetSlotsMod, GetIcon('objects'), 'Tileset Slots Mod', 'Render objects with a common code mod that lets tilesets behave the same in any slot ' + unichr(0x2014) + ' only use this if your game has that mod applied', QtGui.QKeySequence('Ctrl+T'), True)
+        self.actions['tsetslots'].setChecked(TilesetSlotsModEnabled)
         self.CreateAction('grid', self.HandleShowGrid, GetIcon('grid_white' if DarkMode else 'grid'), 'Show Grid', 'Show a grid over the level view', QtGui.QKeySequence('Ctrl+G'), True)
         self.actions['grid'].setChecked(GridEnabled)
 
@@ -7529,6 +7713,8 @@ class ReggieWindow(QtWidgets.QMainWindow):
         vmenu.addAction(self.actions['showlayer0'])
         vmenu.addAction(self.actions['showlayer1'])
         vmenu.addAction(self.actions['showlayer2'])
+        vmenu.addSeparator()
+        vmenu.addAction(self.actions['tsetslots'])
         vmenu.addSeparator()
         vmenu.addAction(self.actions['grid'])
         vmenu.addSeparator()
@@ -8533,22 +8719,11 @@ class ReggieWindow(QtWidgets.QMainWindow):
         """Change the game path used"""
         if self.CheckDirty(): return
 
-        path = None
-        while not isValidGamePath(path):
-            path = QtWidgets.QFileDialog.getExistingDirectory(None, "Choose the game's Stage folder")
-            if path == '':
-                return
-
-            path = unicode(path)
-
-            if not isValidGamePath(path):
-                QtWidgets.QMessageBox.information(None, 'Error',  "This folder doesn't have all of the files from the extracted NSMBWii Stage folder.")
-            else:
-                settings.setValue('GamePath', path)
-                break
-
-        SetGamePath(path)
-        self.LoadLevelFromName('01-01', 1)
+        path = PromptUserForNewGamePath()
+        if path:
+            settings.setValue('GamePath', path)
+            SetGamePath(path)
+            self.LoadLevelFromName('01-01', 1)
 
 
     @QtCoreSlot()
@@ -8576,7 +8751,12 @@ class ReggieWindow(QtWidgets.QMainWindow):
         """Open a level using the filename"""
         if self.CheckDirty(): return
 
-        fn = qm(QtWidgets.QFileDialog.getOpenFileName)(self, 'Choose a level archive', '', LEVEL_FILE_FORMATS_FILTER_OPEN)[0]
+        if Level.hasName:
+            dirname = os.path.dirname(Level.arcname)
+        else:
+            dirname = ''
+
+        fn = qm(QtWidgets.QFileDialog.getOpenFileName)(self, 'Choose a level archive', dirname, LEVEL_FILE_FORMATS_FILTER_OPEN)[0]
         if fn == '': return
         self.LoadLevel(unicode(fn), 1)
 
@@ -8608,7 +8788,12 @@ class ReggieWindow(QtWidgets.QMainWindow):
     @QtCoreSlot()
     def HandleSaveAs(self):
         """Save a level back to the archive, with a new filename"""
-        fn = qm(QtWidgets.QFileDialog.getSaveFileName)(self, 'Choose a new filename', '', LEVEL_FILE_FORMATS_FILTER_SAVE)[0]
+        if Level.isCompressed:
+            default_filter = LEVEL_FILE_FORMATS_FILTER_ARC_LZ
+        else:
+            default_filter = LEVEL_FILE_FORMATS_FILTER_ARC
+
+        fn = qm(QtWidgets.QFileDialog.getSaveFileName)(self, 'Choose a new filename', '', LEVEL_FILE_FORMATS_FILTER_SAVE, default_filter)[0]
         if fn == '': return False
         fn = unicode(fn)
 
@@ -8686,6 +8871,23 @@ class ReggieWindow(QtWidgets.QMainWindow):
 
         for obj in Level.layers[2]:
             obj.setVisible(checked)
+
+        self.scene.update()
+
+
+    @QtCoreSlot(bool)
+    def HandleTilesetSlotsMod(self, checked):
+        """Handle toggling of the tileset-slots mod"""
+        settings.setValue('TilesetSlotsModEnabled', checked)
+
+        global TilesetSlotsModEnabled
+        TilesetSlotsModEnabled = checked
+
+        for layer in Level.layers:
+            for obj in layer:
+                obj.updateObjCache()
+
+        self.objPicker.LoadFromTilesets()
 
         self.scene.update()
 
@@ -8804,23 +9006,23 @@ class ReggieWindow(QtWidgets.QMainWindow):
 
 
     @QtCoreSlot()
-    def HandleZoomIn(self):
+    def HandleZoomIn(self, towardsCursor=False):
         """Handle zooming in"""
         z = self.ZoomLevel
         zi = self.ZoomLevels.index(z)
         zi += 1
         if zi < len(self.ZoomLevels):
-            self.ZoomTo(self.ZoomLevels[zi])
+            self.ZoomTo(self.ZoomLevels[zi], towardsCursor=towardsCursor)
 
 
     @QtCoreSlot()
-    def HandleZoomOut(self):
+    def HandleZoomOut(self, towardsCursor=False):
         """Handle zooming out"""
         z = self.ZoomLevel
         zi = self.ZoomLevels.index(z)
         zi -= 1
         if zi >= 0:
-            self.ZoomTo(self.ZoomLevels[zi])
+            self.ZoomTo(self.ZoomLevels[zi], towardsCursor=towardsCursor)
 
 
     @QtCoreSlot()
@@ -8839,13 +9041,20 @@ class ReggieWindow(QtWidgets.QMainWindow):
         self.ZoomTo(300.0)
 
 
-    def ZoomTo(self, z):
+    def ZoomTo(self, z, towardsCursor=False):
         """Zoom to a specific level"""
+        if towardsCursor:
+            self.view.setTransformationAnchor(QtWidgets.QGraphicsView.ViewportAnchor.AnchorUnderMouse)
+
         tr = QtGui.QTransform()
         tr.scale(z / 100.0, z / 100.0)
         self.ZoomLevel = z
         self.view.setTransform(tr)
         self.levelOverview.mainWindowScale = z/100.0
+
+        if towardsCursor:
+            # (reset back to original transformation anchor)
+            self.view.setTransformationAnchor(QtWidgets.QGraphicsView.ViewportAnchor.AnchorViewCenter)
 
         zi = self.ZoomLevels.index(z)
         self.actions['zoomin'].setEnabled(zi < len(self.ZoomLevels) - 1)
@@ -9513,8 +9722,9 @@ class ReggieWindow(QtWidgets.QMainWindow):
         type_loc = LocationEditorItem
         type_aux = sprites.AuxiliaryItem
         type_aux_img = sprites.AuxiliaryImage
+        type_peline = PathEditorLineItem
         for item in hovereditems:
-            if not isinstance(item, type_zone) and not isinstance(item, type_loc) and not (isinstance(item, type_aux) and not isinstance(item, type_aux_img)):
+            if not isinstance(item, type_zone) and not isinstance(item, type_loc) and not (isinstance(item, type_aux) and not isinstance(item, type_aux_img)) and not isinstance(item, type_peline):
                 hovered = item
                 break
 
@@ -9879,10 +10089,11 @@ def main():
     if '-clear-settings' in sys.argv:
         settings.clear()
 
-    global EnableAlpha, GridEnabled, DarkMode
+    global EnableAlpha, GridEnabled, TilesetSlotsModEnabled, DarkMode
     global ObjectsNonFrozen, SpritesNonFrozen, EntrancesNonFrozen, LocationsNonFrozen, PathsNonFrozen
 
     # note: the str().lower() is for macOS, where bools in settings aren't automatically stringified
+    TilesetSlotsModEnabled = (str(qm(settings.value('TilesetSlotsModEnabled', 'false'))).lower() == 'true')
     GridEnabled = (str(qm(settings.value('GridEnabled', 'false'))).lower() == 'true')
     DarkMode = (str(qm(settings.value('DarkMode', 'false'))).lower() == 'true')
     ObjectsNonFrozen = (str(qm(settings.value('FreezeObjects', 'false'))).lower() == 'false')
@@ -9892,7 +10103,7 @@ def main():
     LocationsNonFrozen = (str(qm(settings.value('FreezeLocations', 'false'))).lower() == 'false')
 
     if DarkMode:
-        setupDarkMode()
+        setUpDarkMode()
 
     for arg in sys.argv:
         if arg.startswith('-gamepath='):
@@ -9904,17 +10115,15 @@ def main():
 
     # choose a folder for the game
     # let the user pick a folder without restarting the editor if they fail
-    while not isValidGamePath():
-        path = QtWidgets.QFileDialog.getExistingDirectory(None, "Choose the game's Stage folder")
-        if path == '':
+    if not gamePath:
+        path = PromptUserForNewGamePath()
+
+        if not path:
+            QtWidgets.QMessageBox.critical(None, 'Error',  "In order to use Reggie!, you need the Stage folder from <i>New Super Mario Bros. Wii</i>, including the Texture folder and the level files contained within it. You can dump it from your disc using a tool such as <a href='https://www.wiibrew.org/wiki/Reggie!_Dumper'>Reggie! Dumper</a> or <a href='https://www.wiibrew.org/wiki/CleanRip'>CleanRip</a>.")
             sys.exit(0)
 
+        settings.setValue('GamePath', path)
         SetGamePath(path)
-        if not isValidGamePath():
-            QtWidgets.QMessageBox.information(None, 'Error',  "This folder doesn't seem to have the required files. In order to use Reggie, you need the Stage folder from the game, including the Texture folder and the level files contained within it.")
-        else:
-            settings.setValue('GamePath', gamePath)
-            break
 
     # check to see if we have anything saved
     autofile = unicode(qm(settings.value('AutoSaveFilePath', 'none')))
