@@ -100,6 +100,22 @@ See the license file in the distribution for information.
 Changelog
 =========
 
+Reggie-Updated 2022.06.24.0:
+----------------------------
+- To improve the experience when working with Newer SMBW and its derivatives,
+  Reggie now accepts a "Tilesets" folder next to the Stage folder as a
+  substitute for a Texture folder within it.
+- You can now decide to select game paths detected as invalid if you want to.
+  (An example legitimate use for this would be when a work-in-progress mod
+  doesn't yet have a 1-1.)
+- "Entrance ID" in Area Settings has been renamed to "Starting Entrance ID" to
+  make its meaning more obvious.
+- The "Open Level by File..." dialog now always defaults to the folder
+  containing the level that's currently open.
+- Adding a new zone in the Zones dialog now also selects its tab automatically.
+- Other smaller changes and bugfixes.
+
+
 Reggie-Updated 2021.12.04.0:
 ----------------------------
 - New feature in the View menu: "Tileset Slots Mod" -- simulates Newer's code
