@@ -279,9 +279,6 @@ args = [
     '--workpath=' + WORKPATH,
 ]
 
-if config.USE_PYQT:
-    args.append('--windowed')
-
 args.append(SPECFILE)
 
 run_pyinstaller(args)
