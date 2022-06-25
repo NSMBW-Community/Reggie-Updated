@@ -209,6 +209,24 @@ def isValidGamePath(check='ug'):
     return True
 
 
+def PromptUserForNewGamePath():
+    """Repeatedly prompt the user until they select a game path or cancel"""
+    path = None
+    while True:
+        path = QtWidgets.QFileDialog.getExistingDirectory(None, "Choose the game's Stage folder")
+        if not path:
+            return None
+
+        path = unicode(path)
+
+        if isValidGamePath(path):
+            return path
+        else:
+            result = QtWidgets.QMessageBox.warning(None, 'Warning',  "This folder doesn't have all of the files from the extracted <i>New Super Mario Bros. Wii</i> Stage folder. You've probably selected the wrong folder.<br><br>Are you sure you want to choose this folder?", QtWidgets.QMessageBox.StandardButton.Yes | QtWidgets.QMessageBox.StandardButton.Cancel)
+            if result == QtWidgets.QMessageBox.StandardButton.Yes:
+                return path
+
+
 def setUpDarkMode():
     """Sets up dark mode theming"""
     # Taken from https://gist.github.com/QuantumCD/6245215
@@ -8676,22 +8694,11 @@ class ReggieWindow(QtWidgets.QMainWindow):
         """Change the game path used"""
         if self.CheckDirty(): return
 
-        path = None
-        while not isValidGamePath(path):
-            path = QtWidgets.QFileDialog.getExistingDirectory(None, "Choose the game's Stage folder")
-            if path == '':
-                return
-
-            path = unicode(path)
-
-            if not isValidGamePath(path):
-                QtWidgets.QMessageBox.information(None, 'Error',  "This folder doesn't have all of the files from the extracted NSMBWii Stage folder.")
-            else:
-                settings.setValue('GamePath', path)
-                break
-
-        SetGamePath(path)
-        self.LoadLevelFromName('01-01', 1)
+        path = PromptUserForNewGamePath()
+        if path:
+            settings.setValue('GamePath', path)
+            SetGamePath(path)
+            self.LoadLevelFromName('01-01', 1)
 
 
     @QtCoreSlot()
@@ -10080,17 +10087,15 @@ def main():
 
     # choose a folder for the game
     # let the user pick a folder without restarting the editor if they fail
-    while not isValidGamePath():
-        path = QtWidgets.QFileDialog.getExistingDirectory(None, "Choose the game's Stage folder")
-        if path == '':
+    if not gamePath:
+        path = PromptUserForNewGamePath()
+
+        if not path:
+            QtWidgets.QMessageBox.critical(None, 'Error',  "In order to use Reggie!, you need the Stage folder from <i>New Super Mario Bros. Wii</i>, including the Texture folder and the level files contained within it. You can dump it from your disc using a tool such as <a href='https://www.wiibrew.org/wiki/Reggie!_Dumper'>Reggie! Dumper</a> or <a href='https://www.wiibrew.org/wiki/CleanRip'>CleanRip</a>.")
             sys.exit(0)
 
+        settings.setValue('GamePath', path)
         SetGamePath(path)
-        if not isValidGamePath():
-            QtWidgets.QMessageBox.information(None, 'Error',  "This folder doesn't seem to have the required files. In order to use Reggie, you need the Stage folder from the game, including the Texture folder and the level files contained within it.")
-        else:
-            settings.setValue('GamePath', gamePath)
-            break
 
     # check to see if we have anything saved
     autofile = unicode(qm(settings.value('AutoSaveFilePath', 'none')))
