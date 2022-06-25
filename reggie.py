@@ -203,7 +203,7 @@ def isValidGamePath(check='ug'):
 
     if check is None or check == '': return False
     if not os.path.isdir(check): return False
-    if not os.path.isdir(os.path.join(check, 'Texture')): return False
+    if not (os.path.isdir(os.path.join(check, 'Texture')) or os.path.isdir(os.path.join(check, '../Tilesets'))): return False
     if not (os.path.isfile(os.path.join(check, '01-01.arc')) or os.path.isfile(os.path.join(check, '01-01.arc.LZ'))): return False
 
     return True
@@ -1074,7 +1074,7 @@ def LoadTileset(idx, name):
     try:
         return _LoadTileset(idx, name)
     except:
-        QtWidgets.QMessageBox.warning(None, 'Error',  'An error occurred while trying to load %s.arc. Check your Texture folder to make sure it is complete and not corrupted. The editor may run in a broken state or crash after this.' % name)
+        QtWidgets.QMessageBox.warning(None, 'Error',  'An error occurred while trying to load %s.arc. Check your Texture or Tilesets folder to make sure it is complete and not corrupted. The editor may run in a broken state or crash after this.' % name)
         return False
 
 
@@ -1084,7 +1084,10 @@ def _LoadTileset(idx, name):
     arcname = os.path.join(gamePath, 'Texture', name+'.arc')
 
     if not os.path.isfile(arcname):
-        QtWidgets.QMessageBox.warning(None, 'Error',  'Cannot find the required tileset file %s.arc for this level. Check your Texture folder and make sure it contains the required file.' % name)
+        arcname = os.path.join(gamePath, '../Tilesets', name+'.arc')
+
+    if not os.path.isfile(arcname):
+        QtWidgets.QMessageBox.warning(None, 'Error',  'Cannot find the required tileset file %s.arc for this level. Check your Texture or Tilesets folder and make sure it contains the required file.' % name)
         return False
 
     with open(arcname, 'rb') as arcf:
@@ -6310,7 +6313,7 @@ class TilesetsTab(QtWidgets.QWidget):
 
             dbox = InputBox()
             dbox.setWindowTitle('Enter a Filename')
-            dbox.label.setText('Enter the name of a custom tileset file to use. It must be placed in the game\'s Stage\\Texture folder in order for Reggie to recognise it. Do not add the ".arc" extension at the end of the filename.')
+            dbox.label.setText('Enter the name of a custom tileset file to use. It must be placed in the game\'s Stage\\Texture folder (or Tilesets folder, in Newer SMBW) in order for Reggie to recognise it. Do not add the ".arc" extension at the end of the filename.')
             dbox.textbox.setMaxLength(31)
             dbox.textbox.setText(fname)
             result = execQtObject(dbox)
