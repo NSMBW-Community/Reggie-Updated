@@ -20,6 +20,8 @@ import build_release_config as config
 ################################# Intro ################################
 ########################################################################
 
+os.chdir(os.path.dirname(__file__))
+
 DIR = 'distrib'
 WORKPATH = 'build_temp'
 SPECFILE = config.SCRIPT_FILE[:-3] + '.spec'
