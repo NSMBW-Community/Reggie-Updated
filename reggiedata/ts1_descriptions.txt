@@ -95,5 +95,5 @@
 94=Mini Pipe Joint
 95=Closed Door
 96=Invisible Deadly Tile (hurts when touched)
-97=Multiplayer-only Coin Outline (invisible in single player)
+97=Coin-Battle-only Coin Outline (invisible in all other modes)
 98=Brick block containing nothing (turns into a used item block when hit)
