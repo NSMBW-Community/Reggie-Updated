@@ -1512,6 +1512,11 @@ CurrentLayer = 1
 ShowLayer0 = True
 ShowLayer1 = True
 ShowLayer2 = True
+ShowSprites = True
+ShowSpriteImages = True
+ShowEntrances = True
+ShowLocations = True
+ShowPaths = True
 TilesetSlotsModEnabled = False
 ObjectsNonFrozen = True
 SpritesNonFrozen = True
@@ -2869,6 +2874,7 @@ class LocationEditorItem(LevelEditorItem):
 
         self.dragging = False
         self.setZValue(24000)
+        self.setVisible(ShowLocations)
 
 
     def UpdateTitle(self):
@@ -3016,6 +3022,8 @@ class SpriteEditorItem(LevelEditorItem):
         self.name = sname
         self.setToolTip('<b>Sprite %d:</b><br>%s' % (type,sname))
 
+        self.setVisible(ShowSprites)
+
     def SetType(self, type):
         """Sets the type of the sprite"""
         self.name = Sprites[type].name if type < len(Sprites) else 'UNKNOWN'
@@ -3047,11 +3055,9 @@ class SpriteEditorItem(LevelEditorItem):
         self.dynamicSize = False
         self.customPaint = False
 
-        try:
+        if ShowSpriteImages and type in sprites.Initialisers:
             init = sprites.Initialisers[type]
             xo, yo, xs, ys = init(self)
-        except KeyError:
-            pass
 
         self.xoffset = xo
         self.yoffset = yo
@@ -3254,6 +3260,7 @@ class EntranceEditorItem(LevelEditorItem):
         self.setZValue(25001)
         self.UpdateTooltip()
         self.UpdateRects()
+        self.setVisible(ShowEntrances)
 
     def itemChange(self, change, value):
         """Makes sure positions don't go out of bounds and updates them as necessary"""
@@ -3423,6 +3430,7 @@ class PathEditorItem(LevelEditorItem):
 
         self.setZValue(25003)
         self.UpdateTooltip()
+        self.setVisible(ShowPaths)
 
         # now that we're inited, set
         self.nodeinfo['graphicsitem'] = self
@@ -3524,6 +3532,7 @@ class PathEditorLineItem(LevelEditorItem):
         self.computeBoundRectAndPos()
         self.setZValue(25002)
         self.UpdateTooltip()
+        self.setVisible(ShowPaths)
 
     def itemChange(self, change, value):
         """Avoids snapping for path lines"""
@@ -7593,6 +7602,11 @@ class ReggieWindow(QtWidgets.QMainWindow):
         self.CreateAction('showlayer0', self.HandleUpdateLayer0, None, 'Layer 0', 'Toggle viewing of object layer 0', QtGui.QKeySequence('Ctrl+1'), True)
         self.CreateAction('showlayer1', self.HandleUpdateLayer1, None, 'Layer 1', 'Toggle viewing of object layer 1', QtGui.QKeySequence('Ctrl+2'), True)
         self.CreateAction('showlayer2', self.HandleUpdateLayer2, None, 'Layer 2', 'Toggle viewing of object layer 2', QtGui.QKeySequence('Ctrl+3'), True)
+        self.CreateAction('showsprites', self.HandleUpdateSprites, None, 'Sprites', 'Toggle viewing of sprites', QtGui.QKeySequence('Ctrl+4'), True)
+        self.CreateAction('showspriteimages', self.HandleUpdateSpriteImages, None, 'Sprite Images', 'Toggle viewing of sprite images', QtGui.QKeySequence('Ctrl+5'), True)
+        self.CreateAction('showentrances', self.HandleUpdateEntrances, None, 'Entrances', 'Toggle viewing of entrances', QtGui.QKeySequence('Ctrl+6'), True)
+        self.CreateAction('showlocations', self.HandleUpdateLocations, None, 'Locations', 'Toggle viewing of locations', QtGui.QKeySequence('Ctrl+7'), True)
+        self.CreateAction('showpaths', self.HandleUpdatePaths, None, 'Paths', 'Toggle viewing of paths', QtGui.QKeySequence('Ctrl+8'), True)
         self.CreateAction('tsetslots', self.HandleTilesetSlotsMod, GetIcon('objects'), 'Tileset Slots Mod', 'Render objects with a common code mod that lets tilesets behave the same in any slot ' + unichr(0x2014) + ' only use this if your game has that mod applied', QtGui.QKeySequence('Ctrl+T'), True)
         self.actions['tsetslots'].setChecked(TilesetSlotsModEnabled)
         self.CreateAction('grid', self.HandleShowGrid, GetIcon('grid_white' if DarkMode else 'grid'), 'Show Grid', 'Show a grid over the level view', QtGui.QKeySequence('Ctrl+G'), True)
@@ -7691,6 +7705,11 @@ class ReggieWindow(QtWidgets.QMainWindow):
         vmenu.addAction(self.actions['showlayer0'])
         vmenu.addAction(self.actions['showlayer1'])
         vmenu.addAction(self.actions['showlayer2'])
+        vmenu.addAction(self.actions['showsprites'])
+        vmenu.addAction(self.actions['showspriteimages'])
+        vmenu.addAction(self.actions['showentrances'])
+        vmenu.addAction(self.actions['showlocations'])
+        vmenu.addAction(self.actions['showpaths'])
         vmenu.addSeparator()
         vmenu.addAction(self.actions['tsetslots'])
         vmenu.addSeparator()
@@ -8854,6 +8873,69 @@ class ReggieWindow(QtWidgets.QMainWindow):
 
 
     @QtCoreSlot(bool)
+    def HandleUpdateSprites(self, checked):
+        """Handle toggling of sprites being showed"""
+        global ShowSprites
+        ShowSprites = checked
+
+        for spr in Level.sprites:
+            spr.setVisible(checked)
+
+        self.scene.update()
+
+
+    @QtCoreSlot(bool)
+    def HandleUpdateSpriteImages(self, checked):
+        """Handle toggling of sprite images being showed"""
+        global ShowSpriteImages
+        ShowSpriteImages = checked
+
+        for spr in Level.sprites:
+            spr.InitialiseSprite()
+
+        self.scene.update()
+
+
+    @QtCoreSlot(bool)
+    def HandleUpdateEntrances(self, checked):
+        """Handle toggling of entrances being showed"""
+        global ShowEntrances
+        ShowEntrances = checked
+
+        for ent in Level.entrances:
+            ent.setVisible(checked)
+
+        self.scene.update()
+
+
+    @QtCoreSlot(bool)
+    def HandleUpdateLocations(self, checked):
+        """Handle toggling of locations being showed"""
+        global ShowLocations
+        ShowLocations = checked
+
+        for loc in Level.locations:
+            loc.setVisible(checked)
+
+        self.scene.update()
+
+
+    @QtCoreSlot(bool)
+    def HandleUpdatePaths(self, checked):
+        """Handle toggling of paths being showed"""
+        global ShowPaths
+        ShowPaths = checked
+
+        for node in Level.paths:
+            node.setVisible(checked)
+
+        for path in Level.pathdata:
+            path['peline'].setVisible(checked)
+
+        self.scene.update()
+
+
+    @QtCoreSlot(bool)
     def HandleTilesetSlotsMod(self, checked):
         """Handle toggling of the tileset-slots mod"""
         settings.setValue('TilesetSlotsModEnabled', checked)
@@ -9143,10 +9225,19 @@ class ReggieWindow(QtWidgets.QMainWindow):
         # reset these here, because if the showlayer variables are set
         # after creating the objects, it uses the old values
         global CurrentLayer, ShowLayer0, ShowLayer1, ShowLayer2
+        global ShowSprites, ShowSpriteImages
+        global ShowEntrances
+        global ShowLocations
+        global ShowPaths
         CurrentLayer = 1
         ShowLayer0 = True
         ShowLayer1 = True
         ShowLayer2 = True
+        ShowSprites = True
+        ShowSpriteImages = True
+        ShowEntrances = True
+        ShowLocations = True
+        ShowPaths = True
 
 
         # track progress.. but we'll only do this if we don't have
@@ -9287,6 +9378,11 @@ class ReggieWindow(QtWidgets.QMainWindow):
         self.actions['showlayer0'].setChecked(True)
         self.actions['showlayer1'].setChecked(True)
         self.actions['showlayer2'].setChecked(True)
+        self.actions['showsprites'].setChecked(True)
+        self.actions['showspriteimages'].setChecked(True)
+        self.actions['showentrances'].setChecked(True)
+        self.actions['showlocations'].setChecked(True)
+        self.actions['showpaths'].setChecked(True)
         self.actions['addarea'].setEnabled(Level.areacount < 4)
         self.actions['importarea'].setEnabled(Level.areacount < 4)
         self.actions['deletearea'].setEnabled(Level.areacount > 1)
