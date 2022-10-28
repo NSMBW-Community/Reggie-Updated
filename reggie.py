@@ -7585,7 +7585,7 @@ class ReggieWindow(QtWidgets.QMainWindow):
         self.CreateAction('openfromname', self.HandleOpenFromName, GetIcon('open'), 'Open Level by Name...', 'Open a level based on its in-game world/number', QtGui.QKeySequence.StandardKey.Open)
         self.CreateAction('openfromfile', self.HandleOpenFromFile, GetIcon('openfromfile'), 'Open Level by File...', 'Open a level based on its filename', QtGui.QKeySequence('Ctrl+Shift+O'))
         self.CreateAction('save', self.HandleSave, GetIcon('save'), 'Save Level', 'Save a level back to the archive file', QtGui.QKeySequence.StandardKey.Save)
-        self.CreateAction('saveas', self.HandleSaveAs, GetIcon('saveas'), 'Save Level As...', 'Save a level with a new filename', QtGui.QKeySequence.StandardKey.SaveAs)
+        self.CreateAction('saveas', self.HandleSaveAs, GetIcon('saveas'), 'Save Level As...', 'Save a level with a new filename', QtGui.QKeySequence('Ctrl+Shift+S'))
         self.CreateAction('screenshot', self.HandleScreenshot, GetIcon('screenshot'), 'Level Screenshot...', 'Takes a full size screenshot of your level for you to share.', QtGui.QKeySequence('Ctrl+Alt+3'))
         self.CreateAction('changegamepath', self.HandleChangeGamePath, None, 'Change Game Path...', 'Set a different folder to load the game files from', QtGui.QKeySequence('Ctrl+Alt+G'))
         self.CreateAction('exit', self.HandleExit, None, 'Exit Reggie!', 'Exit the editor', QtGui.QKeySequence.StandardKey.Quit)
@@ -7636,7 +7636,7 @@ class ReggieWindow(QtWidgets.QMainWindow):
         self.CreateAction('cut', self.Cut, GetIcon('cut'), 'Cut', 'Cut out the current selection to the clipboard', QtGui.QKeySequence.StandardKey.Cut)
         self.CreateAction('copy', self.Copy, GetIcon('copy'), 'Copy', 'Copies the current selection to the clipboard', QtGui.QKeySequence.StandardKey.Copy)
         self.CreateAction('paste', self.Paste, GetIcon('paste'), 'Paste', 'Pastes the current selection from the clipboard', QtGui.QKeySequence.StandardKey.Paste)
-        self.CreateAction('shiftobjects', self.ShiftObjects, None, 'Shift Objects...', 'Moves all the selected objects by an offset', QtGui.QKeySequence('Ctrl+Shift+S'))
+        self.CreateAction('shiftobjects', self.ShiftObjects, None, 'Shift Objects...', 'Moves all the selected objects by an offset', QtGui.QKeySequence('Ctrl+Alt+Shift+S'))
         self.CreateAction('mergelocations', self.MergeLocations, None, 'Merge Locations', 'Merges selected locations into a single large box', QtGui.QKeySequence('Ctrl+Shift+E'))
 
         self.actions['cut'].setEnabled(False)
