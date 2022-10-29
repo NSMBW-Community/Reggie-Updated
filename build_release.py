@@ -20,7 +20,7 @@ import build_release_config as config
 ################################# Intro ################################
 ########################################################################
 
-os.chdir(os.path.dirname(__file__))
+os.chdir(os.path.dirname(os.path.abspath(__file__)))
 
 DIR = 'distrib'
 WORKPATH = 'build_temp'
