@@ -101,8 +101,6 @@ excludes = ['calendar', 'datetime', 'difflib', 'doctest', 'inspect',
 
 if config.EXCLUDE_HASHLIB:
     excludes.append('hashlib')
-if config.EXCLUDE_LOCALE:
-    excludes.append('locale')
 
 if sys.platform == 'nt':
     excludes.append('posixpath')
