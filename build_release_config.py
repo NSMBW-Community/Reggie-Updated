@@ -22,7 +22,6 @@ USE_PYQT = True
 USE_NSMBLIB = True
 
 EXCLUDE_HASHLIB = True
-EXCLUDE_LOCALE = True
 
 # macOS only
 AUTO_APP_BUNDLE_NAME = SCRIPT_FILE.split('.')[0] + '.app'
