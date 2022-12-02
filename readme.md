@@ -19,7 +19,7 @@ some stability and simplicity), consider
 [Reggie! Next](https://github.com/CLF78/Reggie-Next), another Reggie! fork with
 somewhat different project goals.
 
-Original Reggie! Homepage: http://www.rvlution.net/reggie/
+Original Reggie! Homepage: https://riivolution.github.io/reggie/
 
 
 Requirements
