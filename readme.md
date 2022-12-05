@@ -16,8 +16,8 @@ tested first.
 
 If you want a NSMBW level editor with more features (possibly at the expense of
 some stability and simplicity), consider
-[Reggie! Next](https://github.com/CLF78/Reggie-Next), another Reggie! fork with
-somewhat different project goals.
+[Reggie! Next](https://github.com/NSMBW-Community/Reggie-Next), another Reggie!
+fork with somewhat different project goals.
 
 Original Reggie! Homepage: https://riivolution.github.io/reggie/
 
