@@ -35,9 +35,9 @@ jobs:
 
     steps:
     - name: Checkout repository
-      uses: actions/checkout@v2
+      uses: actions/checkout@v3
     - name: Set up Python
-      uses: actions/setup-python@v2
+      uses: actions/setup-python@v4
       with:
         python-version: ${{ matrix.python-version }}
         architecture: ${{ matrix.arch }}
@@ -62,13 +62,13 @@ jobs:
         cd ..
     - name: Upload artifacts (Windows)
       if: ${{ runner.os == 'Windows' }}
-      uses: actions/upload-artifact@v2
+      uses: actions/upload-artifact@v3
       with:
         name: build-${{ matrix.platform }}-${{ matrix.arch }}-${{ matrix.python-version }}
         path: distrib/*
     - name: Upload artifacts (macOS/Linux)
       if: ${{ runner.os == 'macOS' || runner.os == 'Linux' }}
-      uses: actions/upload-artifact@v2
+      uses: actions/upload-artifact@v3
       with:
         name: build-${{ matrix.platform }}-${{ matrix.arch }}
         path: build-${{ matrix.platform }}.tar.gz
