@@ -50,6 +50,10 @@ jobs:
     - name: Install dependencies (Linux)
       if: ${{ runner.os == 'Linux' }}
       run: |
+        sudo add-apt-repository main
+        sudo add-apt-repository universe
+        sudo add-apt-repository restricted
+        sudo add-apt-repository multiverse
         sudo apt update
         sudo apt install -y qt6-base libxkbcommon-x11-0 libxcomposite1  # https://github.com/pyinstaller/pyinstaller/issues/4970#issuecomment-670845012
     - name: Configure PyQt5 build
