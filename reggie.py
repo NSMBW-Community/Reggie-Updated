@@ -4478,7 +4478,7 @@ class EntranceEditorWidget(QtWidgets.QWidget):
         self.forwardPipeCheckbox.clicked.connect(self.HandleForwardPipeClicked)
 
         self.connectedPipeCheckbox = QtWidgets.QCheckBox('Connected Pipe')
-        self.connectedPipeCheckbox.setToolTip("<b>Connected Pipe:</b><br>This box allows you to enable an unused/broken feature in the game. It allows the pipe to function like the pipes in SMB3 where Mario simply goes through the pipe. It doesn't work correctly in NSMBW, but it's been fixed in Newer SMBW.")
+        self.connectedPipeCheckbox.setToolTip("<b>Connected Pipe:</b><br>This box allows you to enable an unused/broken feature in the game. It allows the pipe to function like the pipes in SMB3 where Mario simply goes through the pipe. It doesn't work correctly in NSMBW, but it's been fixed in Newer SMBW and some other mods.")
         self.connectedPipeCheckbox.clicked.connect(self.HandleConnectedPipeClicked)
 
         self.pathID = QtWidgets.QSpinBox()
@@ -4492,7 +4492,7 @@ class EntranceEditorWidget(QtWidgets.QWidget):
 
         self.connectedPipeDirection = QtWidgets.QComboBox()
         self.connectedPipeDirection.addItems(['Up', 'Down', 'Left', 'Right'])
-        self.connectedPipeDirection.setToolTip('<b>Direction of Other Side:</b><br>Sets the direction the player will exit out of the other side of the connected pipe. (This should match the "Type" setting for the other entrance.)')
+        self.connectedPipeDirection.setToolTip('<b>Direction of Other Side (Newer SMBW):</b><br>Sets the direction the player will exit out of the other side of the connected pipe. (This should match the other entrance\'s "Type" setting.)<br><br>This is a custom setting invented by Newer SMBW. NSMBW just uses the other entrance\'s "Type" setting directly.')
         self.connectedPipeDirection.activated.connect(self.HandleConnectedPipeDirectionChanged)
 
         # create a layout
@@ -4536,7 +4536,7 @@ class EntranceEditorWidget(QtWidgets.QWidget):
         cpLayout.addWidget(QtWidgets.QLabel('Path ID:'), 0, 0, 1, 1, QtCore.Qt.AlignmentFlag.AlignRight)
         cpLayout.addWidget(self.pathID, 0, 1)
         cpLayout.addWidget(self.connectedPipeReverseCheckbox, 0, 2, 1, 2, QtCore.Qt.AlignmentFlag.AlignRight)
-        cpLayout.addWidget(QtWidgets.QLabel('Direction of Other Side:'), 1, 0, 1, 3, QtCore.Qt.AlignmentFlag.AlignRight)
+        cpLayout.addWidget(QtWidgets.QLabel('Direction of Other Side (Newer SMBW):'), 1, 0, 1, 3, QtCore.Qt.AlignmentFlag.AlignRight)
         cpLayout.addWidget(self.connectedPipeDirection, 1, 3)
 
         self.ent = None
