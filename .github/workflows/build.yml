@@ -54,8 +54,9 @@ jobs:
         sudo add-apt-repository universe
         sudo add-apt-repository restricted
         sudo add-apt-repository multiverse
-        sudo apt update
-        sudo apt install -y qt6-base libxkbcommon-x11-0 libxcomposite1  # https://github.com/pyinstaller/pyinstaller/issues/4970#issuecomment-670845012
+        sudo apt-get update
+        sudo apt-cache search qt6
+        sudo apt-get install -y qt6-base libxkbcommon-x11-0 libxcomposite1  # https://github.com/pyinstaller/pyinstaller/issues/4970#issuecomment-670845012
     - name: Configure PyQt5 build
       if: ${{ matrix.pyqt-version == 5 }}
       shell: bash
