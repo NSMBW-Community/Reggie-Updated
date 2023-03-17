@@ -102,7 +102,7 @@ Changelog
 
 Reggie-Updated 2023.03.17.0:
 ----------------------------
-- Added "Show <Item>" toggles to the View menu for sprites, sprite images,
+- Added "Show (Item)" toggles to the View menu for sprites, sprite images,
   entrances, locations, and paths.
 - Added a full-screen mode.
 - Changed the keyboard shortcut for "Save As" to Ctrl+Shift+S. Since "Shift
