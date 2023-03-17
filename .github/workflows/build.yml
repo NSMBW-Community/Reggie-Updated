@@ -51,7 +51,8 @@ jobs:
     - name: Install dependencies (Linux)
       if: ${{ runner.os == 'Linux' }}
       run: |
-        sudo apt-get install -y libxkbcommon-x11-0 libxcomposite1
+        sudo apt-get update
+        sudo apt-get install -y libxkbcommon-x11-0 libxcomposite1 libxcb-cursor0
     - name: Install Qt
       if: ${{ runner.os == 'Linux' }}
       uses: jurplel/install-qt-action@v3
