@@ -100,6 +100,18 @@ See the license file in the distribution for information.
 Changelog
 =========
 
+Reggie-Updated 2023.03.17.0:
+----------------------------
+- Added "Show <Item>" toggles to the View menu for sprites, sprite images,
+  entrances, locations, and paths.
+- Added a full-screen mode.
+- Changed the keyboard shortcut for "Save As" to Ctrl+Shift+S. Since "Shift
+  Objects" was already using that, it was changed to Ctrl+Alt+Shift+S.
+- Improved the wording of some strings about Connected Pipes, now that Newer's
+  patches for that feature are better understood.
+- Other smaller changes and bugfixes.
+
+
 Reggie-Updated 2022.06.24.0:
 ----------------------------
 - To improve the experience when working with Newer SMBW and its derivatives,
