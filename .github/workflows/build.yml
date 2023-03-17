@@ -47,6 +47,22 @@ jobs:
         python -m pip install --upgrade pip
         python -m pip install wheel
         python -m pip install PyQt${{ matrix.pyqt-version }} nsmblib PyInstaller
+
+    # ================
+    # Get shared libraries needed for PyQt on Linux
+    # https://github.com/pyinstaller/pyinstaller/issues/4970#issuecomment-670845012
+    - name: Install dependencies (Linux)
+      if: ${{ runner.os == 'Linux' }}
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y libxkbcommon-x11-0 libxcomposite1 libxcb-cursor0
+    - name: Install Qt
+      if: ${{ runner.os == 'Linux' }}
+      uses: jurplel/install-qt-action@v3
+      with:
+        version: '${{ matrix.pyqt-version }}.*'
+    # ================
+
     - name: Configure PyQt5 build
       if: ${{ matrix.pyqt-version == 5 }}
       shell: bash
