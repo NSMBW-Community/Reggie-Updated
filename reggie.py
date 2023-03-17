@@ -7615,6 +7615,13 @@ class ReggieWindow(QtWidgets.QMainWindow):
         self.CreateAction('darkmode', self.HandleDarkMode, GetIcon('darkmode'), 'Dark Mode', 'Turn dark mode on or off', None, True)
         self.actions['darkmode'].setChecked(DarkMode)
 
+        if hasattr(QtGui.QKeySequence.StandardKey, 'FullScreen'):
+            # On my system, this is Ctrl+Shift+F on Qt 5 and F11 on Qt 6
+            shortcut = QtGui.QKeySequence.StandardKey.FullScreen
+        else:  # Qt 4
+            shortcut = QtGui.QKeySequence('F11')
+        self.CreateAction('fullscreen', self.HandleFullScreenMode, None, 'Full Screen', 'Turn full-screen mode on or off', shortcut, True)
+
         self.CreateAction('freezeobjects', self.HandleObjectsFreeze, None, 'Freeze Objects', 'Make objects non-selectable', QtGui.QKeySequence('Ctrl+Shift+1'), True)
         self.actions['freezeobjects'].setChecked(not ObjectsNonFrozen)
         self.CreateAction('freezesprites', self.HandleSpritesFreeze, None, 'Freeze Sprites', 'Make sprites non-selectable', QtGui.QKeySequence('Ctrl+Shift+2'), True)
@@ -7722,6 +7729,7 @@ class ReggieWindow(QtWidgets.QMainWindow):
         vmenu.addAction(self.actions['zoommin'])
         vmenu.addSeparator()
         vmenu.addAction(self.actions['darkmode'])
+        vmenu.addAction(self.actions['fullscreen'])
         vmenu.addSeparator()
         # self.levelOverviewDock.toggleViewAction() is added here later
         # so we assign it to self.vmenu
@@ -9063,6 +9071,21 @@ class ReggieWindow(QtWidgets.QMainWindow):
 
         if checked != DarkMode:
             QtWidgets.QMessageBox.information(None, 'Dark Mode', 'This change will take effect when you restart Reggie!.')
+
+
+    @QtCoreSlot(bool)
+    def HandleFullScreenMode(self, checked):
+        """Handle toggling of full-screen mode"""
+        if self.isFullScreen():
+            if self.wasMaximized:
+                self.showMaximized()
+            else:
+                self.showNormal()
+        else:
+            self.wasMaximized = self.isMaximized()
+            self.showFullScreen()
+            shortcut = str(self.actions['fullscreen'].shortcut().toString())
+            self.statusBar().showMessage('Press %s to exit full-screen mode.' % shortcut, 6000)
 
 
     @QtCoreSlot()
