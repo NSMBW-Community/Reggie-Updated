@@ -2902,6 +2902,7 @@ class LocationEditorItem(LevelEditorItem):
         # We basically make a vertically-flipped "L" shape if the location
         # is small, so that you can click on the ID number to select the location
         qpp = QtGui.QPainterPath()
+        qpp.setFillRule(QtCore.Qt.FillRule.WindingFill)
         qpp.addRect(self.BoundingRectWithoutTitleRect)
         qpp.addRect(self.TitleRect)
         return qpp
